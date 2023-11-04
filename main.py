@@ -7,7 +7,6 @@ intents.messages = True
 intents.message_content = True
 
 logging_channel_id = 1154038613974192168
-# Create an instance of the bot
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 activity_info = "QUPR Systems!"
@@ -36,8 +35,6 @@ def load_warnings():
     pass
   return warnings
 
-
-# Save warnings to the file
 def save_warnings(warnings):
   with open('warnings.txt', 'w') as file:
     for user_id, warnings_list in warnings.items():
@@ -65,7 +62,6 @@ async def kick(ctx,
     logging_channel = bot.get_channel(logging_channel_id)
 
     if logging_channel:
-      # Send a log message in the logging channel
       log_embed = discord.Embed(
           title='User Kicked',
           description=
@@ -88,7 +84,6 @@ async def ban(ctx,
               member: discord.Member,
               *,
               reason: str = "No reason provided"):
-  # Check if the user has one of the high-rank roles
   if any(role.id in high_rank_role_ids for role in ctx.author.roles):
     await member.send(f'You have been banned from the server for: {reason}')
     await member.ban(reason=reason)
@@ -96,7 +91,6 @@ async def ban(ctx,
     logging_channel = bot.get_channel(logging_channel_id)
 
     if logging_channel:
-      # Send a log message in the logging channel
       log_embed = discord.Embed(
           title='User Banned',
           description=
@@ -115,7 +109,6 @@ async def ban(ctx,
 
 @bot.command()
 async def warn(ctx, member: discord.Member, *, reason: str):
-  # Check if the user has one of the high-rank roles
   if any(role.id in high_rank_role_ids for role in ctx.author.roles):
     # Add warning to the dictionary
     if member.id not in warnings:
@@ -123,13 +116,10 @@ async def warn(ctx, member: discord.Member, *, reason: str):
     warnings[member.id].append(reason)
     save_warnings(warnings)
 
-    # Send a warning message as an embed in the current channel
     embed = discord.Embed(title='User Warning',
                           description=f'Warned {member.mention} for: {reason}',
                           color=discord.Color.red())
     await ctx.send(embed=embed)
-
-    # Send a direct message to the warned user
     try:
       dm_embed = discord.Embed(
           title='You Have Been Warned',
@@ -142,7 +132,6 @@ async def warn(ctx, member: discord.Member, *, reason: str):
     logging_channel = bot.get_channel(logging_channel_id)
 
     if logging_channel:
-      # Send a log message in the logging channel
       log_embed = discord.Embed(
           title='User Warning',
           description=
@@ -161,26 +150,20 @@ async def warn(ctx, member: discord.Member, *, reason: str):
 
 @bot.command()
 async def timeout(ctx, member: discord.Member, duration_minutes: int):
-  # Check if the user has the necessary role to use the command
   if any(role.id in high_rank_role_ids for role in ctx.author.roles):
-    # Convert duration from minutes to seconds
     duration_seconds = duration_minutes * 60
 
-    # Store original channel permissions
     original_overwrites = member.guild_permissions
 
-    # Update member's channel permissions
     overwrite = discord.PermissionOverwrite(send_messages=False)
     for channel in ctx.guild.channels:
       await channel.set_permissions(member, overwrite=overwrite)
 
-    # Send confirmation message
     await ctx.send(
         f"{member.mention} has been muted for {duration_minutes} minutes.")
     logging_channel = bot.get_channel(logging_channel_id)
 
     if logging_channel:
-      # Send a log message in the logging channel
       log_embed = discord.Embed(
           title='User Muted',
           description=
@@ -195,8 +178,6 @@ async def timeout(ctx, member: discord.Member, duration_minutes: int):
   else:
     await ctx.send('You don\'t have permission to use this command.')
   await ctx.message.delete()
-
-    # Restore original channel permissions after the specified duration
   await asyncio.sleep(duration_seconds)
   for channel in ctx.guild.channels:
       await channel.set_permissions(member, overwrite=original_overwrites)
@@ -206,7 +187,6 @@ async def timeout(ctx, member: discord.Member, duration_minutes: int):
 
 @bot.command()
 async def purge(ctx, amount: int):
-  # Check if the user has one of the high-rank roles
   if any(role.id in high_rank_role_ids for role in ctx.author.roles):
     if 1 <= amount <= 100:
       await ctx.message.delete()
@@ -223,9 +203,7 @@ async def purge(ctx, amount: int):
 
 @bot.command()
 async def lock(ctx):
-  # Check if the user has one of the allowed roles
   if any(role.id in high_rank_role_ids for role in ctx.author.roles):
-    # Lock the channel by setting permissions
     overwrite = discord.PermissionOverwrite()
     overwrite.send_messages = False
     await ctx.channel.set_permissions(ctx.guild.default_role,
@@ -248,7 +226,6 @@ async def lock(ctx):
 
 @bot.command()
 async def unlock(ctx):
-  # Check if the user has one of the allowed roles
   if any(role.id in high_rank_role_ids for role in ctx.author.roles):
     # Unlock the channel by removing permission overwrites
     await ctx.channel.set_permissions(ctx.guild.default_role, overwrite=None)
@@ -294,7 +271,7 @@ async def warnlog(ctx, member: discord.Member):
         color=discord.Color.red())
     await ctx.send(embed=embed)
 
-  await ctx.message.delete()  # Delete the user's command message
+  await ctx.message.delete() 
 
 
 @bot.command()
@@ -348,77 +325,6 @@ async def promo(ctx, user: discord.Member, previous_rank, new_rank,
   else:
     await ctx.send("You do not have the required role to use this command.")
   await ctx.message.delete()
-
-
-try:
-    with open("tickets.txt", "r") as file:
-        file_contents = file.read()
-        if file_contents:
-            user_tickets = json.loads(file_contents)
-        else:
-            user_tickets = {}
-except FileNotFoundError:
-    user_tickets = {}
-
-
-
-@bot.event
-async def on_message(message):
-  if message.channel.id == 1153675839519608943:  # Replace with your channel's ID
-    if message.author != bot.user:  # Avoid the bot responding to itself
-      category = discord.utils.get(message.guild.categories, name="Tickets")
-      if category is None:
-        category = await message.guild.create_category("Tickets")
-
-      ticket_channel = await category.create_text_channel(
-          f"ticket-{message.author.name}")
-      await ticket_channel.set_permissions(message.author,
-                                           read_messages=True,
-                                           send_messages=True)
-      await ticket_channel.set_permissions(message.guild.default_role,
-                                           read_messages=False)
-
-      user_tickets[str(message.author.id)] = str(
-          ticket_channel.id)  # Store channel ID as string
-
-      await ticket_channel.send(
-          f"""{message.author.mention}, Here is your ticket with the issue {message.content}.
-          **Please wait for response by our Support Team. Don't ping anyone.**
-          You can use !close to close the ticket.
-          Thanks.
-          Qupr Systems"""
-      )
-
-      await message.delete()  # Delete the user's message
-
-      # Save updated ticket data back to the file
-      with open("tickets.txt", "w") as file:
-        json.dump(user_tickets, file, indent=4)
-
-  await bot.process_commands(message)
-
-
-@bot.command()
-async def close(ctx):
-  ticket_channel_id = user_tickets.get(str(
-      ctx.author.id))  # Convert ID to string
-  if ticket_channel_id:
-    ticket_channel = bot.get_channel(
-        int(ticket_channel_id))  # Convert ID back to int
-    if ticket_channel:
-      await ticket_channel.delete()
-      user_tickets.pop(str(ctx.author.id))
-      await ctx.send(f"Your ticket has been closed, {ctx.author.mention}.")
-
-      # Update the text file with the latest ticket data
-      with open("tickets.txt", "w") as file:
-        json.dump(user_tickets, file, indent=4)
-    else:
-      await ctx.send(
-          "Sorry, there was an issue finding and deleting the ticket.")
-  else:
-    await ctx.send(f"You don't have an open ticket, {ctx.author.mention}.")
-
 
 keep_alive.keep_alive()
 bot.run("BOT_TOKEN")
