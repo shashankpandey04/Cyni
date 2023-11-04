@@ -13,8 +13,10 @@ A simple and efficient Discrod Guild Moderation Bot.
 
    We always take suggestions of our community and work on them to get bot more better than yesterday.
 
-#✨What's New!
-       Introducing Cyni Update v1.1.3
+# ✨What's New!
+
+Introducing Cyni Update v1.1.3
+
 Role add/remove Command
 
 Now just use the /roleadd or /roleremove command in order to add and remove roles from user. That simple.
