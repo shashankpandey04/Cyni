@@ -1,4 +1,5 @@
 # Cyni
+Version 1.1.3 released.
 A simple and efficient Discrod Guild Moderation Bot.
 
 1) Moderation
