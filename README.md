@@ -1,5 +1,8 @@
 # Cyni
 Version 1.1.3 released.
+**What it contains?**
+It contains all required commands for server moderation. Make sure to read release patch note in releases in order to know more.
+
 A simple and efficient Discrod Guild Moderation Bot.
 
 1) Moderation
