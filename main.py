@@ -10,17 +10,6 @@ import os
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!",intents=intents)
 
-dev_username = ['itsme.tony']
-
-SUPPORT_SERVER_CHANNEL_ID = 1164559668610355281
-
-logger = logging.getLogger("discord")
-logger.setLevel(logging.INFO)
-
-handler = logging.FileHandler(filename="error.log", encoding="utf-8", mode="w")
-handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-logger.addHandler(handler)
-
 try:
     with open('warnings.json', 'r') as warnings_file:
         warnings = json.load(warnings_file)
@@ -76,20 +65,6 @@ async def on_ready():
     save_data()
     for guild in bot.guilds:
         create_or_get_server_config(guild.id)
-
-
-def handle_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        return
-    error_uid = "ERR" + str(hash(exc_value))
-    logger.error(f"Error UID: {error_uid}\n{''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}")
-    support_channel = bot.get_channel(SUPPORT_SERVER_CHANNEL_ID)
-    if support_channel:
-        error_message = f"Error UID: {error_uid}\n{''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}"
-        support_channel.send(error_message)
-
-sys.excepthook = handle_exception
 
 def get_staff_roles(guild_id):
     """Get staff roles for a specific guild."""
@@ -172,43 +147,6 @@ async def staffroleremove(interaction: discord.Interaction, role: discord.Role):
     except Exception as e:
         print(e)
         await interaction.response.send_message(f"Failed to remove {role.mention} from staff roles.")
-
-@bot.tree.command()
-async def premium(interaction: discord.Interaction):
-    '''Bot premium status..'''
-    if 'yes' in premium:
-        embed = discord.Embed(title="Premium Enabled",description=f"{interaction.guild.name} has Premium enable for their server", color=60407)
-        await interaction.response.send_message(embed=embed)
-    else:
-        embed = discord.Embed(title="Premium Disabled",description=f"{interaction.guild.name} has Premium disabled for their server. Join our Support Discord Server and our support team will help you with your problem. [Click Here](https://discord.gg/VVjJjgEaFk)", color=60407)
-        await interaction.response.send_message(embed=embed)
-
-@bot.tree.command()
-async def get_error(interaction: discord.Interaction, error_uid: str):
-    '''Error Log directory'''
-    if interaction.user.name not in dev_username:
-        await interaction.response.send_message("You don't have permission to access error logs.")
-        return
-    error_data = []
-    with open('error.json', 'r') as json_file:
-        for line in json_file:
-            error_data.append(json.loads(line))
-    found_error = None
-    for error_entry in error_data:
-        if error_entry["error_uid"] == error_uid:
-            found_error = error_entry
-            break
-    if found_error:
-        error_embed = discord.Embed(
-            title=f"Error UID: {found_error['error_uid']}",
-            description="Error details:",
-            color=discord.Color.red())
-        error_embed.add_field(name="Command", value=found_error["command"], inline=False)
-        error_embed.add_field(name="Error", value=found_error["error"], inline=False)
-        error_embed.add_field(name="Traceback", value=f"```{found_error['traceback']}```", inline=False)
-        await interaction.response.send_message(embed=error_embed)
-    else:
-        await interaction.response.send_message(f"Error UID '{error_uid}' not found in error logs.")
 
 @bot.tree.command()
 async def hello(interaction: discord.Interaction):
