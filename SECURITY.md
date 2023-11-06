@@ -5,6 +5,7 @@
 | Version | Supported          |
 | ------- | ------------------ |
 | 1.1.3   |        ❌          |
+| 2.1.1   |       ✔️           |
 
 # Qupr Digital Security Policy
 
