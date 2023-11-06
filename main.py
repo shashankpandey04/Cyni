@@ -6,6 +6,7 @@ import json
 import sys
 import logging
 import os
+import keep_alive
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!",intents=intents)
@@ -412,5 +413,11 @@ async def membercount(interaction: discord.Interaction):
     embed = discord.Embed(title="Members",description=f"{interaction.guild.name} got {interaction.guild.member_count} members as right now.",color=0x0F00FF)
     await interaction.response.send_message(embed=embed)
         
+keep_alive.keep_alive()
+
+#If Using Replit Secrets then use this code.
+#bot_token = os.environ["Token Name"]
+#Then replace the `"YOUR_BOT_TOKEN"` with `bot_token`
+#Example: bot.run(bot_token)
 
 bot.run("YOUR_BOT_TOKEN")
