@@ -1,17 +1,19 @@
 # Cyni
-Version 1.1.3 released.
+Version 2.1.1 released.
 **What it contains?**
-It contains all required commands for server moderation. Make sure to read release patch note in releases in order to know more.
+Migration of prefix based commands to slash commands.
+Added new commands in code.
 
 A simple and efficient Discrod Guild Moderation Bot.
 
 1) Moderation
 
-   Moderation commands like warn,delwarn,kick,ban,etc. fully configurable without leaving server so you can edit config easily.
+   Moderation commands like warn,delwarn,warnlog,kick,ban,slowmode. fully configurable without leaving server so you can edit config easily. With each warning having it's own unique number.
 
 2) Much More
 
-   Commands like afk, ping, say, hello. To make server more interactive.
+   Commands like ping, say, hello. To make server more interactive.
+
 
 3) More Coming soon.
 
@@ -19,16 +21,16 @@ A simple and efficient Discrod Guild Moderation Bot.
 
 # ✨What's New!
 
-Introducing Cyni Update v1.1.3
+Introducing Cyni Update v2.1.1
 
 Role add/remove Command
 
-Now just use the /roleadd or /roleremove command in order to add and remove roles from user. That simple.
+   Now just use the `/roleadd` or `/roleremove` command in order to add and remove roles from user. That simple.
 
-Purge Command
-Tired of deleting long messages? Use !Purge command to delete specific number of messages.
+Staff Role Add/Remove
+   Use `/staffroleadd` or `/staffroleremove` so that only staff can use moderation commands.
 
-Timeout Member
-User are trolling in server? Just use !timeout and there you are.
+Member Count
+   Now server members can use `/membercount` to check total number of members in that guild.
 
-Cyni Docs: https://cynidocs.quprdigital.tk
+Support Server: https://discord.gg/Z53qMbuB
