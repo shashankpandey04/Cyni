@@ -33,4 +33,4 @@ Staff Role Add/Remove
 Member Count
    Now server members can use `/membercount` to check total number of members in that guild.
 
-Support Server: https://discord.gg/Z53qMbuB
+Support Server: https://discord.gg/2D29TSfNW6
