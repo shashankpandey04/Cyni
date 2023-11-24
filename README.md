@@ -1,36 +1,34 @@
-# Cyni
-Version 2.1.1 released.
-**What it contains?**
-Migration of prefix based commands to slash commands.
-Added new commands in code.
+### Version 3.0 released.
 
-A simple and efficient Discrod Guild Moderation Bot.
+**A simple and efficient Discrod Guild Moderation Bot.**
 
-1) Moderation
+1. Moderation
+   Moderation commands like warn,delwarn,warnlog,kick,ban,slowmode. fully configurable without leaving server so you can edit config easily. With each warning having it's own unique number. Much more!
 
-   Moderation commands like warn,delwarn,warnlog,kick,ban,slowmode. fully configurable without leaving server so you can edit config easily. With each warning having it's own unique number.
-
-2) Much More
-
+2. Much More.
    Commands like ping, say, hello. To make server more interactive.
 
+3. More Coming soon.
 
-3) More Coming soon.
+We always take suggestions of our community and work on them to get bot more better than yesterday.
 
-   We always take suggestions of our community and work on them to get bot more better than yesterday.
+### ✨What's new?
 
-# ✨What's New!
+1. Help commad.
+3. Change Bot Status
+4. Cyni Official Command.
+5. Slowmode command
+6. Promote command
+7. Demote Command
+8. Guild Member Count
 
-Introducing Cyni Update v2.1.1
+### Better Command Handling Logic
 
-Role add/remove Command
+- Now only users with server admin perm will be able to add management roles.
 
-   Now just use the `/roleadd` or `/roleremove` command in order to add and remove roles from user. That simple.
+### What's better than before?
 
-Staff Role Add/Remove
-   Use `/staffroleadd` or `/staffroleremove` so that only staff can use moderation commands.
+- Faster Response time and low ping rate.
 
-Member Count
-   Now server members can use `/membercount` to check total number of members in that guild.
-
-Support Server: https://discord.gg/2D29TSfNW6
+**Support Server: https://discord.gg/2D29TSfNW6**
+**Bot Docs: https://docs.cyni.quprdigital.tk**
