@@ -3,7 +3,15 @@ from discord.ext import commands
 import datetime
 import json
 import os
-import keep_alive
+#import keep_alive
+import requests
+import sys
+import traceback
+import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!",intents=intents)
@@ -68,6 +76,35 @@ async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/help"))
     await send_restart_message()
 
+@bot.event
+async def on_command_error(ctx, error):
+    error_uid = "ERR" + str(hash(ctx.message.created_at))
+    error_message = f"An error occurred (UID: {error_uid})! Please contact support."
+    sentry=discord.Embed(title="Error",description=f"Error UID: {error_uid}\nThis can be solved by joining our support server at \n [Join Support Server](https://discord.gg/2D29TSfNW6)",color=0xFF0000)
+    await ctx.send(embed = sentry)
+    error_data = {
+        "error_uid": error_uid,
+        "command": ctx.message.content,
+        "error": str(error),
+        "traceback": ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+    }
+    with open('error.json', 'a') as json_file:
+        json.dump(error_data, json_file)
+        json_file.write('\n')
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    error_uid = "ERR" + str(hash(exc_value))
+    logger.error(f"Error UID: {error_uid}\n{''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}")
+    support_channel = bot.get_channel(SUPPORT_SERVER_CHANNEL_ID)
+    if support_channel:
+        error_message = f"Error UID: {error_uid}\n{''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}"
+        support_channel.send(error_message)
+
+sys.excepthook = handle_exception
+
 async def send_restart_message():
   support_server = bot.get_guild(1152949579407442050)
   if not support_server:
@@ -119,10 +156,14 @@ async def help(interaction: discord.Interaction):
     embed = discord.Embed(title="Need Assistance?",description=f"Join our Support Discord Server and our support team will help you with your problem. [Click Here](https://discord.gg/2D29TSfNW6) ",color=60407)
     await interaction.response.send_message(embed=embed)
 
-@bot.command()
+@bot.tree.command()
 async def cyniofficial(interaction: discord.Interaction):
     '''Get Cyni Official Role'''
-    if (interaction.user.name in staff_username) or (interaction.user.name in dev_username):
+    
+    if interaction.guild.id == 1152949579407442050:
+      await interaction.response.send_message("You cannot use this command in the support server.")
+  
+    elif (interaction.user.name in staff_username) or (interaction.user.name in dev_username):
         guild = interaction.guild
         role_name = "CYNI Official"
 
@@ -270,13 +311,14 @@ async def get_error(interaction: discord.Interaction, error_uid: str):
             found_error = error_entry
             break
     if found_error:
+        traceback_value = found_error['traceback'][:1000]
         error_embed = discord.Embed(
             title=f"Error UID: {found_error['error_uid']}",
             description="Error details:",
             color=discord.Color.red())
         error_embed.add_field(name="Command", value=found_error["command"], inline=False)
         error_embed.add_field(name="Error", value=found_error["error"], inline=False)
-        error_embed.add_field(name="Traceback", value=f"```{found_error['traceback']}```", inline=False)
+        error_embed.add_field(name="Traceback", value=f"```{traceback_value}```", inline=False)
         await interaction.response.send_message(embed=error_embed)
     else:
         await interaction.response.send_message(f"Error UID '{error_uid}' not found in error logs.")
@@ -614,34 +656,70 @@ async def get_invite(ctx, guild_id: int):
         await ctx.send("You do not have permission to use this command.")
 
 @bot.command()
-async def get_all_invites(ctx):
-    '''Get existing invite links for all the guilds the bot is a member of'''
-    invites_info = []
-    if ctx.author.name in dev_username:
-        for guild in bot.guilds:
-            try:
-                invites = await guild.invites()
-                if invites:
-                    invite = invites[0] 
-                    invites_info.append(f"{guild.name}: {invite.url}")
-                else:
-                    invites_info.append(f"{guild.name}: No existing invite links")
-            except discord.errors.Forbidden:
-                invites_info.append(f"{guild.name}: No permission to view invites")
-
-        await ctx.send("\n".join(invites_info))
-    else:
-        await ctx.send("You do not have permission to use this command.")
-
-@bot.command()
 async def guildcount(ctx):
   if ctx.author.name in dev_username:
       '''Show the total number of guilds the bot is in'''
       guild_count = len(bot.guilds)
       await ctx.send(f"The bot is in {guild_count} guilds.")
 
+api_url = "https://cyniai.quprsystems.repl.co/api"
+CYNI_API_KEY = "12uyvehbwa gevg21iubhywihbehv21y9817f4ywub"
+@bot.tree.command()
+async def search(interaction: discord.Interaction, topic: str):
+    '''Search on web using Cyni API'''
+    params = {'topic': topic}
+    headers = {'Authorization': f'Bearer {CYNI_API_KEY}'}
 
-keep_alive.keep_alive()
-my_secret = os.environ['TOKEN']
+    try:
+        response = requests.get(api_url, params=params, headers=headers)
+        data = response.json()
+
+        if response.status_code == 200:
+            await interaction.response.send_message(f"**{data['topic']}**\n{data['result']}"+' | more on google.')
+        else:
+            await interaction.response.send_message(f"Error: {data['result']}")
+
+    except Exception as e:
+        await interaction.response.send_message(f"An error occurred: {str(e)}")
+
+@bot.tree.command()
+async def passapp(interaction: discord.Interaction, member: discord.Member, *,server_message: str,feedback: str):
+    '''Post Passed Application Result'''
+    guild_id = interaction.guild.id
+    managemet_role = get_management_roles(guild_id)
+    if not any(role.id in managemet_role for role in interaction.user.roles):
+      await interaction.response.send_message(
+          "❌ You don't have permission to use this command.")
+      return
+    else:
+      channel = interaction.channel
+      embed = discord.Embed(title=f"{interaction.guild.name} Application Passed.",color=0x00FF00)
+      embed.add_field(name="Staff Name", value=member.mention)
+      embed.add_field(name="Server Message", value=server_message)
+      embed.add_field(name="Feedback", value=feedback)
+      embed.add_field(name="Signed By", value=interaction.user.mention)
+      await interaction.response.send_message("Result Sent", ephemeral=True)
+      await channel.send(member.mention, embed=embed)
+
+@bot.tree.command()
+async def failapp(interaction: discord.Interaction, member: discord.Member, *,feedback: str):
+    '''Post Failed Application Result'''
+    guild_id = interaction.guild.id
+    managemet_role = get_management_roles(guild_id)
+    if not any(role.id in managemet_role for role in interaction.user.roles):
+      await interaction.response.send_message(
+          "❌ You don't have permission to use this command.")
+      return
+    else:
+      channel = interaction.channel
+      embed = discord.Embed(title=f"{interaction.guild.name} Application Failed.",color=0xFF0000)
+      embed.add_field(name="Staff Name", value=member.mention)
+      embed.add_field(name="Feedback", value=feedback)
+      embed.add_field(name="Signed By", value=interaction.user.mention)
+      await interaction.response.send_message("Result Sent", ephemeral=True)
+      await channel.send(member.mention, embed=embed)
+
+#keep_alive.keep_alive()
+#my_secret = os.environ['TOKEN']
 while True:
-  bot.run(my_secret)
+  bot.run("Your_Token_Here")
