@@ -4,9 +4,10 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.1.3   |        ❌          |
-| 2.1.1   |       ✔️           |
-
+| 1.1.3   |        ❌         |
+| 2.1.1   |        ❌         |
+| 3.0     |        ❌         |
+| v4.0    |       ✔️         |
 # Qupr Digital Security Policy
 
 **Qupr Digital is committed to protecting the security of your data. We provide security policies for our Bots, and we are responsible for any loss or breach of your data due to a security vulnerability in the latest version of our Bots.**
