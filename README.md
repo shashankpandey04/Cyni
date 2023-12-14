@@ -12,6 +12,6 @@ We always take suggestions of our community and work on them to get bot more bet
 
 ### ✨What's new?
 
-- Cyni AI can be used by using `/seach` command.
+- Cyni AI can be used by using `/search` command.
 - Application Result Pass/Fail command by using `/failapp` & `/passapp`. Only Management Roles can use this command.
 
