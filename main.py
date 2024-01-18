@@ -2,17 +2,9 @@ import discord
 from discord.ext import commands
 import datetime
 import json
-import requests
 from prefixcommand import prefix_warn
 from utils import *
-from flask import Flask, render_template
-from threading import Thread
-import random
-from PIL import Image
-from io import BytesIO
-from premium import run_pbot as run_premium_bot
 import uuid
-from hyme import *
 import traceback
 
 intents = discord.Intents.all()
