@@ -24,7 +24,7 @@ Cyni is a versatile Discord bot designed for efficient server moderation and sta
 Cyni aims to enhance your Discord server management experience, offering a robust set of tools for effective moderation and administration.
 <hr>
 
-__Licensing__
+__Licensing__ <br>
 Cyni is licensed under the Attribution-NonCommercial-ShareAlike (CC BY-NC-SA) license. This license allows for the copy, distribution, and creation of adaptations of the material for non-commercial purposes, as long as proper attribution is given to the original creator and any adaptations are licensed under the same terms.
 
 The CC BY-NC-SA license requires the following elements:
