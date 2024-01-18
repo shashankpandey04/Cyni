@@ -15,4 +15,12 @@ __Key Features:__
 - **Logging:** Configure a dedicated channel for mod logs and keep track of important server events
 <hr>
 Cyni aims to enhance your Discord server management experience, offering a robust set of tools for effective moderation and administration.
+<hr>
 
+__Licensing__
+Cyni is licensed under the Attribution-NonCommercial-ShareAlike (CC BY-NC-SA) license. This license allows for the copy, distribution, and creation of adaptations of the material for non-commercial purposes, as long as proper attribution is given to the original creator and any adaptations are licensed under the same terms.
+
+The CC BY-NC-SA license requires the following elements:
+  BY: Credit must be given to the original creator
+  NC: The material can only be used for non-commercial purposes
+  SA: Adaptations must be licensed under the same terms
