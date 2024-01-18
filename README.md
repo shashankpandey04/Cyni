@@ -2,7 +2,7 @@
 <hr>
 Cyni is a versatile Discord bot designed for efficient server moderation and staff management. With a range of commands and event handlers, Cyni helps streamline various administrative tasks, ensuring smooth server operations. From member role management and moderation actions to logging and utility commands, Cyni is a reliable companion for maintaining a well-organized and secure Discord community.
 <hr>
-**Key Features:**
+# Key Features:
 <hr>
 - **Role Management:** Easily add, remove, or modify roles for both staff and general members.
 - **Moderation Commands:** Kick, ban, warn, and manage warnings to maintain server discipline.
