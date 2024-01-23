@@ -4,6 +4,10 @@ from bs4 import BeautifulSoup
 import wikipediaapi
 from googlesearch import search
 import requests
+import traceback
+import discord
+import string
+import random
 
 try:
     with open('warnings.json', 'r') as warnings_file:
@@ -47,16 +51,15 @@ def create_or_get_server_config(guild_id):
         config = {
             "staff_roles": [],
             "management_role": [],
+            "game_staff_role":[],
             "mod_log_channel": 'null',
             'premium': 'false',
-            "shift_types":["default"]
+            "blocked_search":[],
         }
         update_server_config(guild_id, config)
     return config
 
-
 def get_staff_roles(guild_id):
-
     """Get staff roles for a specific guild."""
     config = load_config()
     return config.get(str(guild_id), {}).get("staff_roles", [])
@@ -65,6 +68,11 @@ def get_management_roles(guild_id):
     """Get management roles for a specific guild."""
     config = load_config()
     return config.get(str(guild_id), {}).get("management_role", [])
+
+def get_game_staff_Roles(guild_id):
+    """Get game staff roles for a specific guild."""
+    config = load_config()
+    return config.get(str(guild_id), {}).get("game_staff_role", [])
 
 def get_next_case_number(guild_id, user_id):
     try:
@@ -133,50 +141,9 @@ def save_customcommand(config):
     with open('custom_commands.json', 'w') as f:
         json.dump(config, f, indent=4)
 
-def load_shift_config():
-    try:
-        with open('shiftconfig.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-def save_shift_config(config):
-    with open('shiftconfig.json', 'w') as f:
-        json.dump(config, f)
-
-def load_shift_logs():
-    try:
-        with open('shiftlog.json', 'r') as f:
-            shift_logs = json.load(f)
-
-            # Ensure the nested structure is present
-            for guild_id, users in shift_logs.items():
-                for user_id, shifts in users.items():
-                    if "shifts" not in shifts:
-                        shifts["shifts"] = []
-
-            return shift_logs
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-def save_shift_logs(shift_logs):
-    with open('shiftlog.json', 'w') as f:
-        json.dump(shift_logs, f)
-
-def load_temp_shift_logs():
-    try:
-        with open('tempslog.json', 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-def save_temp_shift_logs(temp_shift_logs):
-    with open('tempslog.json', 'w') as f:
-        json.dump(temp_shift_logs, f)
-
 wiki_wiki = wikipediaapi.Wikipedia('english')
 
-def get_wikipedia_summary(topic):
+def search_api(topic):
   topic_lower = topic.lower()
 
   with open('data.json', 'r') as json_file:
@@ -195,7 +162,7 @@ def get_wikipedia_summary(topic):
       if first_result.startswith("https://en.wikipedia.org/"):
           return truncate_to_nearest_sentence("Result: " + get_wikipedia_data(first_result)[:1500], 1500)
       else:
-          return f"Information from Google: {first_result}"
+          return {first_result}
   else:
       return "Sorry, no information found for this topic."
 
@@ -228,3 +195,91 @@ def truncate_to_nearest_sentence(data, max_length):
       else:
           return truncated_data
       
+def get_user_by_username(username):
+    endpoint = "usernames/users"
+    url = f"{user_base_url}{endpoint}"
+    data = {"usernames": [username]}
+    response = requests.post(url, json=data)
+    if response.status_code == 200:
+        user_data = response.json()["data"][0]
+        return user_data
+    else:
+        return None
+
+
+user_base_url = "https://users.roblox.com/v1/"
+avatar_base_url = "https://avatar.roblox.com/v1/"
+
+def get_username_history(user_id):
+    endpoint = f"users/{user_id}/username-history"
+    url = f"{user_base_url}{endpoint}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        username_history = response.json()
+        return username_history
+    else:
+        return None
+
+def get_user_avatar(user_id):
+    endpoint = f"users/{user_id}/avatar"
+    url = f"{avatar_base_url}{endpoint}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        try:
+            avatar_url = response.json()["Url"]
+            return avatar_url
+        except KeyError:
+            return None
+    else:
+        return None
+
+def list_custom_commands_embeds(interaction):
+    config = load_customcommand()
+    guild_id = str(interaction.guild.id)
+    custom_commands = config.get(guild_id, {})
+    if not custom_commands:
+        return [discord.Embed(description="No custom commands found for this server.")]
+    embeds = []
+    for name, details in custom_commands.items():
+        embed = discord.Embed(title=details.get('title', ''),description=details.get('description', ''), color=details.get('colour', discord.Color.default().value))
+        image_url = details.get('image_url')
+        if image_url:
+            embed.set_image(url=image_url)
+        embeds.append(embed)
+    return embeds
+
+def get_existing_uids(file_path='cerror.json'):
+    try:
+        with open(file_path, 'r') as file:
+            errors = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        errors = []
+
+    existing_uids = set(error['uid'] for error in errors)
+    return existing_uids
+
+def generate_error_uid(existing_uids):
+    while True:
+        error_uid = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        full_uid = "err_" + error_uid
+        if full_uid not in existing_uids:
+            return full_uid
+
+def log_error(file_path, error, error_uid):
+    print(f"An error occurred - Error UID: {error_uid}")
+    traceback.print_exception(type(error), error, error.__traceback__)
+    
+    try:
+        with open(file_path, 'r') as file:
+            errors = json.load(file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        errors = []
+    
+    errors.append({
+        'uid': error_uid,
+        'message': str(error),
+        'traceback': traceback.format_exc()
+    })
+    
+    with open(file_path, 'w') as file:
+        json.dump(errors, file, indent=2)

@@ -2,13 +2,36 @@ import discord
 from discord.ext import commands
 import datetime
 import json
+import os
+import requests
+import sys
+import traceback
+import logging
 from prefixcommand import prefix_warn
 from utils import *
+from flask import Flask, render_template
+from threading import Thread
+import random
+from PIL import Image
+from io import BytesIO
+from premium import run_pbot as run_premium_bot
 import uuid
-import traceback
+from hyme import *
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+
+premium_message = "✨ This server have premium enabled please use <@1168414327011823627> to use this command."
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
 
 intents = discord.Intents.all()
-bot = commands.AutoShardedBot(command_prefix="?", intents=intents)
+bot = commands.AutoShardedBot(command_prefix=":", intents=intents)
+dev_username = ['itsme.tony', 'long_winer12', 'imlimiteds']
+staff_username = ['tearispro']
+
 
 @bot.event
 async def on_ready():
@@ -18,6 +41,7 @@ async def on_ready():
   for guild in bot.guilds:
     create_or_get_server_config(guild.id)
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/help | Cyni Systems"))
+  await bot.load_extension("jishaku")
 
 
 @bot.event
@@ -27,12 +51,12 @@ async def on_message(message):
 
   await bot.process_commands(message)
 
-  if message.content.startswith('?warn'):
+  if message.content.startswith(':warn'):
     ctx = await bot.get_context(message)
     mentioned_users = message.mentions
     if mentioned_users:
       mentioned_user = mentioned_users[0]
-      remaining_content = message.content[len('?warn'):].lstrip().lstrip(
+      remaining_content = message.content[len(':warn'):].lstrip().lstrip(
           mentioned_user.mention).strip()
       if remaining_content:
         reason = remaining_content
@@ -41,13 +65,39 @@ async def on_message(message):
         await message.channel.send("You need to provide a reason when using ?warn.")
 
 @bot.event
+async def on_command_error(ctx, error):
+  if isinstance(error,commands.CommandNotFound) and ctx.message.content.startswith(':warn'):
+    return
+  error_uid = "ERR" + str(hash(ctx.message.created_at))
+  sentry = discord.Embed(title="Error",description=f"Error UID: {error_uid}\nThis can be solved by joining our support server. [Join Cyni Support](https://discord.gg/2D29TSfNW6)",color=0xFF0000)
+  await ctx.send(embed=sentry)
+  error_data = {"error_uid":error_uid, "command":ctx.message.content,"error":str(error),"traceback":''.join(traceback.format_exception(type(error), error, error.__traceback__))}
+
+  with open('error.json', 'a') as json_file:
+    json.dump(error_data, json_file)
+    json_file.write('\n')
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+  if issubclass(exc_type, KeyboardInterrupt):
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
+    return
+  error_uid = "ERR" + str(hash(exc_value))
+  logger.error(f"Error UID: {error_uid}\n{''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}")
+sys.excepthook = handle_exception
+
+@bot.event
 async def on_guild_join(guild):
   create_or_get_server_config(guild.id)
 
 @bot.tree.command()
 async def help(interaction: discord.Interaction):
   '''Link to Support Server'''
-  embed = discord.Embed(title="Need Assistance?",description=f"Join our Support Discord Server and our support team will help you with your problem. [Click Here](https://discord.gg/2D29TSfNW6) ",color=60407)
+  embed = discord.Embed(
+      title="Need Assistance?",
+      description=
+      f"Join our Support Discord Server and our support team will help you with your problem. [Click Here](https://discord.gg/2D29TSfNW6) ",
+      color=60407)
   await interaction.response.send_message(embed=embed)
 
 @bot.tree.command()
@@ -152,13 +202,16 @@ async def managementremove(interaction: discord.Interaction,role: discord.Role):
         embed = discord.Embed(title="Server Config Changed",description=f"Removed {role.mention} from staff roles.")
         await interaction.response.send_message(embed=embed)
       else:
-        embed = discord.Embed(title="Server Config Error",description=f"{role.mention} is not in the staff roles list.")
+        embed = discord.Embed(
+            title="Server Config Error",
+            description=f"{role.mention} is not in the staff roles list.")
         await interaction.response.send_message(embed=embed)
     except Exception as e:
       print(e)
       await interaction.response.send_message("Some Internal Error occured.")
   else:
-    await interaction.response.send_message("❌ You don't have permission to use this command.")
+    await interaction.response.send_message(
+        "❌ You don't have permission to use this command.")
 
 @bot.tree.command()
 async def say(interaction: discord.Interaction, message: str):
@@ -202,6 +255,8 @@ async def slowmode(interaction: discord.Interaction, duration: str):
         await interaction.response.send_message("❌ You don't have permission to use this command.")
     except Exception as error:
           await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
 
 @bot.tree.command()
 async def ping(interaction: discord.Interaction):
@@ -236,6 +291,8 @@ async def roleadd(interaction: discord.Interaction, member: discord.Member,role:
           await interaction.response.send_message(embed=embed)
       else:
         await interaction.response.send_message("❌ You don't have permission to use this command.")
+    else:
+      await interaction.response.send_message(premium_message)
   except Exception as error:
     await on_general_error(interaction, error)
 
@@ -263,6 +320,8 @@ async def roleremove(interaction: discord.Interaction, member: discord.Member,ro
           await interaction.response.send_message(embed=embed)
       else:
         await interaction.response.send_message("❌ You don't have permission to use this command.")
+    else:
+      await interaction.response.send_message(premium_message)
   except Exception as error:
           await on_general_error(interaction, error)
 
@@ -304,6 +363,8 @@ async def kick(interaction: discord.Interaction, member: discord.Member, *, reas
       else:
         embed = discord.Embed(title="Kick Denied",description="❌ You don't have permission to use this command.",color=0xFF0000)
         await interaction.response.send_message(embed=embed)
+    else:
+      await interaction.response.send_message(premium_message)
   except Exception as error:
           await on_general_error(interaction, error) 
 
@@ -346,6 +407,8 @@ async def ban(interaction: discord.Interaction, member: discord.Member, *,reason
             await interaction.response.send_message(embed=fail_embed)
       else:
         await interaction.response.send_message("❌ You don't have permission to use this command.")
+    else:
+      await interaction.response.send_message(premium_message)
   except Exception as error:
           await on_general_error(interaction, error)
 
@@ -396,6 +459,9 @@ async def delwarn(interaction: discord.Interaction, user: discord.User,case_numb
         await interaction.response.send_message("❌ You don't have permission to use this command.")
     except Exception as error:
           await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
+
 
 @bot.tree.command()
 async def warnlog(interaction: discord.Interaction, user: discord.User):
@@ -420,6 +486,8 @@ async def warnlog(interaction: discord.Interaction, user: discord.User):
         await interaction.response.send_message(f"No warnings found for {user.name}#{user.discriminator} in this guild.")
     except Exception as error:
             await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
 
 @bot.tree.command()
 async def warn(interaction: discord.Interaction, user: discord.User, *,reason: str):
@@ -467,6 +535,9 @@ async def warn(interaction: discord.Interaction, user: discord.User, *,reason: s
         await interaction.response.send_message( "❌ You don't have permission to use this command.")
     except Exception as error:
           await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
+
 
 @bot.tree.command()
 async def membercount(interaction: discord.Interaction):
@@ -478,6 +549,8 @@ async def membercount(interaction: discord.Interaction):
     embed = discord.Embed(
         description=f"{interaction.guild.member_count} members.", color=0x0F00FF)
     await interaction.response.send_message(embed=embed)
+  else:
+    await interaction.response.send_message(premium_message)
 
 @bot.command()
 async def membercount(interaction: discord.Interaction):
@@ -511,6 +584,8 @@ async def promote(interaction: discord.Interaction, member: discord.Member, *,ol
             "❌ You don't have permission to use this command.")
     except Exception as error:
           await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
 
 @bot.tree.command()
 async def demote(interaction: discord.Interaction, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str):
@@ -537,6 +612,8 @@ async def demote(interaction: discord.Interaction, member: discord.Member, *,old
             "❌ You don't have permission to use this command.")
     except Exception as error:
           await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
 
 @bot.tree.command()
 async def passapp(interaction: discord.Interaction, member: discord.Member, *,
@@ -564,6 +641,8 @@ async def passapp(interaction: discord.Interaction, member: discord.Member, *,
             "❌ You don't have permission to use this command.")
     except Exception as error:
           await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
 
 @bot.tree.command()
 async def failapp(interaction: discord.Interaction, member: discord.Member, *,
@@ -590,16 +669,9 @@ async def failapp(interaction: discord.Interaction, member: discord.Member, *,
               "❌ You don't have permission to use this command.")
     except Exception as error:
           await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
 
-@bot.tree.command()
-async def search(interaction: discord.Interaction, topic: str):
-    '''Search on web using CYNI API'''
-    try:
-      result = get_wikipedia_summary(topic)
-      await interaction.response.send_message(result + ' | more on google.')
-    except Exception as error:
-        await on_general_error(interaction, error)
-   
 @bot.tree.command()
 async def modloggerchannel(interaction: discord.Interaction,channel: discord.TextChannel):
     '''Add Moderation Log Channel'''
@@ -624,6 +696,8 @@ async def modloggerchannel(interaction: discord.Interaction,channel: discord.Tex
               await interaction.response.send_message("❌ You don't have permission to use this command.")
       except Exception as error:
           await on_general_error(interaction, error)
+    else:
+      await interaction.response.send_message(premium_message)
 
 @bot.tree.command()
 async def purge(interaction: discord.Interaction, amount: int):   
@@ -646,6 +720,389 @@ async def purge(interaction: discord.Interaction, amount: int):
               await interaction.response.send_message("❌ You don't have permission to use this command.")
       except Exception as error:
           await on_general_error(interaction, error)
+    else:
+      await interaction.response.send_message(premium_message)
+
+@bot.command(name='custom')
+async def custom_command(ctx, action, command_name=None):
+  guild_id = str(ctx.guild.id)
+  server_config = get_server_config(guild_id)
+  premium_status = server_config.get("premium", [])
+  if 'false' in premium_status:
+    staff_roles = get_staff_roles(guild_id)
+    management_roles = get_management_roles(guild_id)
+    is_staff = any(role.id in staff_roles for role in ctx.author.roles)
+    is_management = any(role.id in management_roles for role in ctx.author.roles)
+    is_admin = ctx.author.guild_permissions.administrator
+    if is_staff == True or is_management == True or is_admin == True:
+      if action == 'run':
+        await run_custom_command(ctx, command_name)
+      elif action == 'create':
+        await create_custom_command(ctx, command_name)
+      elif action == 'delete':
+        await delete_custom_command(ctx, command_name)
+      else:
+        await ctx.send("Invalid action. Use '!custom run [command_name]', '!custom create [command_name]', or '!custom delete [command_name]'.")
+    else:
+      await ctx.send("❌ You don't have permission to use this command.")
+  else:
+    await ctx.send(premium_message)
+  
+async def run_custom_command(ctx, command_name):
+    config = load_customcommand()
+    guild_id = str(ctx.guild.id)
+    command_details = config.get(guild_id, {}).get(command_name)
+    if command_details:
+        embed = discord.Embed(
+            title=command_details.get('title', ''),
+            description=command_details.get('description', ''),
+            color=command_details.get('colour', discord.Color.default().value))
+        image_url = command_details.get('image_url')
+        if image_url:
+            embed.set_image(url=image_url)
+        channel_id = command_details.get('channel')
+        channel = bot.get_channel(channel_id)
+        role_id = command_details.get('role')
+        if role_id:
+            role = ctx.guild.get_role(role_id)
+            if role:
+                await channel.send(f"<@&{role_id}>")  
+            else:
+                await ctx.send("Role not found. Please make sure the role exists.")
+                return
+        await channel.send(embed=embed)
+        await ctx.send(f"Custom command '{command_name}' executed in {channel.mention}.")
+    else:
+        await ctx.send(f"Custom command '{command_name}' not found.")
+
+async def create_custom_command(ctx, command_name):
+    config = load_customcommand()
+    guild_id = str(ctx.guild.id)
+    if command_name in config.get(guild_id, {}):
+        await ctx.send(f"Custom command '{command_name}' already exists.")
+        return
+    if len(config.get(guild_id, {})) >= 5:
+        await ctx.send("Sorry, the server has reached the maximum limit of custom commands (5).")
+        return
+    await ctx.send("Enter embed title:")
+    title = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.send("Enter embed description:")
+    description = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.send("Enter embed colour (hex format, e.g., #RRGGBB):")
+    colour = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.send("Enter image URL (enter 'none' for no image):")
+    image_url_input = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.send("Enter default channel to post message (mention the channel):")
+    channel_input = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.send("Enter role ID to ping:")
+    role_id_input = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    channel_id = int(channel_input.content[2:-1])
+    role_id = int(role_id_input.content)
+    try:
+        color_decimal = int(colour.content[1:], 16)
+    except ValueError:
+        await ctx.send("Invalid hex color format. Please use the format #RRGGBB.")
+        return
+    image_url = image_url_input.content.strip()
+    if image_url.lower() == 'none':
+        image_url = None
+    if len(config.get(guild_id, {})) >= 5:
+        await ctx.send("Sorry, the server has reached the maximum limit of custom commands (5).")
+        return
+    config.setdefault(guild_id, {})[command_name] = {
+        'title': title.content,
+        'description': description.content,
+        'colour': color_decimal,
+        'channel': channel_id,
+        'role': role_id,
+        'image_url': image_url,
+    }
+    save_customcommand(config)
+    await ctx.send(f"Custom command '{command_name}' created successfully.")
+
+
+async def delete_custom_command(ctx, command_name):
+  config = load_customcommand()
+  guild_id = str(ctx.guild.id)
+  command_details = config.get(guild_id, {}).get(command_name)
+  if command_details:
+    del config[guild_id][command_name]
+    save_customcommand(config)
+    await ctx.send(f"Custom command '{command_name}' deleted successfully.")
+  else:
+    await ctx.send(f"Custom command '{command_name}' not found.")
+
+
+@bot.command(name='whois')
+async def whois(ctx, *, user_info=None):
+    guild_id = str(ctx.guild.id)
+    server_config = get_server_config(guild_id)
+    premium_status = server_config.get("premium", [])
+    if 'false' in premium_status:
+      if user_info is None:
+          member = ctx.author
+      else:
+          if user_info.startswith('<@') and user_info.endswith('>'):
+              user_id = int(user_info[2:-1])
+              member = ctx.guild.get_member(user_id)
+          else:
+              member = discord.utils.find(lambda m: m.name == user_info, ctx.guild.members)
+      if member:
+          support_server_id = 1152949579407442050
+          support_server = bot.get_guild(support_server_id)
+          user_emoji = discord.utils.get(support_server.emojis, id=1191057214727786598)
+          cyni_emoji = discord.utils.get(support_server.emojis, id=1185563043015446558)
+          discord_emoji = discord.utils.get(support_server.emojis, id=1191057244004044890)
+          with open('staff.json', 'r') as file:
+              staff_data = json.load(file)
+          embed = discord.Embed(title="User Information", color=member.color)
+          hypesquad_flags = member.public_flags
+          hypesquad_values = [str(flag).replace("UserFlags.", "").replace("_", " ").title() for flag in hypesquad_flags.all()]
+          if hypesquad_values:
+              hypesquad_text = "\n".join(hypesquad_values)
+              embed.add_field(name=f"{discord_emoji} Discord Flags", value=f"{hypesquad_text}", inline=True)
+          user_flags = staff_data.get(member.name, "").replace("{cyni_emoji}", "")
+          user_flags = [flag.strip() for flag in user_flags.split("\n") if flag.strip()]
+          if user_flags:
+              staff_text = "\n".join(user_flags)
+              embed.add_field(name=f'{cyni_emoji} Staff Flags', value=f" {staff_text}", inline=True)
+          embed.set_thumbnail(url=member.avatar.url)
+          embed.add_field(name=f"{user_emoji} Username", value=member.name, inline=True)
+          embed.add_field(name="User ID", value=member.id, inline=True)
+          embed.add_field(name="Joined Server", value=f"<t:{int(member.joined_at.timestamp())}:R>", inline=True)
+          embed.add_field(name="Joined Discord", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
+          if member.guild_permissions.administrator:
+              embed.add_field(name="Role", value="Administrator", inline=True)
+          elif member.guild_permissions.manage_messages:
+              embed.add_field(name="Role", value="Moderator", inline=True)
+          else:
+              embed.add_field(name="Role", value="Member", inline=True)
+          embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar.url)
+          await ctx.send(embed=embed)
+      else:
+          await ctx.send("User not found.")
+    else:
+      await ctx.send(premium_message)
+
+@bot.command(name='pick')
+async def pick(ctx, option1, option2):
+  guild_id = str(ctx.guild.id)
+  server_config = get_server_config(guild_id)
+  premium_status = server_config.get("premium", [])
+  if 'false' in premium_status:
+    option = random.choice([option1, option2])
+    await ctx.send(f"I pick {option}")
+  else:
+    await ctx.send(premium_message)
+
+@bot.command()
+async def catimage(ctx):
+  guild_id = str(ctx.guild.id)
+  server_config = get_server_config(guild_id)
+  premium_status = server_config.get("premium", [])
+  if 'false' in premium_status:
+    response = requests.get("https://api.thecatapi.com/v1/images/search")
+    data = response.json()
+    image_url = data[0]["url"]
+    image_response = requests.get(image_url)
+    image_data = Image.open(BytesIO(image_response.content))
+    with BytesIO() as image_bytes:
+      image_data.save(image_bytes, format='PNG')
+      image_bytes.seek(0)
+      await ctx.send(file=discord.File(image_bytes, 'cat_image.png')) 
+  else:
+    await ctx.send(premium_message)
+
+@bot.command()
+async def dogimage(ctx):
+    response = requests.get("https://api.thedogapi.com/v1/images/search")
+    data = response.json()
+    image_url = data[0]["url"]
+    image_response = requests.get(image_url)
+    image_data = Image.open(BytesIO(image_response.content))
+    with BytesIO() as image_bytes:
+      image_data.save(image_bytes, format='PNG')
+      image_bytes.seek(0)
+      await ctx.send(file=discord.File(image_bytes, 'cat_image.png'))
+    
+"""@bot.command(name='shiftsetup', help='Setup shift configurations')
+async def shiftsetup(ctx: commands.Context):
+  guild_id=str(ctx.guild.id)
+  server_config = get_server_config(guild_id)
+  premium_status = server_config.get("premium", [])
+  if 'false' in premium_status:
+    management_roles = get_management_roles(ctx.guild.id)
+    if any(
+        str(role) in [str(r.id) for r in ctx.author.roles]
+        for role in management_roles):
+      await ctx.send("Select a configuration option:\n1) On-duty staff role\n2) On-break role\n3) Shift Log channel")
+      def check(message):
+        return message.author == ctx.author and message.channel == ctx.channel
+      try:
+        response_message = await bot.wait_for('message', check=check, timeout=60)
+        response = response_message.content.strip()
+      except TimeoutError:
+        await ctx.send("Timed out. Please try again.")
+        return
+      config = load_shift_config()
+      guild_id = str(ctx.guild.id)
+      if guild_id not in config:
+        config[guild_id] = {}
+      if response == "1":
+        await ctx.send("Enter the on-duty staff role ID:")
+        try:
+          on_duty_role_id = await bot.wait_for('message',check=check,timeout=60)
+          on_duty_role_id = int(on_duty_role_id.content)
+        except TimeoutError:
+          await ctx.send("Timed out. Please try again.")
+          return
+        config[guild_id]["on_duty_role"] = on_duty_role_id
+      elif response == "2":
+        await ctx.send("Enter the on-break role ID:")
+        try:
+          on_break_role_id = await bot.wait_for('message',check=check,timeout=60)
+          on_break_role_id = int(on_break_role_id.content)
+        except TimeoutError:
+          await ctx.send("Timed out. Please try again.")
+          return
+        config[guild_id]["on_break_role"] = on_break_role_id
+      elif response == "3":
+        await ctx.send("Enter the shift log channel ID:")
+        try:
+          log_channel_id = await bot.wait_for('message', check=check, timeout=60)
+          log_channel_id = int(log_channel_id.content)
+        except TimeoutError:
+          await ctx.send("Timed out. Please try again.")
+          return
+        config[guild_id]["log_channel"] = log_channel_id
+      else:
+        await ctx.send("Invalid option. Please choose a valid option.")
+        return
+      save_shift_config(config)
+      await ctx.send(f"Shift configuration updated for option {response}.")
+    else:
+      await ctx.send("You don't have the required permissions.")
+  else:
+    await ctx.send(premium_message)
+
+
+@bot.command(name='shiftmanage', help='Manage shifts')
+async def shiftmanage(ctx: commands.Context, action: str):
+  user_id = str(ctx.author.id)
+  guild_id = str(ctx.guild.id)
+  server_config = get_server_config(guild_id)
+  premium_status = server_config.get("premium", [])
+  if 'false' in premium_status:
+    temp_shift_logs = load_temp_shift_logs()
+    config = load_shift_config()
+    on_duty_role_id = config.get(guild_id, {}).get("on_duty_role")
+    on_break_role_id = config.get(guild_id, {}).get("on_break_role")
+    log_channel_id = config.get(guild_id, {}).get("log_channel")
+    staff_roles = get_staff_roles(guild_id)
+    management_roles = get_management_roles(guild_id)
+    user_roles = [r.id for r in ctx.author.roles if isinstance(r, discord.Role)]
+
+    if not any(role_id in user_roles
+              for role_id in staff_roles + management_roles):
+      await ctx.send("You do not have the required role to use this command.")
+      return
+
+    if action.lower() in ['start', 'stop', 'break']:
+      if action.lower() == 'start':
+        if user_id in temp_shift_logs and temp_shift_logs[user_id]["status"] in [
+            "on_duty", "on_break"
+        ]:
+          await ctx.send("You are already on-duty or on a break.",ephemeral=True)
+          return
+        if on_duty_role_id:
+          on_duty_role = ctx.guild.get_role(on_duty_role_id)
+          await ctx.author.add_roles(on_duty_role)
+        if log_channel_id:
+          log_channel = ctx.guild.get_channel(log_channel_id)
+          formatted_timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+          embed = discord.Embed(title='Cyni Shift Management',description=f'{ctx.author.mention} started their shift.',color=0x00FF00)
+          embed.add_field(name='Started:', value=formatted_timestamp)
+          embed.add_field(name='Status', value='On Duty')
+          embed.set_thumbnail(url=ctx.author.avatar.url)
+          await log_channel.send(embed=embed)
+        temp_shift_logs[user_id] = {"start_time": formatted_timestamp,"status": "on_duty"}
+        await ctx.send(f"Shift started! You are now on-duty.", ephemeral=True)
+      elif action.lower() == 'stop':
+        if user_id in temp_shift_logs and temp_shift_logs[user_id]["status"] in ["on_duty", "on_break"]:
+          if on_duty_role_id:
+            on_duty_role = ctx.guild.get_role(on_duty_role_id)
+            await ctx.author.remove_roles(on_duty_role)
+          if log_channel_id:
+            log_channel = ctx.guild.get_channel(log_channel_id)
+            formatted_timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            start_time = datetime.datetime.fromisoformat(temp_shift_logs[user_id]["start_time"])
+            shift_duration = datetime.datetime.now() - start_time
+            embed = discord.Embed(title='Cyni Shift Management',description=f'{ctx.author.mention} ended their shift.',color=0x00FF00)
+            embed.add_field(name='Ended:', value=formatted_timestamp)
+            embed.add_field(name='Status', value='Off Duty')
+            embed.set_thumbnail(url=ctx.author.avatar.url)
+            await log_channel.send(embed=embed)
+          temp_shift_logs.pop(user_id, None)
+          shift_logs = load_shift_logs()
+          if guild_id not in shift_logs:
+            shift_logs[guild_id] = {}
+          shift_logs[guild_id][user_id] = {"shift_duration": str(shift_duration)}
+          save_shift_logs(shift_logs)
+          embed = discord.Embed(title='Cyni Shift Management',description=f'Total shift duration {shift_duration}.',color=0x00FF00)
+          await ctx.send(embed=embed)
+        else:
+          await ctx.send("You were not on-duty or on a break.")
+      elif action.lower() == 'break':
+        if user_id in temp_shift_logs and temp_shift_logs[user_id]["status"] == "on_duty":
+          if on_duty_role_id and on_break_role_id:
+            on_duty_role = ctx.guild.get_role(on_duty_role_id)
+            on_break_role = ctx.guild.get_role(on_break_role_id)
+            await ctx.author.remove_roles(on_duty_role)
+            await ctx.author.add_roles(on_break_role)
+          if log_channel_id:
+            log_channel = ctx.guild.get_channel(log_channel_id)
+            await log_channel.send(f"{ctx.author.mention} is on a break.")
+          temp_shift_logs[user_id]["status"] = "on_break"
+          await ctx.send("Break started! You are now on a break.")
+        else:
+          if user_id in temp_shift_logs and temp_shift_logs[user_id][
+              "status"] == "on_break":
+            if on_duty_role_id:
+              on_duty_role = ctx.guild.get_role(on_duty_role_id)
+              await ctx.author.add_roles(on_duty_role)
+            if log_channel_id:
+              log_channel = ctx.guild.get_channel(log_channel_id)
+              await log_channel.send(
+                  f"{ctx.author.mention} started their shift (from break).")
+            temp_shift_logs[user_id] = {
+                "start_time": datetime.datetime.now().isoformat(),
+                "status": "on_duty"
+            }
+            await ctx.send(f"Shift started! You are now on-duty.")
+          else:
+            await ctx.send("You were not on-duty.")
+      else:
+        await ctx.send("Invalid action. Use `start`, `stop`, or `break.")
+      save_temp_shift_logs(temp_shift_logs)
+  else:
+    await ctx.send(premium_message)"""
+
+@bot.tree.command()
+async def getavatar(interaction: discord.Interaction, user: discord.User):
+  '''Get any user avatar from server'''
+  guild_id = interaction.guild.id
+  server_config = get_server_config(guild_id)
+  premium_status = server_config.get("premium", [])
+  if 'false' in premium_status:
+    try:
+        '''Get User Avatar'''
+        embed = discord.Embed(title=f"{user.name}'s Profile Photo", color=0x00FFFF)
+        embed.set_image(url=user.avatar)
+        await interaction.response.send_message(embed=embed)
+    except Exception as error:
+        await on_general_error(interaction, error)
+  else:
+    await interaction.response.send_message(premium_message)
 
 @bot.event
 async def on_general_error(ctx, error):
