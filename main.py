@@ -2,24 +2,16 @@ import discord
 from discord.ext import commands
 import datetime
 import json
-import os
 import requests
 import sys
 import traceback
 import logging
 from prefixcommand import prefix_warn
 from utils import *
-from flask import Flask, render_template
-from threading import Thread
 import random
 from PIL import Image
 from io import BytesIO
-from premium import run_pbot as run_premium_bot
 import uuid
-from hyme import *
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
 
 premium_message = "✨ This server have premium enabled please use <@1168414327011823627> to use this command."
 
@@ -924,168 +916,6 @@ async def dogimage(ctx):
       image_data.save(image_bytes, format='PNG')
       image_bytes.seek(0)
       await ctx.send(file=discord.File(image_bytes, 'cat_image.png'))
-    
-"""@bot.command(name='shiftsetup', help='Setup shift configurations')
-async def shiftsetup(ctx: commands.Context):
-  guild_id=str(ctx.guild.id)
-  server_config = get_server_config(guild_id)
-  premium_status = server_config.get("premium", [])
-  if 'false' in premium_status:
-    management_roles = get_management_roles(ctx.guild.id)
-    if any(
-        str(role) in [str(r.id) for r in ctx.author.roles]
-        for role in management_roles):
-      await ctx.send("Select a configuration option:\n1) On-duty staff role\n2) On-break role\n3) Shift Log channel")
-      def check(message):
-        return message.author == ctx.author and message.channel == ctx.channel
-      try:
-        response_message = await bot.wait_for('message', check=check, timeout=60)
-        response = response_message.content.strip()
-      except TimeoutError:
-        await ctx.send("Timed out. Please try again.")
-        return
-      config = load_shift_config()
-      guild_id = str(ctx.guild.id)
-      if guild_id not in config:
-        config[guild_id] = {}
-      if response == "1":
-        await ctx.send("Enter the on-duty staff role ID:")
-        try:
-          on_duty_role_id = await bot.wait_for('message',check=check,timeout=60)
-          on_duty_role_id = int(on_duty_role_id.content)
-        except TimeoutError:
-          await ctx.send("Timed out. Please try again.")
-          return
-        config[guild_id]["on_duty_role"] = on_duty_role_id
-      elif response == "2":
-        await ctx.send("Enter the on-break role ID:")
-        try:
-          on_break_role_id = await bot.wait_for('message',check=check,timeout=60)
-          on_break_role_id = int(on_break_role_id.content)
-        except TimeoutError:
-          await ctx.send("Timed out. Please try again.")
-          return
-        config[guild_id]["on_break_role"] = on_break_role_id
-      elif response == "3":
-        await ctx.send("Enter the shift log channel ID:")
-        try:
-          log_channel_id = await bot.wait_for('message', check=check, timeout=60)
-          log_channel_id = int(log_channel_id.content)
-        except TimeoutError:
-          await ctx.send("Timed out. Please try again.")
-          return
-        config[guild_id]["log_channel"] = log_channel_id
-      else:
-        await ctx.send("Invalid option. Please choose a valid option.")
-        return
-      save_shift_config(config)
-      await ctx.send(f"Shift configuration updated for option {response}.")
-    else:
-      await ctx.send("You don't have the required permissions.")
-  else:
-    await ctx.send(premium_message)
-
-
-@bot.command(name='shiftmanage', help='Manage shifts')
-async def shiftmanage(ctx: commands.Context, action: str):
-  user_id = str(ctx.author.id)
-  guild_id = str(ctx.guild.id)
-  server_config = get_server_config(guild_id)
-  premium_status = server_config.get("premium", [])
-  if 'false' in premium_status:
-    temp_shift_logs = load_temp_shift_logs()
-    config = load_shift_config()
-    on_duty_role_id = config.get(guild_id, {}).get("on_duty_role")
-    on_break_role_id = config.get(guild_id, {}).get("on_break_role")
-    log_channel_id = config.get(guild_id, {}).get("log_channel")
-    staff_roles = get_staff_roles(guild_id)
-    management_roles = get_management_roles(guild_id)
-    user_roles = [r.id for r in ctx.author.roles if isinstance(r, discord.Role)]
-
-    if not any(role_id in user_roles
-              for role_id in staff_roles + management_roles):
-      await ctx.send("You do not have the required role to use this command.")
-      return
-
-    if action.lower() in ['start', 'stop', 'break']:
-      if action.lower() == 'start':
-        if user_id in temp_shift_logs and temp_shift_logs[user_id]["status"] in [
-            "on_duty", "on_break"
-        ]:
-          await ctx.send("You are already on-duty or on a break.",ephemeral=True)
-          return
-        if on_duty_role_id:
-          on_duty_role = ctx.guild.get_role(on_duty_role_id)
-          await ctx.author.add_roles(on_duty_role)
-        if log_channel_id:
-          log_channel = ctx.guild.get_channel(log_channel_id)
-          formatted_timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-          embed = discord.Embed(title='Cyni Shift Management',description=f'{ctx.author.mention} started their shift.',color=0x00FF00)
-          embed.add_field(name='Started:', value=formatted_timestamp)
-          embed.add_field(name='Status', value='On Duty')
-          embed.set_thumbnail(url=ctx.author.avatar.url)
-          await log_channel.send(embed=embed)
-        temp_shift_logs[user_id] = {"start_time": formatted_timestamp,"status": "on_duty"}
-        await ctx.send(f"Shift started! You are now on-duty.", ephemeral=True)
-      elif action.lower() == 'stop':
-        if user_id in temp_shift_logs and temp_shift_logs[user_id]["status"] in ["on_duty", "on_break"]:
-          if on_duty_role_id:
-            on_duty_role = ctx.guild.get_role(on_duty_role_id)
-            await ctx.author.remove_roles(on_duty_role)
-          if log_channel_id:
-            log_channel = ctx.guild.get_channel(log_channel_id)
-            formatted_timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-            start_time = datetime.datetime.fromisoformat(temp_shift_logs[user_id]["start_time"])
-            shift_duration = datetime.datetime.now() - start_time
-            embed = discord.Embed(title='Cyni Shift Management',description=f'{ctx.author.mention} ended their shift.',color=0x00FF00)
-            embed.add_field(name='Ended:', value=formatted_timestamp)
-            embed.add_field(name='Status', value='Off Duty')
-            embed.set_thumbnail(url=ctx.author.avatar.url)
-            await log_channel.send(embed=embed)
-          temp_shift_logs.pop(user_id, None)
-          shift_logs = load_shift_logs()
-          if guild_id not in shift_logs:
-            shift_logs[guild_id] = {}
-          shift_logs[guild_id][user_id] = {"shift_duration": str(shift_duration)}
-          save_shift_logs(shift_logs)
-          embed = discord.Embed(title='Cyni Shift Management',description=f'Total shift duration {shift_duration}.',color=0x00FF00)
-          await ctx.send(embed=embed)
-        else:
-          await ctx.send("You were not on-duty or on a break.")
-      elif action.lower() == 'break':
-        if user_id in temp_shift_logs and temp_shift_logs[user_id]["status"] == "on_duty":
-          if on_duty_role_id and on_break_role_id:
-            on_duty_role = ctx.guild.get_role(on_duty_role_id)
-            on_break_role = ctx.guild.get_role(on_break_role_id)
-            await ctx.author.remove_roles(on_duty_role)
-            await ctx.author.add_roles(on_break_role)
-          if log_channel_id:
-            log_channel = ctx.guild.get_channel(log_channel_id)
-            await log_channel.send(f"{ctx.author.mention} is on a break.")
-          temp_shift_logs[user_id]["status"] = "on_break"
-          await ctx.send("Break started! You are now on a break.")
-        else:
-          if user_id in temp_shift_logs and temp_shift_logs[user_id][
-              "status"] == "on_break":
-            if on_duty_role_id:
-              on_duty_role = ctx.guild.get_role(on_duty_role_id)
-              await ctx.author.add_roles(on_duty_role)
-            if log_channel_id:
-              log_channel = ctx.guild.get_channel(log_channel_id)
-              await log_channel.send(
-                  f"{ctx.author.mention} started their shift (from break).")
-            temp_shift_logs[user_id] = {
-                "start_time": datetime.datetime.now().isoformat(),
-                "status": "on_duty"
-            }
-            await ctx.send(f"Shift started! You are now on-duty.")
-          else:
-            await ctx.send("You were not on-duty.")
-      else:
-        await ctx.send("Invalid action. Use `start`, `stop`, or `break.")
-      save_temp_shift_logs(temp_shift_logs)
-  else:
-    await ctx.send(premium_message)"""
 
 @bot.tree.command()
 async def getavatar(interaction: discord.Interaction, user: discord.User):
