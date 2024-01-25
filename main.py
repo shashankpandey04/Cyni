@@ -711,6 +711,7 @@ async def servermanage(interaction:discord.Interaction):
   '''Manage Your Server with Cyni'''
   try:
     if interaction.user.guild_permissions.administrator:
+    #Fixed ServerManage Command Permission.
       embed = discord.Embed(title="Server Manage",description='''
                             Setup Cyni for your server.
                             **Staff Roles**
