@@ -9,7 +9,8 @@ from prefixcommand import prefix_warn
 from utils import *
 import random
 from menu import *
-
+from threading import Thread
+#from hyme import run_staff_bot as run_hyme
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
@@ -732,4 +733,15 @@ async def servermanage(interaction:discord.Interaction):
   except Exception as error:
           await on_general_error(interaction, error)
 
-bot.run("YOUR TOKEN")
+def run_cynibot():
+   bot.run("YOUR TOKEN")
+  
+def run_bots():
+    bot_thread = Thread(target=run_cynibot)
+    #staff_bot_thread = Thread(target=run_hyme)
+    bot_thread.start()
+    #staff_bot_thread.start()
+    bot_thread.join()
+    #staff_bot_thread.join()
+
+run_bots()
