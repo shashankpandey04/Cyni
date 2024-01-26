@@ -47,6 +47,8 @@ async def on_message(message):
         await prefix_warn(ctx, mentioned_user, reason=reason)
       else:
         await message.channel.send("You need to provide a reason when using ?warn.")
+  elif message.content.startswith('?'):
+    return
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -712,13 +714,11 @@ async def servermanage(interaction:discord.Interaction):
   '''Manage Your Server with Cyni'''
   try:
     if interaction.user.guild_permissions.administrator:
-    #Fixed ServerManage Command Permission.
       embed = discord.Embed(title="Server Manage",description='''
                             Setup Cyni for your server.
                             **Staff Roles**
                             - *Discord Staff Roles:* Staff Roles are the roles that can use Cyni's moderation commands.
                             \n- *Management Roles:* Management Roles are the roles that can use Cyni's management commands.\n - Application Result commands.\n - Staff Promo/Demo command.\n - Set Moderation Log channel.
-                            \n- *Game Staff Roles:* Game Staff Roles are the roles that can use Cyni's game moderation commands like Duty Manage/Punish.
                             \n**Mod Logger**
                             - *Moderation Log Channel:* Mod Log Channel is the channel where Cyni will log all the moderation actions.
                             \n**Support Server**
@@ -732,9 +732,8 @@ async def servermanage(interaction:discord.Interaction):
       await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
           await on_general_error(interaction, error)
-
 def run_cynibot():
-   bot.run("YOUR TOKEN")
+   bot.run("YOUR_TOKEN")
   
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
