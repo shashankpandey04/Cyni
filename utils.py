@@ -57,7 +57,12 @@ def create_or_get_server_config(guild_id):
             "mod_log_channel": "null",
             "premium": "true",
             "report_channel": "null",
-            "blocked_search": []
+            "blocked_search": [],
+            "anti_ping": "false",
+            "anti_ping_roles":[],
+            "bypass_anti_ping_roles":[],
+            "loa_role": "null",
+            "staff_management_channel": "null"
         }
         update_server_config(guild_id, config)
     return config

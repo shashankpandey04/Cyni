@@ -67,19 +67,27 @@ class ChangeCofig(discord.ui.Select):
       options = [
          discord.SelectOption(label="Discord Staff Roles",description="Change Staff Roles",emoji="👮"),
          discord.SelectOption(label="Management Roles",description="Change Management Roles",emoji="🚨"),
-         discord.SelectOption(label="Game Staff Roles",description="Change Game Staff Roles",emoji="🎮"),
-         discord.SelectOption(label="Log Channel",description="Change Mod Log Channel",emoji="📝")
+         discord.SelectOption(label="Loa Role",description="Change Loa Role",emoji="🏝️"),
+         discord.SelectOption(label="Log Channel",description="Change Mod Log Channel",emoji="📝"),
+         discord.SelectOption(label="Staff Management Channel",description="Change Staff Management Channel",emoji="📝")
       ]
       super().__init__(placeholder="Change Server Config",options=options,min_values=1,max_values=1)
     async def callback(self,interaction: discord.Interaction):
-      if self.values[0] == "Discord Staff Roles":
-        await interaction.response.send_message(view=DiscordStaffRoles(),ephemeral=True)
-      elif self.values[0] == "Management Roles":
-        await interaction.response.send_message(view=ManagementRoleView(),ephemeral=True)
-      elif self.values[0] == "Game Staff Roles":
-        await interaction.response.send_message("This feature is disabled by Developers.",ephemeral=True)
-      elif self.values[0] == "Log Channel":
-        await interaction.response.send_message(view=ModLogView(),ephemeral=True)
+      try:
+        if self.values[0] == "Discord Staff Roles":
+          await interaction.response.send_message(view=DiscordStaffRoles(),ephemeral=True)
+        elif self.values[0] == "Management Roles":
+          await interaction.response.send_message(view=ManagementRoleView(),ephemeral=True)
+        elif self.values[0] == "Loa Role":
+          await interaction.response.send_message(view=LoaRoleView() ,ephemeral=True)
+        elif self.values[0] == "Log Channel":
+          await interaction.response.send_message(view=ModLogView(),ephemeral=True),
+        elif self.values[0] == "Staff Management Channel":
+          await interaction.response.send_message(view=StaffManagementChannelView(),ephemeral=True)
+      except TimeoutError:
+        await interaction.response.send_message("Timed out. Please try again.")
+        return
+      
 
 class ChangeConfigView(discord.ui.View):
     def __init__ (self):
@@ -276,3 +284,53 @@ class AntiPingByPassView(discord.ui.View):
     def __init__ (self):
       super().__init__()
       self.add_item(AntiPingByPass())
+
+class LoaRoleSelect(discord.ui.RoleSelect):
+    def __init__ (self,placeholder="Select Loa Roles",min_values=1,max_values=10):
+      super().__init__(placeholder=placeholder,min_values=min_values,max_values=max_values)
+    async def callback(self,interaction:discord.Interaction):
+      try:
+        await interaction.response.defer()
+        response = [role.id for role in self.values]
+        with open("server_config.json", "r") as file:
+          server_config = json.load(file)
+          guild_id = str(interaction.guild.id)
+          server_config[guild_id]["loa_role"] = response
+        with open("server_config.json", "w") as file:
+          json.dump(server_config, file, indent=4)
+          embed = discord.Embed(description=f"Loa Roles saved.",color=0x00FF00)
+        await interaction.channel.send(embed=embed)
+        self.view.stop()
+      except TimeoutError:
+        await interaction.channel.send("Timed out. Please try again.")
+        return
+
+class LoaRoleView(discord.ui.View):
+    def __init__ (self):
+      super().__init__()
+      self.add_item(LoaRoleSelect())
+    
+class StaffManagementChannelView(discord.ui.View):
+    def __init__ (self):
+      super().__init__()
+      self.add_item(StaffManagementChannel())
+
+class StaffManagementChannel(discord.ui.ChannelSelect):
+    def __init__(self):
+        super().__init__(placeholder="Select Staff Management Channel")
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer()
+            response = self.values[0].id if self.values else None
+            with open("server_config.json", "r") as file:
+                server_config = json.load(file)
+                guild_id = str(interaction.guild.id)
+                server_config[guild_id]["staff_management_channel"] = response
+            with open("server_config.json", "w") as file:
+                json.dump(server_config, file, indent=4, default=str)
+            embed = discord.Embed(description=f"Staff Management Channel saved.", color=0x00FF00)
+            await interaction.channel.send(embed=embed)
+            self.view.stop()
+        except TimeoutError:
+            await interaction.channel.send(f"{interaction.user.mention} Timed out. Please try again.")
+            return

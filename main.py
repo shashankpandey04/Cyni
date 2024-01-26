@@ -439,8 +439,14 @@ async def failapp(interaction: discord.Interaction, member: discord.Member, *,fe
 async def search(interaction: discord.Interaction, topic: str):
     '''Search on web using CYNI Search API'''
     try:
-      result = search_api(topic)
-      await interaction.response.send_message(f"{result}....")
+        guild_id = str(interaction.guild.id)
+        server_config = get_server_config(guild_id)
+        blocked_search = server_config.get('blocked_search', [])
+        if topic in blocked_search:
+            await interaction.response.send_message("Blocked word found in search query.")
+            return
+        result = search_api(topic)
+        await interaction.response.send_message(f"{result}....")
     except Exception as error:
         await on_general_error(interaction, error)
 
@@ -732,9 +738,35 @@ async def servermanage(interaction:discord.Interaction):
       await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
           await on_general_error(interaction, error)
+
+@bot.tree.command()
+async def blocked_search(interaction: discord.Interaction, keyword: str):
+    '''Add blocked words from Cyni Search in server.'''
+    try:
+        if await check_permissions(interaction, interaction.user):
+            embed = discord.Embed(
+                title="Blocked Search",
+                description=f"**Keyword:** {keyword}\n**Blocked By:** {interaction.user.mention}",
+                color=0x00FF00
+            )
+            await interaction.response.send_message("Blocked Search Added", ephemeral=True)
+            
+            with open("server_config.json", "r") as file:
+                server_config = json.load(file)
+                guild_id = str(interaction.guild.id)
+                server_config[guild_id]["blocked_search"].append(keyword)
+            
+            with open("server_config.json", "w") as file:
+                json.dump(server_config, file, indent=4)
+                
+            await interaction.channel.send(embed=embed)
+        else:
+            await interaction.response.send_message("❌ You don't have permission to use this command.")
+    except Exception as error:
+        await on_general_error(interaction, error)
+
 def run_cynibot():
-   bot.run("YOUR_TOKEN")
-  
+   bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.Gjqdht.lw8YkYavnQsgUb736W63BITuH-9TtEB6zQXi0Q")
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
     #staff_bot_thread = Thread(target=run_hyme)
