@@ -766,7 +766,7 @@ async def blocked_search(interaction: discord.Interaction, keyword: str):
         await on_general_error(interaction, error)
 
 def run_cynibot():
-   bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.Gjqdht.lw8YkYavnQsgUb736W63BITuH-9TtEB6zQXi0Q")
+   bot.run("YOUR BOT TOKEN HERE")
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
     #staff_bot_thread = Thread(target=run_hyme)
