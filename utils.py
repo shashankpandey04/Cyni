@@ -55,7 +55,7 @@ def create_or_get_server_config(guild_id):
             "staff_roles": [],
             "management_role": [],
             "mod_log_channel": "null",
-            "premium": "true",
+            "premium": "false",
             "report_channel": "null",
             "blocked_search": [],
             "anti_ping": "false",

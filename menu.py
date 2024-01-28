@@ -27,30 +27,55 @@ class SetupBot(discord.ui.Select):
         server_config = get_server_config(guild_id)
         staff_role_mentions = [f"<@&{role_id}>" for role_id in server_config['staff_roles']]
         management_role_mentions = [f"<@&{role_id}>" for role_id in server_config['management_role']]
+        anti_ping_role_mentions = [f"<@&{role_id}>" for role_id in server_config['anti_ping_roles']]
+        bypass_antiping_mention = [f"<@&{role_id}>" for role_id in server_config['bypass_anti_ping_roles']]
         modlogchannel = f"<#{server_config['mod_log_channel']}>" if server_config['mod_log_channel'] != "null" else None
+        loa_role = [f"<@&{role_id}>" for role_id in server_config['loa_role']]
+        staff_management_channel = f"<#{server_config['staff_management_channel']}>" if server_config['staff_management_channel'] != "null" else None
+        blocked_search = [f"{role_id}" for role_id in server_config['blocked_search']]
         embed = discord.Embed(
                     title="Server Config",
                     description=f"**Server Name:** {interaction.guild.name}\n**Server ID:** {interaction.guild.id}",
                     color=0x00FF00
               )
         if staff_role_mentions:
-                  embed.add_field(name="Discord Staff Roles", value="Enabled", inline=False)
-                  embed.add_field(name="**Discord Staff Roles:**", value='\n'.join(staff_role_mentions))
+          embed.add_field(name="**Discord Staff Roles:**", value='\n'.join(staff_role_mentions))
         else:
-                  embed.add_field(name="Discord Staff Roles", value="Disabled")
+          embed.add_field(name="Discord Staff Roles", value="Disabled")
         if management_role_mentions:
-                  embed.add_field(name="Management Roles", value="Enabled", inline=False)
-                  embed.add_field(name="**Management Roles:**", value='\n'.join(management_role_mentions))
+          embed.add_field(name="**Management Roles:**", value='\n'.join(management_role_mentions))
         else:
-                    embed.add_field(name="Management Roles", value="Disabled")
+          embed.add_field(name="Management Roles", value="Disabled")
         if modlogchannel:
-                    embed.add_field(name="Moeration Loging", value="Enabled", inline=False)
-                    embed.add_field(name="**Mod Log Channel:**", value=modlogchannel)
+          embed.add_field(name="Moeration Loging", value="Enabled", inline=True)
+          embed.add_field(name="**Mod Log Channel:**", value=modlogchannel)
         else:
-                    embed.add_field(name="Moderation Loging", value="Disabled", inline=False)
+          embed.add_field(name="Moderation Loging", value="Disabled", inline=True)
+        if anti_ping_role_mentions:
+          embed.add_field(name="Anti Ping", value="Enabled", inline=True)
+          embed.add_field(name="**Anti Ping Roles:**", value='\n'.join(anti_ping_role_mentions))
+        else:
+          embed.add_field(name="Anti Ping", value="Disabled", inline=True)
+        if bypass_antiping_mention:
+          embed.add_field(name="**Anti Ping Bypass Roles:**", value='\n'.join(bypass_antiping_mention))
+        else:
+          embed.add_field(name="Anti Ping Bypass", value="Disabled", inline=True)
+        if loa_role:
+          embed.add_field(name="**Loa Role:**", value='\n'.join(loa_role))
+        else:
+          embed.add_field(name="Loa Role", value="Disabled", inline=True)
+        if staff_management_channel:
+          embed.add_field(name="**Staff Management Channel:**", value=staff_management_channel)
+        else:
+          embed.add_field(name="Staff Management", value="Disabled", inline=True)
+        if blocked_search:
+          embed.add_field(name="Blocked Search", value="Enabled", inline=True)
+          embed.add_field(name="**Blocked Search:**", value='\n'.join(blocked_search))
+        else:
+          embed.add_field(name="Blocked Search", value="Disabled", inline=True)
         if 'premium' in server_config:
-                    premium_status = "Enabled" if server_config['premium'] == 'true' else "Disabled"
-                    embed.add_field(name="Premium Status", value=premium_status, inline=False)
+          premium_status = "Enabled" if server_config['premium'] == 'true' else "Disabled"
+          embed.add_field(name="Premium Status", value=premium_status, inline=True)
         embed.color = discord.Color.red()
         await interaction.response.send_message(embed=embed,view=ChangeConfigView(),ephemeral=True)
       elif self.values[0] == "Support Server":

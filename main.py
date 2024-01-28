@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=":", intents=intents)
+bot = commands.Bot(command_prefix="?", intents=intents)
 
 @bot.event
 async def on_ready():
@@ -33,12 +33,12 @@ async def on_message(message):
     if message.author.bot:
         return
     await bot.process_commands(message)
-    if message.content.startswith(':warn'):
+    if message.content.startswith('?warn'):
         ctx = await bot.get_context(message)
         mentioned_users = message.mentions
         if mentioned_users:
             mentioned_user = mentioned_users[0]
-            remaining_content = message.content[len(':warn'):].lstrip().lstrip(
+            remaining_content = message.content[len('?warn'):].lstrip().lstrip(
                 mentioned_user.mention).strip()
             if remaining_content:
                 reason = remaining_content
@@ -46,21 +46,25 @@ async def on_message(message):
             else:
                 await message.channel.send("You need to provide a reason when using ?warn.")
     guild_id = message.guild.id
-    anti_ping_roles = get_server_config(guild_id).get("anti_ping_roles", [])
-    bypass_antiping_roles = get_server_config(guild_id).get("bypass_antiping_roles", [])
+    server_config = get_server_config(guild_id)
+    anti_ping_enabled = server_config.get(str(guild_id), {}).get("anti_ping", "false").lower() == "true"
+    if not anti_ping_enabled:
+        return
+    anti_ping_roles = server_config.get("anti_ping_roles", [])
+    bypass_antiping_roles = server_config.get("bypass_antiping_roles", [])
     mentioned_user = message.mentions[0]
     author_has_bypass_role = any(role.id in bypass_antiping_roles for role in message.author.roles)
     has_management_role = any(role.id in anti_ping_roles for role in mentioned_user.roles)
     has_administrator_permission = message.author.guild_permissions.administrator
     if author_has_bypass_role or has_administrator_permission:
-       return
+        return
     elif has_management_role:
         warning_message = f"{message.author} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
         await message.channel.send(warning_message)
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound) and ctx.message.content.startswith(':warn'):
+    if isinstance(error, commands.CommandNotFound) and ctx.message.content.startswith('?warn'):
         return
     
     existing_uids = get_existing_uids()
@@ -729,16 +733,21 @@ async def servermanage(interaction:discord.Interaction):
   try:
     if interaction.user.guild_permissions.administrator:
       embed = discord.Embed(title="Server Manage",description='''
-                            Setup Cyni for your server.
-                            **Staff Roles**
-                            - *Discord Staff Roles:* Staff Roles are the roles that can use Cyni's moderation commands.
-                            \n- *Management Roles:* Management Roles are the roles that can use Cyni's management commands.\n - Application Result commands.\n - Staff Promo/Demo command.\n - Set Moderation Log channel.
-                            \n**Mod Logger**
-                            - *Moderation Log Channel:* Mod Log Channel is the channel where Cyni will log all the moderation actions.
-                            \n**Support Server**
-                            - Need any help?\n- Join Cyni Support Server.
-                            \n**Server Config**
-                            - View and Edit your server config.
+                          **Staff Roles:**
+                          - *Discord Staff Roles:* These roles grant permission to use Cyni's moderation commands.\n
+                          - *Management Roles:* Users with these roles can utilize Cyni's management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel.
+
+                          **Mod Logger:**
+                          - *Moderation Log Channel:* This channel is designated for Cyni to log all moderation actions taken on the server.
+
+                          **Server Config:**
+                          - Easily view and edit your server configuration settings.
+
+                          **Anti-ping Module:**
+                          - Messages are sent if a user with specific roles attempts to ping anyone. Bypass roles can be configured to allow certain users to ping others with that role.
+
+                          **Support Server:**
+                          - Need assistance? Join the Cyni Support Server for help.
                             '''
                             ,color=0x00FF00) 
       await interaction.response.send_message(embed=embed, view=SetupView(),ephemeral=True)
@@ -751,30 +760,24 @@ async def servermanage(interaction:discord.Interaction):
 async def blocked_search(interaction: discord.Interaction, keyword: str):
     '''Add blocked words from Cyni Search in server.'''
     try:
-        if await check_permissions(interaction, interaction.user):
-            embed = discord.Embed(
-                title="Blocked Search",
-                description=f"**Keyword:** {keyword}\n**Blocked By:** {interaction.user.mention}",
-                color=0x00FF00
-            )
+        if await check_permissions_management(interaction, interaction.user):
+            embed = discord.Embed(title="Blocked Search",description=f"**Keyword:** {keyword}\n**Blocked By:** {interaction.user.mention}",color=0x00FF00)
             await interaction.response.send_message("Blocked Search Added", ephemeral=True)
-            
             with open("server_config.json", "r") as file:
                 server_config = json.load(file)
                 guild_id = str(interaction.guild.id)
                 server_config[guild_id]["blocked_search"].append(keyword)
-            
             with open("server_config.json", "w") as file:
-                json.dump(server_config, file, indent=4)
-                
+                json.dump(server_config, file, indent=4)     
             await interaction.channel.send(embed=embed)
         else:
             await interaction.response.send_message("❌ You don't have permission to use this command.")
     except Exception as error:
         await on_general_error(interaction, error)
-
+        
 def run_cynibot():
-   bot.run("YOUR_TOKEN_HERE")
+   bot.run("YOU_TOKEN_HERE")
+
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
     #staff_bot_thread = Thread(target=run_hyme)
