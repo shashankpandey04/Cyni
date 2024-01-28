@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="?", intents=intents)
+bot = commands.Bot(command_prefix=":", intents=intents)
 
 @bot.event
 async def on_ready():
@@ -30,29 +30,37 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-  if message.author.bot:
-    return
-
-  await bot.process_commands(message)
-
-  if message.content.startswith('?warn'):
-    ctx = await bot.get_context(message)
-    mentioned_users = message.mentions
-    if mentioned_users:
-      mentioned_user = mentioned_users[0]
-      remaining_content = message.content[len('?warn'):].lstrip().lstrip(
-          mentioned_user.mention).strip()
-      if remaining_content:
-        reason = remaining_content
-        await prefix_warn(ctx, mentioned_user, reason=reason)
-      else:
-        await message.channel.send("You need to provide a reason when using ?warn.")
-  elif message.content.startswith('?'):
-    return
+    if message.author.bot:
+        return
+    await bot.process_commands(message)
+    if message.content.startswith(':warn'):
+        ctx = await bot.get_context(message)
+        mentioned_users = message.mentions
+        if mentioned_users:
+            mentioned_user = mentioned_users[0]
+            remaining_content = message.content[len(':warn'):].lstrip().lstrip(
+                mentioned_user.mention).strip()
+            if remaining_content:
+                reason = remaining_content
+                await prefix_warn(ctx, mentioned_user, reason=reason)
+            else:
+                await message.channel.send("You need to provide a reason when using ?warn.")
+    guild_id = message.guild.id
+    anti_ping_roles = get_server_config(guild_id).get("anti_ping_roles", [])
+    bypass_antiping_roles = get_server_config(guild_id).get("bypass_antiping_roles", [])
+    mentioned_user = message.mentions[0]
+    author_has_bypass_role = any(role.id in bypass_antiping_roles for role in message.author.roles)
+    has_management_role = any(role.id in anti_ping_roles for role in mentioned_user.roles)
+    has_administrator_permission = message.author.guild_permissions.administrator
+    if author_has_bypass_role or has_administrator_permission:
+       return
+    elif has_management_role:
+        warning_message = f"{message.author} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
+        await message.channel.send(warning_message)
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound) and ctx.message.content.startswith('?warn'):
+    if isinstance(error, commands.CommandNotFound) and ctx.message.content.startswith(':warn'):
         return
     
     existing_uids = get_existing_uids()
@@ -766,7 +774,7 @@ async def blocked_search(interaction: discord.Interaction, keyword: str):
         await on_general_error(interaction, error)
 
 def run_cynibot():
-   bot.run("YOUR BOT TOKEN HERE")
+   bot.run("YOUR_TOKEN_HERE")
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
     #staff_bot_thread = Thread(target=run_hyme)
