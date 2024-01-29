@@ -774,9 +774,19 @@ async def blocked_search(interaction: discord.Interaction, keyword: str):
             await interaction.response.send_message("❌ You don't have permission to use this command.")
     except Exception as error:
         await on_general_error(interaction, error)
-        
+
+@bot.tree.command()
+async def birdimage(interaction: discord.Interaction):
+    '''Get Random Bird Image'''
+    response = requests.get("https://birbapi.astrobirb.dev/birb")
+    data = response.json()
+    image_url = data["image_url"]
+    embed = discord.Embed(title="Random Bird Image", color=discord.Color.random())
+    embed.set_image(url=image_url)
+    await interaction.response.send_message(embed=embed)
+
 def run_cynibot():
-   bot.run("YOU_TOKEN_HERE")
+   bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.Gn5gbW.PldJ1TYJIz5CM6VSL3nDt1tMtCyTCc8fCYb60U")
 
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
