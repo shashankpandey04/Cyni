@@ -823,7 +823,7 @@ async def websearch(interaction:discord.Interaction, topic: str):
 @bot.tree.command()
 async def birdimage(interaction: discord.Interaction):
     '''Get Random Bird Image'''
-    response = requests.get("BIRD_API")
+    response = requests.get("https://birbapi.astrobirb.dev/birb")
     data = response.json()
     image_url = data["image_url"]
     embed = discord.Embed(title="Random Bird Image", color=discord.Color.random())

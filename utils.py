@@ -258,7 +258,7 @@ async def check_permissions_management(ctx, user):
     return is_management
 
 def fetch_random_joke():
-    url = 'joke_API'
+    url = 'https://official-joke-api.appspot.com/jokes/random'
     response = requests.get(url)
     data = response.json()
     joke_setup = data['setup']
