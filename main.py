@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="?", intents=intents)
+
+bot = commands.Bot(command_prefix=':', intents=intents)
+bot.remove_command('help')
 
 @bot.event
 async def on_ready():
@@ -45,28 +47,34 @@ async def on_message(message):
                 await prefix_warn(ctx, mentioned_user, reason=reason)
             else:
                 await message.channel.send("You need to provide a reason when using ?warn.")
+            
     guild_id = message.guild.id
     server_config = get_server_config(guild_id)
     anti_ping_enabled = server_config.get(str(guild_id), {}).get("anti_ping", "false").lower() == "true"
-    if not anti_ping_enabled:
+    if anti_ping_enabled == "false":
         return
-    anti_ping_roles = server_config.get("anti_ping_roles", [])
-    bypass_antiping_roles = server_config.get("bypass_antiping_roles", [])
-    mentioned_user = message.mentions[0]
-    author_has_bypass_role = any(role.id in bypass_antiping_roles for role in message.author.roles)
-    has_management_role = any(role.id in anti_ping_roles for role in mentioned_user.roles)
-    has_administrator_permission = message.author.guild_permissions.administrator
-    if author_has_bypass_role or has_administrator_permission:
+    else:
+      anti_ping_roles = server_config.get("anti_ping_roles", [])
+      bypass_antiping_roles = server_config.get("bypass_antiping_roles", [])
+      try:
+        mentioned_user = message.mentions[0]
+      except IndexError:
         return
-    elif has_management_role:
-        warning_message = f"{message.author} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
-        await message.channel.send(warning_message)
+      author_has_bypass_role = any(role.id in bypass_antiping_roles for role in message.author.roles)
+      has_management_role = any(role.id in anti_ping_roles for role in mentioned_user.roles)
+      has_administrator_permission = message.author.guild_permissions.administrator
+      if author_has_bypass_role or has_administrator_permission:
+          return
+      elif has_management_role:
+        author_can_warn = any(role.id in anti_ping_roles for role in message.author.roles)
+        if not author_can_warn:
+            warning_message = f"{message.author} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
+            await message.channel.send(warning_message)
 
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound) and ctx.message.content.startswith('?warn'):
         return
-    
     existing_uids = get_existing_uids()
     error_uid = generate_error_uid(existing_uids)
     sentry = discord.Embed(
@@ -85,11 +93,13 @@ async def on_command_error(ctx, error):
     
     log_error('cerror.json', error, error_uid)
 
+existing_uids = get_existing_uids()
+
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    error_uid = generate_error_uid()
+    error_uid = generate_error_uid(existing_uids)
     logger.error(f"Error UID: {error_uid}\n{''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}")
 sys.excepthook = handle_exception
 
@@ -448,21 +458,6 @@ async def failapp(interaction: discord.Interaction, member: discord.Member, *,fe
           await on_general_error(interaction, error)
 
 @bot.tree.command()
-async def search(interaction: discord.Interaction, topic: str):
-    '''Search on web using CYNI Search API'''
-    try:
-        guild_id = str(interaction.guild.id)
-        server_config = get_server_config(guild_id)
-        blocked_search = server_config.get('blocked_search', [])
-        if topic in blocked_search:
-            await interaction.response.send_message("Blocked word found in search query.")
-            return
-        result = search_api(topic)
-        await interaction.response.send_message(f"{result}....")
-    except Exception as error:
-        await on_general_error(interaction, error)
-
-@bot.tree.command()
 async def purge(interaction: discord.Interaction, amount: int):   
   '''Purge messages from channel'''
   try:
@@ -715,6 +710,47 @@ async def whois(ctx, *, user_info=None):
     else:
           await ctx.send("User not found.")
 
+'''
+@bot.tree.command()
+async def serverinfo(interaction:discord.Interaction):
+    try:
+      server = interaction.guild
+      name = server.name
+      owner = server.owner
+      created = server.created_at.strftime("%Y-%m-%d %H:%M:%S")
+      bot_joined = server.me.joined_at.strftime("%Y-%m-%d %H:%M:%S")
+      notifications = server.default_notifications.name
+      members = server.member_count
+      nitro_boosts = server.premium_subscription_count
+      two_factor_auth = server.mfa_level
+      verification_level = server.verification_level.name
+      explicit_content_filter = server.explicit_content_filter.name
+      member_verification_gate = server.mfa_level
+      category_channels = sum(1 for channel in server.channels if isinstance(channel, discord.CategoryChannel))
+      text_channels = sum(1 for channel in server.channels if isinstance(channel, discord.TextChannel))
+      voice_channels = sum(1 for channel in server.channels if isinstance(channel, discord.VoiceChannel))
+      announcement_channels = sum(1 for channel in server.channels if isinstance(channel, discord.TextChannel) and channel.is_news())
+      embed = discord.Embed(title="Server Information", color=discord.Color.blue())
+      embed.add_field(name="Name", value=name, inline=False)
+      embed.add_field(name="Owner", value=owner, inline=False)
+      embed.add_field(name="Created", value=created, inline=False)
+      embed.add_field(name="Bot Joined", value=bot_joined, inline=False)
+      embed.add_field(name="Notifications", value=notifications, inline=False)
+      embed.add_field(name="Members", value=members, inline=False)
+      embed.add_field(name="Nitro Boosts", value=nitro_boosts, inline=False)
+      embed.add_field(name="2FA Settings", value=two_factor_auth, inline=False)
+      embed.add_field(name="Verification Level", value=verification_level, inline=False)
+      embed.add_field(name="Explicit Content Filter", value=explicit_content_filter, inline=False)
+      embed.add_field(name="Member Verification Gate", value=member_verification_gate, inline=False)
+      embed.add_field(name="Category", value=category_channels, inline=False)
+      embed.add_field(name="Text", value=text_channels, inline=False)
+      embed.add_field(name="Voice/Stage", value=voice_channels, inline=False)
+      embed.add_field(name="Announcement", value=announcement_channels, inline=False)
+      embed.add_field(name="ID", value=server.id, inline=False)
+      await interaction.response.send_message(embed=embed)
+    except Exception as error:
+          await on_general_error(interaction, error)
+'''
 @bot.tree.command()
 async def support(interaction:discord.Interaction):
   '''Join Cyni Support Server'''
@@ -757,36 +793,55 @@ async def servermanage(interaction:discord.Interaction):
           await on_general_error(interaction, error)
 
 @bot.tree.command()
-async def blocked_search(interaction: discord.Interaction, keyword: str):
-    '''Add blocked words from Cyni Search in server.'''
-    try:
-        if await check_permissions_management(interaction, interaction.user):
-            embed = discord.Embed(title="Blocked Search",description=f"**Keyword:** {keyword}\n**Blocked By:** {interaction.user.mention}",color=0x00FF00)
-            await interaction.response.send_message("Blocked Search Added", ephemeral=True)
-            with open("server_config.json", "r") as file:
-                server_config = json.load(file)
-                guild_id = str(interaction.guild.id)
-                server_config[guild_id]["blocked_search"].append(keyword)
-            with open("server_config.json", "w") as file:
-                json.dump(server_config, file, indent=4)     
-            await interaction.channel.send(embed=embed)
-        else:
-            await interaction.response.send_message("❌ You don't have permission to use this command.")
-    except Exception as error:
-        await on_general_error(interaction, error)
+async def blocksearch(interaction:discord.Interaction, keyword: str):
+  """Add blocked words from Cyni Search in server."""
+  if await check_permissions_management(interaction, interaction.user):
+    embed = discord.Embed(title="Blocked Search",description=f"**Keyword:** {keyword}\n**Blocked By:** {interaction.user.mention}",color=0x00FF00)
+    await interaction.response.send_message("Blocked Search Added", ephemeral=True)
+    with open("server_config.json", "r") as file:
+        server_config = json.load(file)
+        guild_id = str(interaction.guild.id)
+        server_config[guild_id]["blocked_search"].append(keyword)
+    with open("server_config.json", "w") as file:
+        json.dump(server_config, file, indent=4)     
+    await interaction.response.send_message(embed=embed)
+  else:
+    await interaction.response.send_message("❌ You don't have permission to use this command.")
+
+@bot.tree.command()
+async def websearch(interaction:discord.Interaction, topic: str):
+  """Search on web using CYNI Search API"""
+  guild_id = str(interaction.guild.id)
+  server_config = get_server_config(guild_id)
+  blocked_search = server_config.get('blocked_search', [])
+  if topic in blocked_search:
+      await interaction.response.send_message("Blocked word found in search query.")
+      return
+  result = search_api(topic)
+  await interaction.response.send_message(f"{result}....")
 
 @bot.tree.command()
 async def birdimage(interaction: discord.Interaction):
     '''Get Random Bird Image'''
-    response = requests.get("Your_Bird_API")
+    response = requests.get("BIRD_API")
     data = response.json()
     image_url = data["image_url"]
     embed = discord.Embed(title="Random Bird Image", color=discord.Color.random())
     embed.set_image(url=image_url)
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command()
+async def joke(interaction:discord.Interaction):
+   joke = fetch_random_joke()
+   await interaction.response.send_message(joke)
+
+@bot.command()
+async def joke(ctx):
+   joke = fetch_random_joke()
+   await ctx.channel.send(joke)
+
 def run_cynibot():
-   bot.run("TOKEN_HERE")
+   bot.run("BOT_TOKEN")
 
 def run_bots():
     bot_thread = Thread(target=run_cynibot)

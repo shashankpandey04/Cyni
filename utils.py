@@ -256,3 +256,12 @@ async def check_permissions_management(ctx, user):
     management_roles = get_management_roles(str(ctx.guild.id))
     is_management = any(role.id in management_roles for role in user.roles)
     return is_management
+
+def fetch_random_joke():
+    url = 'joke_API'
+    response = requests.get(url)
+    data = response.json()
+    joke_setup = data['setup']
+    joke_punchline = data['punchline']
+    print(joke_setup)
+    return f"{joke_setup}\n{joke_punchline}"
