@@ -1,1 +1,15 @@
-{}
+{
+    "1152949579407442050": {
+        "staff_roles": [],
+        "management_role": [],
+        "mod_log_channel": "null",
+        "premium": "false",
+        "report_channel": "null",
+        "blocked_search": [],
+        "anti_ping": "false",
+        "anti_ping_roles": [],
+        "bypass_anti_ping_roles": [],
+        "loa_role": "null",
+        "staff_management_channel": "null"
+    }
+}

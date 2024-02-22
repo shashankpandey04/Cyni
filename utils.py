@@ -9,6 +9,16 @@ import discord
 import string
 import random
 import time
+import mysql.connector
+import json
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="cyni"
+)
+cursor = db.cursor()
+
 try:
     with open('warnings.json', 'r') as warnings_file:
         warnings = json.load(warnings_file)
@@ -20,32 +30,6 @@ def save_data():
         json.dump(warnings, warnings_file, indent=4)
 
 CONFIG_FILE = "server_config.json"
-
-def load_config():
-    """Load server configuration from server_config.json file."""
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r") as file:
-            return json.load(file)
-    file.close()
-    return {}
-
-
-def save_config(config):
-    """Save server configuration to server_config.json file."""
-    with open(CONFIG_FILE, "w") as file:
-        json.dump(config, file, indent=4)
-    file.close()
-
-def get_server_config(guild_id):
-    """Get server configuration for a specific guild."""
-    config = load_config()
-    return config.get(str(guild_id), {})
-
-def update_server_config(guild_id, data):
-    """Update server configuration for a specific guild."""
-    config = load_config()
-    config[str(guild_id)] = data
-    save_config(config)
 
 def create_or_get_server_config(guild_id):
     """Create or get server configuration for a specific guild."""
@@ -66,16 +50,6 @@ def create_or_get_server_config(guild_id):
         }
         update_server_config(guild_id, config)
     return config
-
-def get_staff_roles(guild_id):
-    """Get staff roles for a specific guild."""
-    config = load_config()
-    return config.get(str(guild_id), {}).get("staff_roles", [])
-
-def get_management_roles(guild_id):
-    """Get management roles for a specific guild."""
-    config = load_config()
-    return config.get(str(guild_id), {}).get("management_role", [])
 
 def get_next_case_number(guild_id, user_id):
     try:
@@ -117,21 +91,6 @@ def modlogchannel(guild_id):
   """Get moderation log channel for a specific guild."""
   config = load_config()
   return config.get(str(guild_id), {}).get("mod_log_channel")
-
-def cleanup_guild_data(bot):
-    try:
-        with open("server_config.json", "r") as file:
-            server_config = json.load(file)
-        bot_guild_ids = {guild.id for guild in bot.guilds}
-        for guild_id_str in list(server_config.keys()):
-            guild_id = int(guild_id_str)         
-            if guild_id not in bot_guild_ids:
-                print(f"Bot is not a member of the guild {guild_id}. Removing data from server_config.json.")
-                del server_config[guild_id_str]
-        with open("server_config.json", "w") as file:
-            json.dump(server_config, file, indent=4)
-    except Exception as e:
-        print(f"An error occurred while cleaning up guild data: {e}")
 
 def load_customcommand():
     try:
@@ -253,7 +212,7 @@ async def check_permissions(ctx, user):
     return is_staff or is_management
 
 async def check_permissions_management(ctx, user):
-    management_roles = get_management_roles(str(ctx.guild.id))
+    management_roles = get_management_roles(ctx.guild.id)
     is_management = any(role.id in management_roles for role in user.roles)
     return is_management
 
@@ -265,3 +224,185 @@ def fetch_random_joke():
     joke_punchline = data['punchline']
     print(joke_setup)
     return f"{joke_setup}\n{joke_punchline}"
+
+#MYSQL
+
+def get_staff_roles(guild_id):
+    """Get staff roles for a specific guild."""
+    sql = "SELECT staff_roles FROM server_config WHERE guild_id = %s"
+    cursor.execute(sql, (guild_id,))
+    result = cursor.fetchone()
+    if result:
+        staff_roles = json.loads(result[0]) if result[0] else []
+        return staff_roles
+    else:
+        return []
+
+def get_management_roles(guild_id):
+    """Get management roles for a specific guild."""
+    sql = "SELECT management_roles FROM server_config WHERE guild_id = %s"
+    cursor.execute(sql, (guild_id,))
+    result = cursor.fetchone()
+    if result:
+        management_roles = json.loads(result[0]) if result[0] else []
+        return management_roles
+    else:
+        return []
+
+def save_management_roles(guild_id, management_roles):
+    serialized_management_roles = json.dumps(management_roles)
+    sql = "INSERT INTO server_config (guild_id, management_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE management_roles = VALUES(management_roles)"
+    cursor.execute(sql, (guild_id, serialized_management_roles))
+    db.commit()
+
+def save_staff_roles(guild_id, staff_roles):
+    serialized_staff_roles = json.dumps(staff_roles)
+    sql = "INSERT INTO server_config (guild_id, staff_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE staff_roles = VALUES(staff_roles)"
+    cursor.execute(sql, (guild_id, serialized_staff_roles))
+    db.commit()
+
+def cleanup_guild_data(bot):
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT guild_id FROM server_config")
+        stored_guild_ids = [row[0] for row in cursor.fetchall()]
+        bot_guild_ids = {guild.id for guild in bot.guilds}
+        for guild_id in stored_guild_ids:
+            if guild_id not in bot_guild_ids:
+                print(f"Bot is not a member of the guild {guild_id}. Removing data from server_config table.")
+                cursor.execute("DELETE FROM server_config WHERE guild_id = %s", (guild_id,))
+                db.commit()
+    except Exception as e:
+        print(f"An error occurred while cleaning up guild data: {e}")
+    finally:
+        cursor.close()
+
+def load_config():
+    """Load server configuration from server_config table in the MySQL database."""
+    config = {}
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM server_config")
+        rows = cursor.fetchall()
+        for row in rows:
+            guild_id = row[0]
+            data = json.loads(row[1])
+            config[str(guild_id)] = data
+    except Exception as e:
+        print(f"An error occurred while loading server configuration: {e}")
+    finally:
+        cursor.close()
+    return config
+
+def save_config(config):
+    """Save server configuration to server_config table in the MySQL database."""
+    try:
+        cursor = db.cursor()
+        for guild_id, data in config.items():
+            serialized_data = json.dumps(data)
+            cursor.execute("INSERT INTO server_config (guild_id, config_data) VALUES (%s, %s) ON DUPLICATE KEY UPDATE config_data = VALUES(config_data)", (guild_id, serialized_data))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving server configuration: {e}")
+    finally:
+        cursor.close()
+
+def get_server_config(guild_id):
+    """Get server configuration for a specific guild."""
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT config_data FROM server_config WHERE guild_id = %s", (guild_id,))
+        row = cursor.fetchone()
+        if row:
+            return json.loads(row[0])
+        else:
+            return {}
+    except Exception as e:
+        print(f"An error occurred while getting server configuration: {e}")
+    finally:
+        cursor.close()
+
+def update_server_config(guild_id, data):
+    """Update server configuration for a specific guild."""
+    try:
+        cursor = db.cursor()
+        serialized_data = json.dumps(data)
+        cursor.execute("INSERT INTO server_config (guild_id, config_data) VALUES (%s, %s) ON DUPLICATE KEY UPDATE config_data = VALUES(config_data)", (guild_id, serialized_data))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while updating server configuration: {e}")
+    finally:
+        cursor.close()
+
+def save_mod_log_channel(guild_id, mod_log_channel_id):
+    try:
+        cursor.execute("INSERT INTO server_config (guild_id, mod_log_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE mod_log_channel = VALUES(mod_log_channel)", (guild_id, mod_log_channel_id))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving mod log channel: {e}")
+
+def set_anti_ping_option(guild_id, enable):
+    try:
+        cursor.execute("INSERT INTO server_config (guild_id, anti_ping) VALUES (%s, %s) ON DUPLICATE KEY UPDATE anti_ping = VALUES(anti_ping)", (guild_id, enable))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while setting anti-ping option: {e}")
+    
+def save_anti_ping_roles(guild_id, anti_ping_roles):
+    try:
+        cursor.execute("INSERT INTO server_config (guild_id, anti_ping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE anti_ping_roles = VALUES(anti_ping_roles)", (guild_id, json.dumps(anti_ping_roles)))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving anti-ping roles: {e}")
+
+def save_anti_ping_bypass_roles(guild_id, anti_ping_bypass_roles):
+    try:
+        cursor.execute("INSERT INTO server_config (guild_id, bypass_antiping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE bypass_antiping_roles = VALUES(bypass_antiping_roles)", (guild_id, json.dumps(anti_ping_bypass_roles)))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving anti-ping bypass roles: {e}")
+
+def save_loa_roles(guild_id, loa_roles):
+    try:
+        cursor.execute("INSERT INTO server_config (guild_id, loa_role) VALUES (%s, %s) ON DUPLICATE KEY UPDATE loa_role = VALUES(loa_role)", (guild_id, json.dumps(loa_roles)))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving LOA roles: {e}")
+
+def save_staff_management_channel(guild_id, staff_management_channel_id):
+    try:
+        cursor.execute("INSERT INTO server_config (guild_id, staff_management_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE staff_management_channel = VALUES(staff_management_channel)", (guild_id, staff_management_channel_id))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving staff management channel: {e}")
+
+async def display_server_config(interaction):
+    try:
+        guild_id = str(interaction.guild.id)
+        cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
+        server_config = cursor.fetchone()
+        if server_config:
+            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel = server_config
+        
+            embed = discord.Embed(
+                title="Server Config",
+                description=f"**Server Name:** {interaction.guild.name}\n**Server ID:** {guild_id}",
+                color=0x00FF00
+            )
+            embed.add_field(name="Staff Roles", value=staff_roles if staff_roles else "Not set", inline=False)
+            embed.add_field(name="Management Roles", value=management_roles if management_roles else "Not set", inline=False)
+            embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=False)
+            embed.add_field(name="Premium", value="Enabled" if premium else "Disabled", inline=False)
+            embed.add_field(name="Report Channel", value=f"<#{report_channel}>" if report_channel else "Not set", inline=False)
+            embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=False)
+            embed.add_field(name="Anti Ping", value="Enabled" if anti_ping else "Disabled", inline=False)
+            embed.add_field(name="Anti Ping Roles", value=anti_ping_roles if anti_ping_roles else "Not set", inline=False)
+            embed.add_field(name="Bypass Anti Ping Roles", value=bypass_anti_ping_roles if bypass_anti_ping_roles else "Not set", inline=False)
+            embed.add_field(name="Loa Role", value=loa_role if loa_role else "Not set", inline=False)
+            embed.add_field(name="Staff Management Channel", value=f"<#{staff_management_channel}>" if staff_management_channel else "Not set", inline=False)
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.response.send_message("Server config not found.", ephemeral=True)
+    except Exception as e:
+        print(f"An error occurred while fetching server config: {e}")

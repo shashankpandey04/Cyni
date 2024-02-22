@@ -1,53 +1,72 @@
 import discord
 from discord.ext import commands
-import datetime
 import requests
 import sys
 import traceback
 import logging
 from prefixcommand import prefix_warn
 from utils import *
+import time
 import random
 from menu import *
+import psutil
+import json
+import asyncio
 from threading import Thread
 #from hyme import run_staff_bot as run_hyme
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
+import mysql.connector as msc
+mycon=msc.connect(host='localhost',user='root',passwd='root',database='cyni')
+mycur=mycon.cursor()
+
+if mycon.is_connected():
+    dbstatus = "Connected"
+else:
+    dbstatus = "Disconnected"
 
 intents = discord.Intents.all()
-
 bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
 @bot.event
 async def on_ready():
-  print("Logged in into Discord")
-  await bot.tree.sync()
-  save_data()
-  for guild in bot.guilds:
-    create_or_get_server_config(guild.id)
-  cleanup_guild_data(bot)
-  await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
-  await bot.load_extension("jishaku")
+    print("Logged in into Discord")
+    await bot.tree.sync()
+    bot.start_time = time.time()
+    save_data()
+    for guild in bot.guilds:
+        create_or_get_server_config(guild.id)
+    cleanup_guild_data(bot)
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
+    await bot.load_extension("jishaku")
+
+BOT_USER_ID = 1136945734399295538
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
+    if message.guild.id == 1152949579407442050 and message.channel.id == 1160481898536112170:
+        if message.content.startswith('<@') and len(message.mentions) >= 2:
+            voter = message.mentions[0]
+            voted_for = message.mentions[1]
+            if BOT_USER_ID == voted_for.id:
+                role_id = 1209464266898407444
+                role = discord.utils.get(message.guild.roles, id=role_id)
+                if role:
+                    try:
+                        await voter.add_roles(role)
+                        await asyncio.sleep(43200)
+                        await voter.remove_roles(role)
+                    except discord.Forbidden:
+                        print("Bot doesn't have permission to manage roles.")
+                    except discord.HTTPException as e:
+                        print(f"An error occurred: {e}")
+                else:
+                    print("Role not found")
     await bot.process_commands(message)
-    if message.content.startswith('?warn'):
-        ctx = await bot.get_context(message)
-        mentioned_users = message.mentions
-        if mentioned_users:
-            mentioned_user = mentioned_users[0]
-            remaining_content = message.content[len('?warn'):].lstrip().lstrip(
-                mentioned_user.mention).strip()
-            if remaining_content:
-                reason = remaining_content
-                await prefix_warn(ctx, mentioned_user, reason=reason)
-            else:
-                await message.channel.send("You need to provide a reason when using ?warn.")
-            
+
     guild_id = message.guild.id
     server_config = get_server_config(guild_id)
     anti_ping_enabled = server_config.get(str(guild_id), {}).get("anti_ping", "false").lower() == "true"
@@ -150,222 +169,68 @@ async def slowmode(interaction: discord.Interaction, duration: str):
 
 @bot.tree.command()
 async def ping(interaction: discord.Interaction):
-  '''Check the bot's ping.'''
-  latency = round(bot.latency * 1000)
-  await interaction.response.send_message(f'Pong! Latency: {latency}ms')
+    '''Check the bot's ping, external API response times, and system RAM usage.'''
+    latency = round(bot.latency * 1000)
+    start_time_birb = time.time()
+    response_birb = requests.get("https://birbapi.astrobirb.dev/birb")
+    birb_api_latency = round((time.time() - start_time_birb) * 1000)
+    start_time_joke = time.time()
+    response_joke = requests.get("https://official-joke-api.appspot.com/jokes/random")
+    joke_api_latency = round((time.time() - start_time_joke) * 1000)
+    average_api_latency = (birb_api_latency + joke_api_latency) / 2
+    ram_usage = psutil.virtual_memory().percent
+    uptime_seconds = time.time() - bot.start_time
+    uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
+    embed = discord.Embed(title='Bot Ping', color=0x00FF00)
+    embed.add_field(name='🟢 Pong!', value=f"{latency}ms", inline=True)
+    embed.add_field(name='Uptime', value=uptime_string, inline=True)
+    embed.add_field(name='API Latency', value=f"{round(bot.latency * 1000)}ms", inline=True)
+    embed.add_field(name='External API Latency', value=f"{average_api_latency}ms", inline=True)
+    embed.add_field(name='System RAM Usage', value=f"{ram_usage}%", inline=True)
+    embed.add_field(name="Database Status", value=dbstatus, inline=True)
+    embed.add_field(name="Bot Version", value="6.2.0", inline=True)
+    embed.set_thumbnail(url=bot.user.avatar.url)
+    await interaction.response.send_message(embed=embed)
 
 @bot.tree.command()
-async def roleadd(interaction: discord.Interaction, member: discord.Member,role: discord.Role):
-  '''Add a role to member'''
-  try:
-      if await check_permissions(interaction, interaction.user):
-        if not interaction.user.guild_permissions.manage_roles:
-          await interaction.response.send_message("❌ You don't have the 'Manage Roles' permission.")
-        elif role >= member.top_role:
-          await interaction.response.send_message("❌ I can't add a role higher than or equal to the member's top role.")
-        else:
-          await member.add_roles(role)
-          embed = discord.Embed(
-              title='Role added.',
-              description=f"Role {role.mention} added to {member.mention}",
-              color=0x00FF00)
-          await interaction.response.send_message(embed=embed)
-      else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-    await on_general_error(interaction, error)
-
-@bot.tree.command()
-async def roleremove(interaction: discord.Interaction, member: discord.Member,role: discord.Role):
-  '''Removes a role from member'''
-  try:
-      if await check_permissions(interaction, interaction.user):
-        if not interaction.user.guild_permissions.manage_roles:
-          await interaction.response.send_message("❌ You don't have the 'Manage Roles' permission.")
-        elif role >= member.top_role:
-          await interaction.response.send_message("❌ I can't remove a role higher than or equal to the member's top role.")
-        elif role>= bot.top_role:
-           await interaction.response.send_message("❌ I can't give roles higher than me.")
-        else:
-          await member.remove_roles(role)
-          embed = discord.Embed(title='Role Removed.',description=f"Role {role.mention} is now removed from {member.mention}",color=0xFF0000)
-          await interaction.response.send_message(embed=embed)
-      else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_general_error(interaction, error)
-
-@bot.tree.command()
-async def kick(interaction: discord.Interaction, member: discord.Member, *, reason: str):
-  '''Kicks user from server'''
-  guild_id = interaction.guild.id
-  try:
-      if await check_permissions(interaction, interaction.user):
-        if interaction.guild.me.top_role <= member.top_role:
-          embed = discord.Embed(title='Kick Failed',description="Sorry, I don't have permission to kick users higher than me.", color=0XFF0000)
-          await interaction.response.send_message(embed=embed)
-        elif interaction.user.top_role <= member.top_role:
-          embed = discord.Embed(title="Kick Denied",description="You can't kick users with higher roles.",color=0xFF0000)
-          await interaction.response.send_message(embed=embed)
-        else:
-          kick_embed = discord.Embed(title='User Kicked',description=f"User {member.mention} has been kicked for {reason}",color=0xFF0000,)
-          kick_embed.set_footer(text=datetime.datetime.utcnow())
-          try:
-            await member.kick(reason=reason)
-            await interaction.response.send_message(embed=kick_embed,ephemeral=True)
-            mod_log_channel_id = modlogchannel(guild_id)
-            if mod_log_channel_id is not None:
-              mod_log_channel = interaction.guild.get_channel(mod_log_channel_id)
-              if mod_log_channel:
-                await mod_log_channel.send(embed=kick_embed)
+async def roleadd(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
+    '''Add a role to member'''
+    try:
+        if await check_permissions(interaction, interaction.user):
+            if not interaction.user.guild_permissions.manage_roles:
+                await interaction.response.send_message("❌ You don't have the 'Manage Roles' permission.")
+            elif role >= member.top_role:
+                await interaction.response.send_message("❌ I can't add a role higher than or equal to the member's top role.")
             else:
-              await interaction.channel.send("❌ Moderation log channel is not defined in the server configuration.")
-          except discord.Forbidden:
-            fail_embed = discord.Embed(title="Kick Failed", description=f"You can't kick {member.mention}.")
-            await interaction.response.send_message(embed=fail_embed)
-      else:
-        embed = discord.Embed(title="Kick Denied",description="❌ You don't have permission to use this command.",color=0xFF0000)
-        await interaction.response.send_message(embed=embed)
-  except Exception as error:
-          await on_general_error(interaction, error) 
-
-@bot.tree.command()
-async def ban(interaction: discord.Interaction, member: discord.Member, *,reason: str):
-  '''Ban user from server'''
-  guild_id = interaction.guild.id
-  try:
-    if await check_permissions(interaction, interaction.user):
-      if interaction.guild.me.top_role <= member.top_role:
-          embed = discord.Embed(title='Ban Failed',description="Sorry, I don't have permission to Ban users higher than me.",color=0XFF0000)
-          await interaction.response.send_message(embed=embed)
-      elif interaction.user.top_role <= member.top_role:
-          embed = discord.Embed(title="Ban Denied",description="You can't Ban users with higher roles.",color=0xFF0000)
-          await interaction.response.send_message(embed=embed)
-      else:
-          try:
-            await member.ban(reason=reason)
-            mod_log_channel_id = modlogchannel(guild_id)
-            if mod_log_channel_id is not None:
-              mod_log_channel = interaction.guild.get_channel(mod_log_channel_id)
-              if mod_log_channel:
-                ban_embed = discord.Embed(title='User Banned',description=f"User {member} got banned for {reason}",color=0xFF0000)
-                ban_embed.set_footer(text=datetime.datetime.utcnow())
-                await mod_log_channel.send(embed=ban_embed)
-              else:
-                await interaction.response.send_message("❌ Moderation log channel is not defined in the server configuration.")
-            else:
-              await interaction.response.send_message('❌ Moderation log channel is not defined in the server configuration.')
-            success_embed = discord.Embed(title='User Banned',description=f"User {member} got banned for {reason}",color=0xFF0000)
-            success_embed.set_footer(text=datetime.datetime.utcnow())
-            await interaction.response.send_message(embed=success_embed,ephemeral=True)
-          except discord.Forbidden:
-            fail_embed = discord.Embed(title="Ban Failed", description=f"You can't Ban {member.mention}.")
-            await interaction.response.send_message(embed=fail_embed)
-    else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_general_error(interaction, error)
-
-@bot.tree.command()
-async def delwarn(interaction: discord.Interaction, user: discord.User,case_number: int):
-  '''Delete a user warning.'''
-  guild_id = interaction.guild.id
-  try:
-    if await check_permissions(interaction, interaction.user):
-      mod_log_channel_id = modlogchannel(guild_id)
-      if mod_log_channel_id is not None:
-          mod_log_channel = interaction.guild.get_channel(mod_log_channel_id)
-          if mod_log_channel:
-            user_id = str(user.id)
-            guild_id_str = str(guild_id)
-            if guild_id_str in warnings and user_id in warnings[guild_id_str]:
-              user_warnings = warnings[guild_id_str][user_id]
-              for warning in user_warnings:
-                if warning['case_number'] == case_number:
-                  user_warnings.remove(warning)
-                  for i, warning in enumerate(user_warnings):
-                    warning['case_number'] = i + 1
-                  save_data()
-                  log_embed = discord.Embed(title="Moderation Warning Revoked",color=0x00FF00)
-                  log_embed.add_field(name="Case Number", value=str(case_number))
-                  log_embed.add_field(name="User", value=user.mention)
-                  log_embed.add_field(name="Action", value="Delete Warning")
-                  log_embed.add_field(name="Moderator",value=interaction.user.mention)
-                  log_embed.add_field(name="Date",value=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                  await mod_log_channel.send(embed=log_embed)
-                  embed = discord.Embed(title="User warning removed.",description=f"Warning number {case_number} removed from {user.mention}.",color=0x0000FF)
-                  await interaction.response.send_message(embed=embed,ephemeral=True)
-                  return
-              embed = discord.Embed(title="Case not found.", description=f'Warning case #{case_number} not found for {user.mention}.', color=0xFF0000)
-              await interaction.response.send_message(embed=embed)
-            else:
-              await interaction.response.send_message(f'{user.mention} does not have any warnings.')
-          else:
-            await interaction.channel.send("❌ Moderation log channel is not defined in the server configuration.")
-      else:
-          await interaction.response.send_message("❌ Moderation log channel is not defined in the server configuration.")
-    else:
-      await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_general_error(interaction, error)
-
-
-@bot.tree.command()
-async def warnlog(interaction: discord.Interaction, user: discord.User):
-  """View all warnings of a user in the guild."""
-  guild_id = str(interaction.guild.id)
-  user_id = str(user.id)
-  try:
-      if guild_id in warnings and user_id in warnings[guild_id]:
-        user_warnings = warnings[guild_id][user_id]
-        if user_warnings:
-          embed = discord.Embed(title=f"Warnings for {user.name}#{user.discriminator}",color=discord.Color.red())
-          for warning in user_warnings:
-            embed.add_field(name=f"Case #{warning['case_number']}",value=f"**Reason:** {warning['reason']}\n**Date:** {warning['date']}",inline=False)
-          await interaction.response.send_message(embed=embed,ephemeral=True)
+                await member.add_roles(role)
+                embed = discord.Embed(
+                    title='Role added.',
+                    description=f"Role {role.mention} added to {member.mention}",
+                    color=0x00FF00)
+                await interaction.response.send_message(embed=embed)
         else:
-          await interaction.response.send_message(f"{user.name}#{user.discriminator} has no warnings.",ephemeral=True)
-      else:
-        await interaction.response.send_message(f"No warnings found for {user.name}#{user.discriminator} in this guild.",ephemeral=True)
-  except Exception as error:
-            await on_general_error(interaction, error)
+            await interaction.response.send_message("❌ You don't have permission to use this command.")
+    except Exception as error:
+        await on_general_error(interaction, error)
 
 @bot.tree.command()
-async def warn(interaction: discord.Interaction, user: discord.User, *,reason: str):
-  '''Log a warning against a user in the server.'''
-  try:
-      current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      guild_id = str(interaction.guild.id)
-      user_id = str(user.id)
-      if await check_permissions(interaction, interaction.user):
-        mod_log_channel_id = modlogchannel(guild_id)
-        if mod_log_channel_id is not None:
-          mod_log_channel = interaction.guild.get_channel(mod_log_channel_id)
-          if mod_log_channel:
-            if guild_id not in warnings:
-              warnings[guild_id] = {}
-            if user_id not in warnings[guild_id]:
-              warnings[guild_id][user_id] = []
-            case_number = get_next_case_number(guild_id, user_id)
-            warnings[guild_id][user_id].append({'case_number': case_number,'reason': reason,'date': current_datetime})
-            save_data()
-            await interaction.response.send_message(f"✅ {user} got warned for {reason}\nCase: {case_number}")
-            log_embed = discord.Embed(title="Moderation Log", color=0xFF0000)
-            log_embed.add_field(name="Case Number", value=str(case_number))
-            log_embed.add_field(name="User", value=user.mention)
-            log_embed.add_field(name="Action", value="Warn")
-            log_embed.add_field(name="Reason", value=reason)
-            log_embed.add_field(name="Moderator", value=interaction.user.mention)
-            log_embed.add_field(name="Date", value=current_datetime)
-            await mod_log_channel.send(embed=log_embed)
-          else:
-            await interaction.channel.send("❌ Moderation log channel is not defined in the server configuration.")
+async def roleremove(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
+    '''Removes a role from member'''
+    try:
+        if await check_permissions(interaction, interaction.user):
+            if not interaction.user.guild_permissions.manage_roles:
+                await interaction.response.send_message("❌ You don't have the 'Manage Roles' permission.")
+            elif role >= member.top_role:
+                await interaction.response.send_message("❌ I can't remove a role higher than or equal to the member's top role.")
+            else:
+                await member.remove_roles(role)
+                embed = discord.Embed(title='Role Removed.', description=f"Role {role.mention} is now removed from {member.mention}", color=0xFF0000)
+                await interaction.response.send_message(embed=embed)
         else:
-          await interaction.response.send_message('❌ Moderation log channel is not defined in the server configuration.')
-      else:
-        await interaction.response.send_message( "❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_general_error(interaction, error)
+            await interaction.response.send_message("❌ You don't have permission to use this command.")
+    except Exception as error:
+        await on_general_error(interaction, error)
+
 
 @bot.tree.command()
 async def membercount(interaction: discord.Interaction):
@@ -379,10 +244,6 @@ async def membercount(interaction: discord.Interaction):
 @bot.tree.command()
 async def promote(interaction: discord.Interaction, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str):
   '''Promote Server Staff'''
-  guild_id = interaction.guild.id
-  management_roles = get_management_roles(guild_id)
-  is_management = any(role.id in management_roles for role in interaction.user.roles)
-  is_admin = interaction.user.guild_permissions.administrator
   try:
       if await check_permissions_management(interaction, interaction.user):
         channel = interaction.channel
@@ -624,7 +485,6 @@ async def catimage(interaction:discord.Interaction):
   embed = discord.Embed(title="Random Cat Image", color=discord.Color.random())
   embed.set_image(url=image_url)
   await interaction.response.send_message(embed=embed)
-  
 
 @bot.tree.command()
 async def dogimage(interaction: discord.Interaction):
@@ -652,7 +512,6 @@ async def on_general_error(ctx, error):
     existing_uids = get_existing_uids(file_path)
     error_uid = generate_error_uid(existing_uids)
     log_error(file_path, error, error_uid)
-    
     if isinstance(ctx, discord.Interaction):
         embed = discord.Embed(
             title="❌ An error occurred",
@@ -699,7 +558,9 @@ async def whois(ctx, *, user_info=None):
           embed.add_field(name="User ID", value=member.id, inline=True)
           embed.add_field(name="Joined Server", value=f"<t:{int(member.joined_at.timestamp())}:R>", inline=True)
           embed.add_field(name="Joined Discord", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
-          if member.guild_permissions.administrator:
+          if member == member.guild.owner:
+              embed.add_field(name="Role", value="Server Owner", inline=True)
+          elif member.guild_permissions.administrator:
               embed.add_field(name="Role", value="Administrator", inline=True)
           elif member.guild_permissions.manage_messages:
               embed.add_field(name="Role", value="Moderator", inline=True)
@@ -710,47 +571,6 @@ async def whois(ctx, *, user_info=None):
     else:
           await ctx.send("User not found.")
 
-'''
-@bot.tree.command()
-async def serverinfo(interaction:discord.Interaction):
-    try:
-      server = interaction.guild
-      name = server.name
-      owner = server.owner
-      created = server.created_at.strftime("%Y-%m-%d %H:%M:%S")
-      bot_joined = server.me.joined_at.strftime("%Y-%m-%d %H:%M:%S")
-      notifications = server.default_notifications.name
-      members = server.member_count
-      nitro_boosts = server.premium_subscription_count
-      two_factor_auth = server.mfa_level
-      verification_level = server.verification_level.name
-      explicit_content_filter = server.explicit_content_filter.name
-      member_verification_gate = server.mfa_level
-      category_channels = sum(1 for channel in server.channels if isinstance(channel, discord.CategoryChannel))
-      text_channels = sum(1 for channel in server.channels if isinstance(channel, discord.TextChannel))
-      voice_channels = sum(1 for channel in server.channels if isinstance(channel, discord.VoiceChannel))
-      announcement_channels = sum(1 for channel in server.channels if isinstance(channel, discord.TextChannel) and channel.is_news())
-      embed = discord.Embed(title="Server Information", color=discord.Color.blue())
-      embed.add_field(name="Name", value=name, inline=False)
-      embed.add_field(name="Owner", value=owner, inline=False)
-      embed.add_field(name="Created", value=created, inline=False)
-      embed.add_field(name="Bot Joined", value=bot_joined, inline=False)
-      embed.add_field(name="Notifications", value=notifications, inline=False)
-      embed.add_field(name="Members", value=members, inline=False)
-      embed.add_field(name="Nitro Boosts", value=nitro_boosts, inline=False)
-      embed.add_field(name="2FA Settings", value=two_factor_auth, inline=False)
-      embed.add_field(name="Verification Level", value=verification_level, inline=False)
-      embed.add_field(name="Explicit Content Filter", value=explicit_content_filter, inline=False)
-      embed.add_field(name="Member Verification Gate", value=member_verification_gate, inline=False)
-      embed.add_field(name="Category", value=category_channels, inline=False)
-      embed.add_field(name="Text", value=text_channels, inline=False)
-      embed.add_field(name="Voice/Stage", value=voice_channels, inline=False)
-      embed.add_field(name="Announcement", value=announcement_channels, inline=False)
-      embed.add_field(name="ID", value=server.id, inline=False)
-      await interaction.response.send_message(embed=embed)
-    except Exception as error:
-          await on_general_error(interaction, error)
-'''
 @bot.tree.command()
 async def support(interaction:discord.Interaction):
   '''Join Cyni Support Server'''
@@ -840,8 +660,57 @@ async def joke(ctx):
    joke = fetch_random_joke()
    await ctx.channel.send(joke)
 
+@bot.command()
+async def help(ctx):
+   embed = discord.Embed(title="Cyni Help",color=0x00FF00)
+   embed.add_field(name="Cyni Docs",value="[Cyni Docs](https://qupr-digital.gitbook.io/cyni-docs/)",inline=False)
+   embed.add_field(name="Support Server",value="[Join Cyni Support Server for help.](https://discord.gg/2D29TSfNW6)",inline=False)
+   await ctx.channel.send(embed=embed,view = SupportBtn())
+
+cyni_support_role_id = 1158043149424398406
+support_role_id = 1187279080417136651
+senior_support_role_id = 1187279102437232710
+dev_role_id = 1152951022885535804
+management_role_id = 1200642991556145192
+trial_support_role_id = 1187279033872957551
+@bot.command(name='staff_connect')
+@commands.has_any_role(cyni_support_role_id, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id)
+async def staff_connect(ctx, target_user: discord.Member = None):
+    target_user = target_user or ctx.author
+    if any(role.id in [cyni_support_role_id, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id] for role in ctx.author.roles):
+        with open('staff.json', 'r') as file:
+            staff_data = json.load(file)
+        user_flags = []
+        if cyni_support_role_id in [role.id for role in target_user.roles]:
+            user_flags.append("Cyni Team")
+        if trial_support_role_id in [role.id for role in target_user.roles]:
+            user_flags.append("Cyni Trial Support")
+        if support_role_id in [role.id for role in target_user.roles]:
+            user_flags.append("Cyni Support")
+        if senior_support_role_id in [role.id for role in target_user.roles]:
+            user_flags.append("Cyni Senior Support")
+        if management_role_id in [role.id for role in target_user.roles]:
+            user_flags.append("Cyni Management")
+        if dev_role_id in [role.id for role in target_user.roles]:
+            user_flags.append("Cyni Developer")
+        if ctx.guild.owner_id == target_user.id:
+            user_flags.append("Cyni Owner")
+        if not user_flags:
+            await ctx.send(f"{target_user.mention} doesn't have any staff roles. No changes were made.")
+            return
+        if user_flags:
+            staff_data[target_user.name] = '\n'.join(user_flags)
+            with open('staff.json', 'w') as file:
+                json.dump(staff_data, file, indent=2)
+            embed = discord.Embed(title="Staff Sync", description=f"Staff flags for {target_user.mention} have been updated.")
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send(f"{target_user.mention} doesn't have any staff roles. No changes were made.")
+    else:
+        await ctx.send("You don't have the required roles to use this command.")
+
 def run_cynibot():
-   bot.run("BOT_TOKEN")
+   bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GlQd0l.WnVYKNE4gBFcyThitYDN7erxHIzI-gwf3F54mY")
 
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
