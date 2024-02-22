@@ -67,28 +67,35 @@ async def on_message(message):
                     print("Role not found")
     await bot.process_commands(message)
 
-    guild_id = message.guild.id
-    server_config = get_server_config(guild_id)
-    anti_ping_enabled = server_config.get(str(guild_id), {}).get("anti_ping", "false").lower() == "true"
-    if anti_ping_enabled == "false":
-        return
-    else:
-      anti_ping_roles = server_config.get("anti_ping_roles", [])
-      bypass_antiping_roles = server_config.get("bypass_antiping_roles", [])
-      try:
-        mentioned_user = message.mentions[0]
-      except IndexError:
-        return
-      author_has_bypass_role = any(role.id in bypass_antiping_roles for role in message.author.roles)
-      has_management_role = any(role.id in anti_ping_roles for role in mentioned_user.roles)
-      has_administrator_permission = message.author.guild_permissions.administrator
-      if author_has_bypass_role or has_administrator_permission:
-          return
-      elif has_management_role:
-        author_can_warn = any(role.id in anti_ping_roles for role in message.author.roles)
-        if not author_can_warn:
-            warning_message = f"{message.author} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
-            await message.channel.send(warning_message)
+    try:
+        guild_id = message.guild.id
+        cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
+        server_config = cursor.fetchone()
+        if server_config:
+            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel = server_config
+
+            anti_ping_enabled = anti_ping.lower() == "true"
+            if anti_ping_enabled:
+                anti_ping_roles = anti_ping_roles if anti_ping_roles else []
+                bypass_antiping_roles = bypass_antiping_roles if bypass_antiping_roles else []
+
+                try:
+                    mentioned_user = message.mentions[0]
+                except IndexError:
+                    return
+
+                author_has_bypass_role = any(role.id in bypass_antiping_roles for role in message.author.roles)
+                has_management_role = any(role.id in anti_ping_roles for role in mentioned_user.roles)
+                has_administrator_permission = message.author.guild_permissions.administrator
+
+                if not author_has_bypass_role and not has_administrator_permission:
+                    if has_management_role:
+                        author_can_warn = any(role.id in anti_ping_roles for role in message.author.roles)
+                        if not author_can_warn:
+                            warning_message = f"{message.author} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
+                            await message.channel.send(warning_message)
+    except Exception as e:
+        print(f"An error occurred while processing message: {e}")
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -710,7 +717,7 @@ async def staff_connect(ctx, target_user: discord.Member = None):
         await ctx.send("You don't have the required roles to use this command.")
 
 def run_cynibot():
-   bot.run("BOT_TOKEN")
+   bot.run("TOKEN")
 
 def run_bots():
     bot_thread = Thread(target=run_cynibot)

@@ -1,5 +1,4 @@
 import json
-import os
 from bs4 import BeautifulSoup
 import wikipediaapi
 from googlesearch import search
@@ -311,10 +310,24 @@ def get_server_config(guild_id):
     """Get server configuration for a specific guild."""
     try:
         cursor = db.cursor()
-        cursor.execute("SELECT config_data FROM server_config WHERE guild_id = %s", (guild_id,))
+        cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         row = cursor.fetchone()
         if row:
-            return json.loads(row[0])
+            config = {
+                "guild_id": row[0],
+                "staff_roles": json.loads(row[1] or "[]"),  # Parse JSON array or empty list
+                "management_roles": json.loads(row[2] or "[]"),  # Parse JSON array or empty list
+                "mod_log_channel": row[3],
+                "premium": row[4],
+                "report_channel": row[5],
+                "blocked_search": json.loads(row[6] or "[]"),  # Parse JSON array or empty list
+                "anti_ping": row[7],
+                "anti_ping_roles": json.loads(row[8] or "[]"),  # Parse JSON array or empty list
+                "bypass_anti_ping_roles": json.loads(row[9] or "[]"),  # Parse JSON array or empty list
+                "loa_role": json.loads(row[10] or "[]"),  # Parse JSON array or empty list
+                "staff_management_channel": row[11]
+            }
+            return config
         else:
             return {}
     except Exception as e:
