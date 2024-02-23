@@ -1,5 +1,4 @@
 import discord
-import json
 from utils import *
 
 class SetupBot(discord.ui.Select):
