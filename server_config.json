@@ -5,7 +5,9 @@
         "mod_log_channel": "null",
         "premium": "false",
         "report_channel": "null",
-        "blocked_search": [],
+        "blocked_search": [
+            "test"
+        ],
         "anti_ping": "false",
         "anti_ping_roles": [],
         "bypass_anti_ping_roles": [],

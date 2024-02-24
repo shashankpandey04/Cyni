@@ -1,17 +1,1 @@
-[
-  {
-    "uid": "err_T2HRQMPI",
-    "message": "Member \"<@&1187282031110012969>\" not found.",
-    "traceback": "NoneType: None\n"
-  },
-  {
-    "uid": "err_ALWUQEXR",
-    "message": "'Bot' object has no attribute 'top_role'",
-    "traceback": "Traceback (most recent call last):\n  File \"c:\\Users\\J P PANDAY\\Desktop\\Cyni\\main.py\", line 201, in roleremove\n    elif role >= bot.top_role:\nAttributeError: 'Bot' object has no attribute 'top_role'\n"
-  },
-  {
-    "uid": "err_UJ6ZFELD",
-    "message": "'ClientUser' object has no attribute 'top_role'",
-    "traceback": "Traceback (most recent call last):\n  File \"c:\\Users\\J P PANDAY\\Desktop\\Cyni\\main.py\", line 203, in roleremove\n    elif role >= bot.user.top_role:\nAttributeError: 'ClientUser' object has no attribute 'top_role'\n"
-  }
-]
+[]

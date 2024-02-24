@@ -71,29 +71,32 @@ async def on_message(message):
         guild_id = message.guild.id
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         server_config = cursor.fetchone()
+        
         if server_config:
+            # Unpack server_config values
             guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel = server_config
-
-            anti_ping_enabled = anti_ping.lower() == "true"
-            if anti_ping_enabled:
-                anti_ping_roles = anti_ping_roles if anti_ping_roles else []
-                bypass_antiping_roles = bypass_antiping_roles if bypass_antiping_roles else []
-
-                try:
+            
+            # Check if anti_ping is enabled and not None
+            if anti_ping == 1:
+                anti_ping_roles = anti_ping_roles or []  # If anti_ping_roles is None, set it to an empty list
+                bypass_anti_ping_roles = bypass_anti_ping_roles or []  # If bypass_anti_ping_roles is None, set it to an empty list
+                
+                # Assuming message.mentions is a list, check if it's not empty
+                if message.mentions:
                     mentioned_user = message.mentions[0]
-                except IndexError:
-                    return
-
-                author_has_bypass_role = any(role.id in bypass_antiping_roles for role in message.author.roles)
-                has_management_role = any(role.id in anti_ping_roles for role in mentioned_user.roles)
-                has_administrator_permission = message.author.guild_permissions.administrator
-
-                if not author_has_bypass_role and not has_administrator_permission:
-                    if has_management_role:
-                        author_can_warn = any(role.id in anti_ping_roles for role in message.author.roles)
-                        if not author_can_warn:
-                            warning_message = f"{message.author} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
-                            await message.channel.send(warning_message)
+                    
+                    author_has_bypass_role = any(str(role.id) in bypass_anti_ping_roles for role in message.author.roles)
+                    has_management_role = any(str(role.id) in anti_ping_roles for role in mentioned_user.roles)
+                    
+                    # Check if the author has a bypass role
+                    if not author_has_bypass_role:
+                        # Check if mentioned user has management role
+                        if has_management_role:
+                            author_can_warn = any(str(role.id) in anti_ping_roles for role in message.author.roles)
+                            # Check if author can warn
+                            if not author_can_warn:
+                                warning_message = f"{message.author.mention} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
+                                await message.channel.send(warning_message)
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
 
@@ -178,6 +181,9 @@ async def slowmode(interaction: discord.Interaction, duration: str):
 async def ping(interaction: discord.Interaction):
     '''Check the bot's ping, external API response times, and system RAM usage.'''
     latency = round(bot.latency * 1000)
+    support_server_id = 1152949579407442050
+    support_server = bot.get_guild(support_server_id)
+    database_emoji = discord.utils.get(support_server.emojis, id=1210273731369373798)
     start_time_birb = time.time()
     response_birb = requests.get("https://birbapi.astrobirb.dev/birb")
     birb_api_latency = round((time.time() - start_time_birb) * 1000)
@@ -194,7 +200,7 @@ async def ping(interaction: discord.Interaction):
     embed.add_field(name='API Latency', value=f"{round(bot.latency * 1000)}ms", inline=True)
     embed.add_field(name='External API Latency', value=f"{average_api_latency}ms", inline=True)
     embed.add_field(name='System RAM Usage', value=f"{ram_usage}%", inline=True)
-    embed.add_field(name="Database Status", value=dbstatus, inline=True)
+    embed.add_field(name=f"{database_emoji} Database Status", value=dbstatus, inline=True)
     embed.add_field(name="Bot Version", value="6.2.0", inline=True)
     embed.set_thumbnail(url=bot.user.avatar.url)
     await interaction.response.send_message(embed=embed)
@@ -717,7 +723,7 @@ async def staff_connect(ctx, target_user: discord.Member = None):
         await ctx.send("You don't have the required roles to use this command.")
 
 def run_cynibot():
-   bot.run("TOKEN")
+   bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GHiXYE.G4iraGqJ9OxubzyefytcyWeYpSyBM8cJnJRAsI")
 
 def run_bots():
     bot_thread = Thread(target=run_cynibot)

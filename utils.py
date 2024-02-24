@@ -370,7 +370,7 @@ def save_anti_ping_roles(guild_id, anti_ping_roles):
 
 def save_anti_ping_bypass_roles(guild_id, anti_ping_bypass_roles):
     try:
-        cursor.execute("INSERT INTO server_config (guild_id, bypass_antiping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE bypass_antiping_roles = VALUES(bypass_antiping_roles)", (guild_id, json.dumps(anti_ping_bypass_roles)))
+        cursor.execute("INSERT INTO server_config (guild_id, bypass_anti_ping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE bypass_anti_ping_roles = VALUES(bypass_anti_ping_roles)", (guild_id, json.dumps(anti_ping_bypass_roles)))
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving anti-ping bypass roles: {e}")
@@ -388,34 +388,3 @@ def save_staff_management_channel(guild_id, staff_management_channel_id):
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving staff management channel: {e}")
-
-async def display_server_config(interaction):
-    try:
-        guild_id = str(interaction.guild.id)
-        cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
-        server_config = cursor.fetchone()
-        if server_config:
-            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel = server_config
-        
-            embed = discord.Embed(
-                title="Server Config",
-                description=f"**Server Name:** {interaction.guild.name}\n**Server ID:** {guild_id}",
-                color=0x00FF00
-            )
-            embed.add_field(name="Staff Roles", value=staff_roles if staff_roles else "Not set", inline=False)
-            embed.add_field(name="Management Roles", value=management_roles if management_roles else "Not set", inline=False)
-            embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=False)
-            embed.add_field(name="Premium", value="Enabled" if premium else "Disabled", inline=False)
-            embed.add_field(name="Report Channel", value=f"<#{report_channel}>" if report_channel else "Not set", inline=False)
-            embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=False)
-            embed.add_field(name="Anti Ping", value="Enabled" if anti_ping else "Disabled", inline=False)
-            embed.add_field(name="Anti Ping Roles", value=anti_ping_roles if anti_ping_roles else "Not set", inline=False)
-            embed.add_field(name="Bypass Anti Ping Roles", value=bypass_anti_ping_roles if bypass_anti_ping_roles else "Not set", inline=False)
-            embed.add_field(name="Loa Role", value=loa_role if loa_role else "Not set", inline=False)
-            embed.add_field(name="Staff Management Channel", value=f"<#{staff_management_channel}>" if staff_management_channel else "Not set", inline=False)
-
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-        else:
-            await interaction.response.send_message("Server config not found.", ephemeral=True)
-    except Exception as e:
-        print(f"An error occurred while fetching server config: {e}")
