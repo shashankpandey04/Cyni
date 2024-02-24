@@ -723,7 +723,7 @@ async def staff_connect(ctx, target_user: discord.Member = None):
         await ctx.send("You don't have the required roles to use this command.")
 
 def run_cynibot():
-   bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GHiXYE.G4iraGqJ9OxubzyefytcyWeYpSyBM8cJnJRAsI")
+   bot.run("NO_TOKEN_PUSH")
 
 def run_bots():
     bot_thread = Thread(target=run_cynibot)
