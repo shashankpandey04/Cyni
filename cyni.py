@@ -12,6 +12,7 @@ from tokens import cynibeta_token
 from menu import *
 import psutil
 import json
+import os
 import asyncio
 from threading import Thread
 #from hyme import run_staff_bot as run_hyme
@@ -21,18 +22,25 @@ import mysql.connector as msc
 mycon=msc.connect(host='localhost',user='root',passwd='root',database='cyni')
 mycur=mycon.cursor()
 
-if mycon.is_connected():
-    dbstatus = "Connected"
-else:
-    dbstatus = "Disconnected"
+def dbstatus():
+    if mycon.is_connected():
+        return "Connected"
+    else:
+        return "Disconnected"
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
+async def load():
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            await bot.load_extension(f'cogs.{filename[:-3]}')
+            print(f'Loaded {filename}')
+
 @bot.event
 async def on_ready():
-    print("Logged in into Discord")
+    await load()
     await bot.tree.sync()
     bot.start_time = time.time()
     save_data()
@@ -41,6 +49,7 @@ async def on_ready():
     cleanup_guild_data(bot)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
     await bot.load_extension("jishaku")
+    print(f'Logged in as {bot.user.name} - {bot.user.id}')
 
 BOT_USER_ID = 1136945734399295538
 
@@ -182,6 +191,7 @@ async def slowmode(interaction: discord.Interaction, duration: str):
 async def ping(interaction: discord.Interaction):
     '''Check the bot's ping, external API response times, and system RAM usage.'''
     latency = round(bot.latency * 1000)
+    dbstatus = dbstatus()
     support_server_id = 1152949579407442050
     support_server = bot.get_guild(support_server_id)
     database_emoji = discord.utils.get(support_server.emojis, id=1210273731369373798)
@@ -670,58 +680,11 @@ async def joke(interaction:discord.Interaction):
    await interaction.response.send_message(joke)
 
 @bot.command()
-async def joke(ctx):
-   joke = fetch_random_joke()
-   await ctx.channel.send(joke)
-
-@bot.command()
 async def help(ctx):
    embed = discord.Embed(title="Cyni Help",color=0x00FF00)
    embed.add_field(name="Cyni Docs",value="[Cyni Docs](https://qupr-digital.gitbook.io/cyni-docs/)",inline=False)
    embed.add_field(name="Support Server",value="[Join Cyni Support Server for help.](https://discord.gg/2D29TSfNW6)",inline=False)
    await ctx.channel.send(embed=embed,view = SupportBtn())
-
-cyni_support_role_id = 1158043149424398406
-support_role_id = 1187279080417136651
-senior_support_role_id = 1187279102437232710
-dev_role_id = 1152951022885535804
-management_role_id = 1200642991556145192
-trial_support_role_id = 1187279033872957551
-@bot.command(name='staff_connect')
-@commands.has_any_role(cyni_support_role_id, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id)
-async def staff_connect(ctx, target_user: discord.Member = None):
-    target_user = target_user or ctx.author
-    if any(role.id in [cyni_support_role_id, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id] for role in ctx.author.roles):
-        with open('staff.json', 'r') as file:
-            staff_data = json.load(file)
-        user_flags = []
-        if cyni_support_role_id in [role.id for role in target_user.roles]:
-            user_flags.append("Cyni Team")
-        if trial_support_role_id in [role.id for role in target_user.roles]:
-            user_flags.append("Cyni Trial Support")
-        if support_role_id in [role.id for role in target_user.roles]:
-            user_flags.append("Cyni Support")
-        if senior_support_role_id in [role.id for role in target_user.roles]:
-            user_flags.append("Cyni Senior Support")
-        if management_role_id in [role.id for role in target_user.roles]:
-            user_flags.append("Cyni Management")
-        if dev_role_id in [role.id for role in target_user.roles]:
-            user_flags.append("Cyni Developer")
-        if ctx.guild.owner_id == target_user.id:
-            user_flags.append("Cyni Owner")
-        if not user_flags:
-            await ctx.send(f"{target_user.mention} doesn't have any staff roles. No changes were made.")
-            return
-        if user_flags:
-            staff_data[target_user.name] = '\n'.join(user_flags)
-            with open('staff.json', 'w') as file:
-                json.dump(staff_data, file, indent=2)
-            embed = discord.Embed(title="Staff Sync", description=f"Staff flags for {target_user.mention} have been updated.")
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send(f"{target_user.mention} doesn't have any staff roles. No changes were made.")
-    else:
-        await ctx.send("You don't have the required roles to use this command.")
 
 TOKEN = cynibeta_token()
 def run_cynibot():

@@ -221,7 +221,6 @@ def fetch_random_joke():
     data = response.json()
     joke_setup = data['setup']
     joke_punchline = data['punchline']
-    print(joke_setup)
     return f"{joke_setup}\n{joke_punchline}"
 
 #MYSQL
