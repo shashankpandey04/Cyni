@@ -1,9 +1,10 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import time
 import requests
 import psutil
-from cyni import dbstatus
+from cyni import dbstatus, on_general_error
 from utils import fetch_random_joke
 
 class Ping(commands.Cog):
@@ -41,11 +42,14 @@ class Ping(commands.Cog):
         embed.add_field(name="Bot Version", value="6.2.0", inline=True)
         embed.set_thumbnail(url=self.bot.user.avatar.url)  # Access bot avatar via `self.bot`
         await ctx.send(embed=embed)
-
+        
     @commands.command()
     async def joke(self, ctx):
-        joke = fetch_random_joke()
-        await ctx.channel.send(joke)
+        try:
+            joke = fetch_random_joke()
+            await ctx.channel.send(joke)
+        except Exception as e:
+            on_general_error(ctx,e)
 
 async def setup(bot):
    await bot.add_cog(Ping(bot))

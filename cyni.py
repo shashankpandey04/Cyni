@@ -33,10 +33,22 @@ bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
 async def load():
-    for filename in os.listdir('./cogs'):
+    for filename in os.listdir('./Cogs'):
         if filename.endswith('.py'):
-            await bot.load_extension(f'cogs.{filename[:-3]}')
+            await bot.load_extension(f'Cogs.{filename[:-3]}')
             print(f'Loaded {filename}')
+    for filename in os.listdir("./Roblox"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"Roblox.{filename[:-3]}")
+            print(f"Loaded {filename}")
+    for filename in os.listdir("./ImagesCommand"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
+            print(f"Loaded {filename}")
+    for filename in os.listdir("./Staff_Commands"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
+            print(f"Loaded {filename}")
 
 @bot.event
 async def on_ready():
@@ -51,12 +63,24 @@ async def on_ready():
     await bot.load_extension("jishaku")
     print(f'Logged in as {bot.user.name} - {bot.user.id}')
 
+cyni_support_role_id = 800203880515633163
+@bot.event
+async def on_thread_create(ctx):
+    print("Thread created!")
+    await ctx.send(f"<@{cyni_support_role_id}")
+    await ctx.purge(limit=1)
+
+
 BOT_USER_ID = 1136945734399295538
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
+    
+    if message.content.startswith(":jsk shutdown"):
+        await message.channel.send("<@800203880515633163> Get to work!")
+
     if message.guild.id == 1152949579407442050 and message.channel.id == 1160481898536112170:
         if message.content.startswith('<@') and len(message.mentions) >= 2:
             voter = message.mentions[0]
@@ -186,35 +210,6 @@ async def slowmode(interaction: discord.Interaction, duration: str):
         await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
           await on_general_error(interaction, error)
-
-@bot.tree.command()
-async def ping(interaction: discord.Interaction):
-    '''Check the bot's ping, external API response times, and system RAM usage.'''
-    latency = round(bot.latency * 1000)
-    dbstatus = dbstatus()
-    support_server_id = 1152949579407442050
-    support_server = bot.get_guild(support_server_id)
-    database_emoji = discord.utils.get(support_server.emojis, id=1210273731369373798)
-    start_time_birb = time.time()
-    response_birb = requests.get("https://birbapi.astrobirb.dev/birb")
-    birb_api_latency = round((time.time() - start_time_birb) * 1000)
-    start_time_joke = time.time()
-    response_joke = requests.get("https://official-joke-api.appspot.com/jokes/random")
-    joke_api_latency = round((time.time() - start_time_joke) * 1000)
-    average_api_latency = (birb_api_latency + joke_api_latency) / 2
-    ram_usage = psutil.virtual_memory().percent
-    uptime_seconds = time.time() - bot.start_time
-    uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
-    embed = discord.Embed(title='Bot Ping', color=0x00FF00)
-    embed.add_field(name='🟢 Pong!', value=f"{latency}ms", inline=True)
-    embed.add_field(name='Uptime', value=uptime_string, inline=True)
-    embed.add_field(name='API Latency', value=f"{round(bot.latency * 1000)}ms", inline=True)
-    embed.add_field(name='External API Latency', value=f"{average_api_latency}ms", inline=True)
-    embed.add_field(name='System RAM Usage', value=f"{ram_usage}%", inline=True)
-    embed.add_field(name=f"{database_emoji} Database Status", value=dbstatus, inline=True)
-    embed.add_field(name="Bot Version", value="6.2.0", inline=True)
-    embed.set_thumbnail(url=bot.user.avatar.url)
-    await interaction.response.send_message(embed=embed)
 
 @bot.tree.command()
 async def roleadd(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
@@ -546,18 +541,18 @@ async def on_general_error(ctx, error):
     else:
         await ctx.channel.send(f"An error occurred (Error UID: `{error_uid}`). Please contact support.")
 
-@bot.command(name='whois')
-async def whois(ctx, *, user_info=None):
-    guild_id = str(ctx.guild.id)
+@bot.tree.command()
+async def whois(interaction:discord.Interaction, user_info:str):
+    guild_id = str(interaction.guild.id)
     server_config = get_server_config(guild_id)
     if user_info is None:
-          member = ctx.author
+          member = interaction.user
     else:
           if user_info.startswith('<@') and user_info.endswith('>'):
               user_id = int(user_info[2:-1])
-              member = ctx.guild.get_member(user_id)
+              member = interaction.guild.get_member(user_id)
           else:
-              member = discord.utils.find(lambda m: m.name == user_info, ctx.guild.members)
+              member = discord.utils.find(lambda m: m.name == user_info, interaction.guild.members)
     if member:
           support_server_id = 1152949579407442050
           support_server = bot.get_guild(support_server_id)
@@ -590,10 +585,10 @@ async def whois(ctx, *, user_info=None):
               embed.add_field(name="Role", value="Moderator", inline=True)
           else:
               embed.add_field(name="Role", value="Member", inline=True)
-          embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar.url)
-          await ctx.send(embed=embed)
+          embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
+          await interaction.response.send_message(embed=embed)
     else:
-          await ctx.send("User not found.")
+          await interaction.response.send_message("User not found.")
 
 @bot.tree.command()
 async def support(interaction:discord.Interaction):
@@ -690,7 +685,7 @@ TOKEN = cynibeta_token()
 def run_cynibot():
    bot.run(TOKEN)
 
-def run_bots():
+def cyni():
     bot_thread = Thread(target=run_cynibot)
     #staff_bot_thread = Thread(target=run_hyme)
     bot_thread.start()

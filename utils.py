@@ -50,42 +50,6 @@ def create_or_get_server_config(guild_id):
         update_server_config(guild_id, config)
     return config
 
-def get_next_case_number(guild_id, user_id):
-    try:
-        with open('warnings.json', 'r') as file:
-            warnings = json.load(file)
-            if guild_id in warnings and user_id in warnings[guild_id]:
-                user_warnings = warnings[guild_id][user_id]
-                existing_case_numbers = [warning['case_number'] for warning in user_warnings]
-                if existing_case_numbers:
-                    next_case_number = max(existing_case_numbers) + 1
-                else:
-                    next_case_number = 1
-                user_warnings.append({
-                    "case_number": next_case_number,
-                    "reason": "New case reason",
-                    "date": "Current date and time"
-                })
-                with open('warnings.json', 'w') as json_file:
-                    json.dump(warnings, json_file, indent=4)
-                return next_case_number
-            else:
-                warnings.setdefault(guild_id, {}).setdefault(user_id, [])
-                warnings[guild_id][user_id].append({
-                    "case_number": 1,
-                    "reason": "New case reason",
-                    "date": "Current date and time"
-                })
-                with open('warnings.json', 'w') as json_file:
-                    json.dump(warnings, json_file, indent=4)
-                return 1
-    except FileNotFoundError:
-        print("Error: warnings.json file not found.")
-        return 1
-    except json.JSONDecodeError:
-        print("Error: Invalid JSON format in warnings.json.")
-        return 1
-    
 def modlogchannel(guild_id):
   """Get moderation log channel for a specific guild."""
   config = load_config()
@@ -105,13 +69,6 @@ def save_customcommand(config):
 wiki_wiki = wikipediaapi.Wikipedia('english')
 
 def search_api(topic):
-    topic_lower = topic.lower()
-
-    with open('data.json', 'r') as json_file:
-        data = json.load(json_file)
-        if topic_lower in data:
-            topic_desc_key = f"{topic_lower}_desc_desc"
-            return truncate_to_nearest_sentence(data[topic_lower][topic_desc_key][:500], 500)
     page_py = wiki_wiki.page(topic)
     if page_py.exists():
         return truncate_to_nearest_sentence(page_py.summary[:500], 500)

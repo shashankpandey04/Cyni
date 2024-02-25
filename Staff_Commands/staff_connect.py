@@ -8,6 +8,7 @@ senior_support_role_id = 1187279102437232710
 dev_role_id = 1152951022885535804
 management_role_id = 1200642991556145192
 trial_support_role_id = 1187279033872957551
+qa_team = 1211064601051930634
 
 class StaffConnect(commands.Cog):
     def __init__(self, bot):
@@ -15,15 +16,17 @@ class StaffConnect(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'{self.bot.user} loaded cog: Ping')
+        print(f'{self.bot.user} loaded cog: Staff Connect')
     
     @commands.command()
     async def staff_connect(self, ctx, target_user: discord.Member = None):  # Added `self` here
         target_user = target_user or ctx.author
-        if any(role.id in [cyni_support_role_id, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id] for role in ctx.author.roles):
+        if any(role.id in [cyni_support_role_id,qa_team, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id] for role in ctx.author.roles):
             with open('staff.json', 'r') as file:
                 staff_data = json.load(file)
             user_flags = []
+            if qa_team in [role.id for role in target_user.roles]:
+                user_flags.append("Cyni QA Team")
             if cyni_support_role_id in [role.id for role in target_user.roles]:
                 user_flags.append("Cyni Team")
             if trial_support_role_id in [role.id for role in target_user.roles]:

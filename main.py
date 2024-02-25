@@ -1,4 +1,4 @@
-from cyni import run_bots
+from cyni import cyni
 
 if __name__ == '__main__':
-    run_bots()
+    cyni()
