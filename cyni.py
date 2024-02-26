@@ -660,6 +660,35 @@ async def websearch(interaction:discord.Interaction, topic: str):
   await interaction.response.send_message(f"{result}....")
 
 @bot.tree.command()
+async def ping(interaction: discord.Interaction):
+    '''Check the bot's ping, external API response times, and system RAM usage.'''
+    latency = round(bot.latency * 1000)
+    dbstatus = dbstatus()
+    support_server_id = 1152949579407442050
+    support_server = bot.get_guild(support_server_id)
+    database_emoji = discord.utils.get(support_server.emojis, id=1210273731369373798)
+    start_time_birb = time.time()
+    response_birb = requests.get("https://birbapi.astrobirb.dev/birb")
+    birb_api_latency = round((time.time() - start_time_birb) * 1000)
+    start_time_joke = time.time()
+    response_joke = requests.get("https://official-joke-api.appspot.com/jokes/random")
+    joke_api_latency = round((time.time() - start_time_joke) * 1000)
+    average_api_latency = (birb_api_latency + joke_api_latency) / 2
+    ram_usage = psutil.virtual_memory().percent
+    uptime_seconds = time.time() - bot.start_time
+    uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
+    embed = discord.Embed(title='Bot Ping', color=0x00FF00)
+    embed.add_field(name='🟢 Pong!', value=f"{latency}ms", inline=True)
+    embed.add_field(name='Uptime', value=uptime_string, inline=True)
+    embed.add_field(name='API Latency', value=f"{round(bot.latency * 1000)}ms", inline=True)
+    embed.add_field(name='External API Latency', value=f"{average_api_latency}ms", inline=True)
+    embed.add_field(name='System RAM Usage', value=f"{ram_usage}%", inline=True)
+    embed.add_field(name=f"{database_emoji} Database Status", value=dbstatus, inline=True)
+    embed.add_field(name="Bot Version", value="6.2.0", inline=True)
+    embed.set_thumbnail(url=bot.user.avatar.url)
+    await interaction.response.send_message(embed=embed)
+    
+@bot.tree.command()
 async def birdimage(interaction: discord.Interaction):
     '''Get Random Bird Image'''
     response = requests.get("https://birbapi.astrobirb.dev/birb")
