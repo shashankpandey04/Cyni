@@ -4,6 +4,15 @@ import requests
 from cyni import on_general_error
 from discord import app_commands
 import json
+import mysql.connector
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="root",
+  database="cyni"
+)
+
+mycursor = mydb.cursor()
 
 class Whois(commands.Cog):
     def __init__(self,bot):
@@ -14,7 +23,7 @@ class Whois(commands.Cog):
         print(f'{self.bot.user} loaded cog: Whois')
 
     @commands.command()
-    async def whois(self,ctx, *, user_info=None):
+    async def whois(self, ctx, *, user_info=None):
         guild_id = str(ctx.guild.id)
         if user_info is None:
             member = ctx.author
@@ -30,15 +39,24 @@ class Whois(commands.Cog):
             user_emoji = discord.utils.get(support_server.emojis, id=1191057214727786598)
             cyni_emoji = discord.utils.get(support_server.emojis, id=1185563043015446558)
             discord_emoji = discord.utils.get(support_server.emojis, id=1191057244004044890)
-            with open('staff.json', 'r') as file:
-                staff_data = json.load(file)
+            
+            # Fetch staff data from MySQL
+            sql = "SELECT flags FROM staff WHERE user_id = %s"
+            val = (member.id,)
+            mycursor.execute(sql, val)
+            result = mycursor.fetchone()
+            if result:
+                staff_flags = result[0]
+            else:
+                staff_flags = ""
+
             embed = discord.Embed(title="User Information", color=member.color)
             hypesquad_flags = member.public_flags
             hypesquad_values = [str(flag).replace("UserFlags.", "").replace("_", " ").title() for flag in hypesquad_flags.all()]
             if hypesquad_values:
                 hypesquad_text = "\n".join(hypesquad_values)
                 embed.add_field(name=f"{discord_emoji} Discord Flags", value=f"{hypesquad_text}", inline=True)
-            user_flags = staff_data.get(member.name, "").replace("{cyni_emoji}", "")
+            user_flags = staff_flags.replace("{cyni_emoji}", "")
             user_flags = [flag.strip() for flag in user_flags.split("\n") if flag.strip()]
             if user_flags:
                 staff_text = "\n".join(user_flags)

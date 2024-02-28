@@ -10,6 +10,17 @@ management_role_id = 1200642991556145192
 trial_support_role_id = 1187279033872957551
 qa_team = 1211064601051930634
 
+import mysql.connector
+
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="root",
+  database="cyni"
+)
+
+mycursor = mydb.cursor()
+
 class StaffConnect(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -19,11 +30,9 @@ class StaffConnect(commands.Cog):
         print(f'{self.bot.user} loaded cog: Staff Connect')
     
     @commands.command()
-    async def staff_connect(self, ctx, target_user: discord.Member = None):  # Added `self` here
+    async def cyni_staff(self,ctx, target_user: discord.Member = None):
         target_user = target_user or ctx.author
-        if any(role.id in [cyni_support_role_id,qa_team, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id] for role in ctx.author.roles):
-            with open('staff.json', 'r') as file:
-                staff_data = json.load(file)
+        if any(role.id in [cyni_support_role_id, qa_team, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id] for role in ctx.author.roles):
             user_flags = []
             if qa_team in [role.id for role in target_user.roles]:
                 user_flags.append("Cyni QA Team")
@@ -44,14 +53,15 @@ class StaffConnect(commands.Cog):
             if not user_flags:
                 await ctx.send(f"{target_user.mention} doesn't have any staff roles. No changes were made.")
                 return
-            if user_flags:
-                staff_data[target_user.name] = '\n'.join(user_flags)
-                with open('staff.json', 'w') as file:
-                    json.dump(staff_data, file, indent=2)
-                embed = discord.Embed(title="Staff Sync", description=f"Staff flags for {target_user.mention} have been updated.")
-                await ctx.send(embed=embed)
-            else:
-                await ctx.send(f"{target_user.mention} doesn't have any staff roles. No changes were made.")
+            flags_text = '\n'.join(user_flags)
+            sql = "INSERT INTO staff (user_id, flags) VALUES (%s, %s) ON DUPLICATE KEY UPDATE flags = %s"
+            val = (target_user.id, flags_text, flags_text)
+            mycursor.execute(sql, val)
+            mydb.commit()
+            embed = discord.Embed(title="Staff Sync", description=f"Staff flags for {target_user.mention} have been updated.")
+            await ctx.send(embed=embed)
+            mycursor.close()
+            mydb.close()
         else:
             await ctx.send("You don't have the required roles to use this command.")
 
