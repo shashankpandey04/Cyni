@@ -67,9 +67,11 @@ cyni_support_role_id = 800203880515633163
 @bot.event
 async def on_thread_create(ctx):
     print("Thread created!")
-    await ctx.send(f"<@{cyni_support_role_id}")
-    await ctx.purge(limit=1)
-
+    if ctx.channel.parent_id == 1158047746159284254:
+        await ctx.send(f"<@{cyni_support_role_id}")
+        await ctx.purge(limit=1)
+    else:
+        return
 
 BOT_USER_ID = 1136945734399295538
 
@@ -77,57 +79,25 @@ BOT_USER_ID = 1136945734399295538
 async def on_message(message):
     if message.author.bot:
         return
-    
     if message.content.startswith(":jsk shutdown"):
-        await message.channel.send("<@800203880515633163> Get to work!")
-
-    if message.guild.id == 1152949579407442050 and message.channel.id == 1160481898536112170:
-        if message.content.startswith('<@') and len(message.mentions) >= 2:
-            voter = message.mentions[0]
-            voted_for = message.mentions[1]
-            if BOT_USER_ID == voted_for.id:
-                role_id = 1209464266898407444
-                role = discord.utils.get(message.guild.roles, id=role_id)
-                if role:
-                    try:
-                        await voter.add_roles(role)
-                        await asyncio.sleep(43200)
-                        await voter.remove_roles(role)
-                    except discord.Forbidden:
-                        print("Bot doesn't have permission to manage roles.")
-                    except discord.HTTPException as e:
-                        print(f"An error occurred: {e}")
-                else:
-                    print("Role not found")
+        await message.channel.send("<@800203880515633163> Get to work!\n<@707064490826530888> You also!")
     await bot.process_commands(message)
-
     try:
         guild_id = message.guild.id
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         server_config = cursor.fetchone()
-        
         if server_config:
-            # Unpack server_config values
             guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel = server_config
-            
-            # Check if anti_ping is enabled and not None
             if anti_ping == 1:
-                anti_ping_roles = anti_ping_roles or []  # If anti_ping_roles is None, set it to an empty list
-                bypass_anti_ping_roles = bypass_anti_ping_roles or []  # If bypass_anti_ping_roles is None, set it to an empty list
-                
-                # Assuming message.mentions is a list, check if it's not empty
+                anti_ping_roles = anti_ping_roles or [] 
+                bypass_anti_ping_roles = bypass_anti_ping_roles or [] 
                 if message.mentions:
                     mentioned_user = message.mentions[0]
-                    
                     author_has_bypass_role = any(str(role.id) in bypass_anti_ping_roles for role in message.author.roles)
                     has_management_role = any(str(role.id) in anti_ping_roles for role in mentioned_user.roles)
-                    
-                    # Check if the author has a bypass role
                     if not author_has_bypass_role:
-                        # Check if mentioned user has management role
                         if has_management_role:
                             author_can_warn = any(str(role.id) in anti_ping_roles for role in message.author.roles)
-                            # Check if author can warn
                             if not author_can_warn:
                                 warning_message = f"{message.author.mention} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
                                 await message.channel.send(warning_message)
@@ -362,6 +332,7 @@ async def custom_run(interaction:discord.Interaction,command_name:str):
 @bot.tree.command()
 async def custom_manage(interaction:discord.Interaction, action:str, name:str):
     '''Manage Custom Commands (create, delete, list)'''
+    guild_id = interaction.guild.id
     try:
       if await check_permissions_management(interaction, interaction.user):
             if action == 'create':
@@ -376,20 +347,38 @@ async def custom_manage(interaction:discord.Interaction, action:str, name:str):
     except Exception as error:
           await on_general_error(interaction, error)
 
-def list_custom_commands_embeds(interaction):
-    config = load_customcommand()
-    guild_id = str(interaction.guild.id)
-    custom_commands = config.get(guild_id, {})
-    if not custom_commands:
-        return [discord.Embed(description="No custom commands found for this server.")]
-    embeds = []
-    for name, details in custom_commands.items():
-        embed = discord.Embed(title=details.get('title', ''),description=details.get('description', ''), color=details.get('colour', discord.Color.default().value))
-        image_url = details.get('image_url')
-        if image_url:
-            embed.set_image(url=image_url)
-        embeds.append(embed)
-    return embeds
+def load_custom_command(interaction):
+    try:
+        guild_id = str(interaction.guild.id)
+        if db.is_connected():
+            cursor = db.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM custom_commands where guild_id = %s", (guild_id,))
+            rows = cursor.fetchall()
+            print("Rows:", rows)
+            config = {}
+            for row in rows:
+                guild_id = str(row['guild_id'])
+                command_name = row['command_name']
+                title = row['title']
+                description = row['description']
+                color = row['color']
+                image_url = row['image_url']
+                if guild_id not in config:
+                    config[guild_id] = {}
+                config[guild_id][command_name] = {
+                    'title': title,
+                    'description': description,
+                    'colour': color,
+                    'image_url': image_url
+                }
+            print("Config:", config)  # Debugging: Print the config dictionary
+            return config
+    except Error as e:
+        print("Error while connecting to MySQL", e)
+    finally:
+        if 'cursor' in locals() and cursor is not None:
+            cursor.close()
+    return {}
 
 async def list_custom_commands(interaction):
     embeds = list_custom_commands_embeds(interaction)
@@ -397,21 +386,24 @@ async def list_custom_commands(interaction):
         await interaction.channel.send(embed=embed)
 
 async def run_custom_command(interaction, command_name):
-    config = load_customcommand()
     guild_id = str(interaction.guild.id)
-    command_details = config.get(guild_id, {}).get(command_name)
+    mycur.execute("SELECT * FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
+    command_details = mycur.fetchone()
+
     if command_details:
         embed = discord.Embed(
-            title=command_details.get('title', ''),
-            description=command_details.get('description', ''),
-            color=command_details.get('colour', discord.Color.default().value))
-        image_url = command_details.get('image_url')
+            title=command_details[2],
+            description=command_details[3],
+            color=command_details[4]
+        )
         embed.set_footer(text="Executed By: " + interaction.user.name)
-        if image_url:
-            embed.set_image(url=image_url)
-        channel_id = command_details.get('channel')
+        if command_details[5]:
+            embed.set_image(url=command_details[5])
+        
+        channel_id = command_details[6]
         channel = bot.get_channel(channel_id)
-        role_id = command_details.get('role')
+        role_id = command_details[7]
+
         if role_id:
             role = interaction.guild.get_role(role_id)
             if role:
@@ -419,21 +411,29 @@ async def run_custom_command(interaction, command_name):
             else:
                 await interaction.channel.send("Role not found. Please make sure the role exists.")
                 return
+        
         await channel.send(embed=embed)
         await interaction.channel.send(f"Custom command '{command_name}' executed in {channel.mention}.")
     else:
         await interaction.channel.send(f"Custom command '{command_name}' not found.")
 
 async def create_custom_command(interaction, command_name):
-    config = load_customcommand()
     guild_id = str(interaction.guild.id)
-    if command_name in config.get(guild_id, {}):
-        await interaction.channel.send(f"Custom command '{command_name}' already exists.")
+    mycur.execute("SELECT * FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
+    existing_command = mycur.fetchone()
+
+    if existing_command:
+        await interaction.response.send_message(f"Custom command '{command_name}' already exists.")
         return
-    if len(config.get(guild_id, {})) >= 5:
-        await interaction.channel.send("Sorry, the server has reached the maximum limit of custom commands (5).")
+    
+    mycur.execute("SELECT COUNT(*) FROM custom_commands WHERE guild_id = %s", (guild_id,))
+    command_count = mycur.fetchone()[0]
+
+    if command_count >= 5:
+        await interaction.response.send_message("Sorry, the server has reached the maximum limit of custom commands (5).")
         return
-    await interaction.channel.send("Enter embed title:")
+    
+    await interaction.response.send_message("Enter embed title:")
     title = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
     await interaction.channel.send("Enter embed description:")
     description = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
@@ -445,44 +445,42 @@ async def create_custom_command(interaction, command_name):
     channel_input = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
     await interaction.channel.send("Enter role ID to ping (enter 'none' for no role):")
     role_id_input = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
+
     channel_id = int(channel_input.content[2:-1])
-    if role_id_input.content.lower() == 'none':
-        role_id = None
-    else:
-        role_id = int(role_id_input.content)
+    role_id = int(role_id_input.content) if role_id_input.content.lower() != 'none' else None
+
     try:
         color_decimal = int(colour.content[1:], 16)
     except ValueError:
         await interaction.channel.send("Invalid hex color format. Please use the format #RRGGBB.")
         return
-    image_url = image_url_input.content.strip()
-    if image_url.lower() == 'none':
-        image_url = None
-    if len(config.get(guild_id, {})) >= 5:
-        await interaction.channel.send("Sorry, the server has reached the maximum limit of custom commands (5).")
-        return
-    config.setdefault(guild_id, {})[command_name] = {
-        'title': title.content,
-        'description': description.content,
-        'colour': color_decimal,
-        'channel': channel_id,
-        'role': role_id,
-        'image_url': image_url,
-    }
-    save_customcommand(config)
-    embed = discord.Embed(title="Custom Command Created", description=f"Custom command '{command_name}' created successfully.", color=discord.Color.random())
-    await interaction.channel.send(embed=embed)
 
+    image_url = image_url_input.content.strip()
+    image_url = None if image_url.lower() == 'none' else image_url
+    channel_id_str = channel_input.content.strip('<#>')
+    try:
+        channel_id = int(channel_id_str)
+    except ValueError:
+        await interaction.channel.send("Invalid channel mention. Please mention a valid channel.")
+        return
+    mycur.execute("INSERT INTO custom_commands (guild_id, command_name, title, description, color, image_url, channel, role) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (guild_id, command_name, title.content, description.content, color_decimal, image_url, channel_id, role_id))
+    mycon.commit()
+
+    await interaction.channel.send(f"Custom command '{command_name}' created successfully.")
+    
 async def delete_custom_command(interaction, command_name):
-  config = load_customcommand()
-  guild_id = str(interaction.guild.id)
-  command_details = config.get(guild_id, {}).get(command_name)
-  if command_details:
-    del config[guild_id][command_name]
-    save_customcommand(config)
+    guild_id = str(interaction.guild.id)
+    mycur.execute("SELECT * FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
+    existing_command = mycur.fetchone()
+
+    if not existing_command:
+        await interaction.channel.send(f"Custom command '{command_name}' not found.")
+        return
+
+    mycur.execute("DELETE FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
+    mycon.commit()
+
     await interaction.channel.send(f"Custom command '{command_name}' deleted successfully.")
-  else:
-    await interaction.channel.send(f"Custom command '{command_name}' not found.")
 
 @bot.tree.command()
 async def pick(interaction: discord.Interaction, option1:str, option2:str):

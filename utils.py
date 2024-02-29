@@ -10,6 +10,8 @@ import random
 import time
 import mysql.connector
 import json
+from mysql.connector import Error
+
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -55,16 +57,48 @@ def modlogchannel(guild_id):
   config = load_config()
   return config.get(str(guild_id), {}).get("mod_log_channel")
 
-def load_customcommand():
+def save_custom_command(config):
     try:
-        with open('custom_commands.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
+        if db.is_connected():
+            cursor = db.cursor()
+            for guild_id, commands in config.items():
+                for command_name, details in commands.items():
+                    title = details.get('title', '')
+                    description = details.get('description', '')
+                    color = details.get('colour', '')
+                    image_url = details.get('image_url', '')
+                    cursor.execute("INSERT INTO custom_commands (guild_id, command_name, title, description, color, image_url) VALUES (%s, %s, %s, %s, %s, %s)", (guild_id, command_name, title, description, color, image_url))
+            db.commit()
+    except Error as e:
+        print("Error while connecting to MySQL", e)
+    finally:
+        if 'connection' in locals() and db.is_connected():
+            cursor.close()
+            db.close()
 
-def save_customcommand(config):
-    with open('custom_commands.json', 'w') as f:
-        json.dump(config, f, indent=4)
+def list_custom_commands_embeds(interaction):
+    config = load_custom_command()
+    guild_id = str(interaction.guild.id)
+    custom_commands = config.get(guild_id, {})
+    if not custom_commands:
+        return [discord.Embed(description="No custom commands found for this server.")]
+    embeds = []
+    for name, details in custom_commands.items():
+        color_value = details.get('colour', discord.Color.default().value)
+        try:
+            color = int(color_value)  # Attempt to convert color value to int
+        except ValueError:
+            async def send_error_message():
+                await interaction.channel.send("Invalid color value found in database.")
+                await send_error_message()
+            continue  
+        embed = discord.Embed(title=details.get('title', ''), description=details.get('description', ''), color=color)
+        image_url = details.get('image_url')
+        if image_url:
+            embed.set_image(url=image_url)
+        embeds.append(embed)
+    return embeds
+
 
 wiki_wiki = wikipediaapi.Wikipedia('english')
 
@@ -109,20 +143,35 @@ def truncate_to_nearest_sentence(data, max_length):
       else:
           return truncated_data
 
-def list_custom_commands_embeds(interaction):
-    config = load_customcommand()
-    guild_id = str(interaction.guild.id)
-    custom_commands = config.get(guild_id, {})
-    if not custom_commands:
-        return [discord.Embed(description="No custom commands found for this server.")]
-    embeds = []
-    for name, details in custom_commands.items():
-        embed = discord.Embed(title=details.get('title', ''),description=details.get('description', ''), color=details.get('colour', discord.Color.default().value))
-        image_url = details.get('image_url')
-        if image_url:
-            embed.set_image(url=image_url)
-        embeds.append(embed)
-    return embeds
+def load_custom_command():
+    try:
+        if db.is_connected():
+            cursor = db.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM custom_commands")
+            rows = cursor.fetchall()
+            config = {}
+            for row in rows:
+                guild_id = str(row['guild_id'])
+                command_name = row['command_name']
+                title = row['title']
+                description = row['description']
+                color = row['color']
+                image_url = row['image_url']
+                if guild_id not in config:
+                    config[guild_id] = {}
+                config[guild_id][command_name] = {
+                    'title': title,
+                    'description': description,
+                    'colour': color,
+                    'image_url': image_url
+                }
+            return config
+    except Error as e:
+        print("Error while connecting to MySQL", e)
+    finally:
+        if 'connection' in locals() and db.is_connected():
+            cursor.close()
+    return {}
 
 def get_existing_uids(file_path='cerror.json'):
     try:
