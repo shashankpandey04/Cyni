@@ -190,21 +190,28 @@ def generate_error_uid(existing_uids):
         if full_uid not in existing_uids:
             return full_uid
 
-def log_error(file_path, error, error_uid):
-    traceback.print_exception(type(error), error, error.__traceback__)
+def log_error(error, error_uid):
     try:
-        with open(file_path, 'r') as file:
-            errors = json.load(file)
-    except (json.JSONDecodeError, FileNotFoundError):
-        errors = []
-    errors.append({
-        'uid': error_uid,
-        'message': str(error),
-        'traceback': traceback.format_exc()
-    })
-    with open(file_path, 'w') as file:
-        json.dump(errors, file, indent=2)
-    
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="root",
+            database="cyni"
+        )
+        traceback.print_exception(type(error), error, error.__traceback__)
+        insert_query = "INSERT INTO error_logs (uid, message, traceback) VALUES (%s, %s, %s)"
+        values = (error_uid, str(error), traceback.format_exc())
+        cursor = db.cursor()
+        cursor.execute(insert_query, values)
+        db.commit()
+        cursor.close()
+
+    except Exception as e:
+        print("Failed to log error:", e)
+    finally:
+        if db.is_connected():
+            db.close()
+
 async def check_permissions(ctx, user):
     staff_roles = get_staff_roles(str(ctx.guild.id))
     management_roles = get_management_roles(str(ctx.guild.id))
@@ -316,16 +323,16 @@ def get_server_config(guild_id):
         if row:
             config = {
                 "guild_id": row[0],
-                "staff_roles": json.loads(row[1] or "[]"),  # Parse JSON array or empty list
-                "management_roles": json.loads(row[2] or "[]"),  # Parse JSON array or empty list
+                "staff_roles": json.loads(row[1] or "[]"),
+                "management_roles": json.loads(row[2] or "[]"),
                 "mod_log_channel": row[3],
                 "premium": row[4],
                 "report_channel": row[5],
-                "blocked_search": json.loads(row[6] or "[]"),  # Parse JSON array or empty list
+                "blocked_search": json.loads(row[6] or "[]"),
                 "anti_ping": row[7],
-                "anti_ping_roles": json.loads(row[8] or "[]"),  # Parse JSON array or empty list
-                "bypass_anti_ping_roles": json.loads(row[9] or "[]"),  # Parse JSON array or empty list
-                "loa_role": json.loads(row[10] or "[]"),  # Parse JSON array or empty list
+                "anti_ping_roles": json.loads(row[8] or "[]"),
+                "bypass_anti_ping_roles": json.loads(row[9] or "[]"),
+                "loa_role": json.loads(row[10] or "[]"),
                 "staff_management_channel": row[11]
             }
             return config

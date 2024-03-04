@@ -113,7 +113,7 @@ async def on_command_error(ctx, error):
         color=0xFF0000
     )
     await ctx.send(embed=sentry)
-    log_error('cerror.json', error, error_uid)
+    log_error(error, error_uid)
 
 existing_uids = get_existing_uids()
 
@@ -267,6 +267,25 @@ async def passapp(interaction: discord.Interaction, member: discord.Member, *,se
         channel = interaction.channel
         embed = discord.Embed(
         title=f"{interaction.guild.name} Application Passed.", color=0x00FF00)
+        embed.add_field(name="Staff Name", value=member.mention)
+        embed.add_field(name="Server Message", value=server_message)
+        embed.add_field(name="Feedback", value=feedback)
+        embed.add_field(name="Signed By", value=interaction.user.mention)
+        await interaction.response.send_message("Result Sent", ephemeral=True)
+        await channel.send(member.mention, embed=embed)
+      else:
+        await interaction.response.send_message("❌ You don't have permission to use this command.")
+  except Exception as error:
+          await on_general_error(interaction, error)
+
+@bot.tree.command()
+async def infraction(interaction: discord.Interaction, member: discord.Member, *,server_message: str, feedback: str):
+  '''Post Infractions Result'''
+  try:
+      if await check_permissions_management(interaction, interaction.user):
+        channel = interaction.channel
+        embed = discord.Embed(
+        title=f"{interaction.guild.name} Staff Infractions.", color=0x00FF00)
         embed.add_field(name="Staff Name", value=member.mention)
         embed.add_field(name="Server Message", value=server_message)
         embed.add_field(name="Feedback", value=feedback)
@@ -517,7 +536,7 @@ async def on_general_error(ctx, error):
     file_path = 'cerror.json'
     existing_uids = get_existing_uids(file_path)
     error_uid = generate_error_uid(existing_uids)
-    log_error(file_path, error, error_uid)
+    log_error(error, error_uid)
     if isinstance(ctx, discord.Interaction):
         embed = discord.Embed(
             title="❌ An error occurred",
