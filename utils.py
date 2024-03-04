@@ -191,21 +191,17 @@ def generate_error_uid(existing_uids):
             return full_uid
 
 def log_error(file_path, error, error_uid):
-    print(f"An error occurred - Error UID: {error_uid}")
     traceback.print_exception(type(error), error, error.__traceback__)
-    
     try:
         with open(file_path, 'r') as file:
             errors = json.load(file)
     except (json.JSONDecodeError, FileNotFoundError):
         errors = []
-    
     errors.append({
         'uid': error_uid,
         'message': str(error),
         'traceback': traceback.format_exc()
     })
-    
     with open(file_path, 'w') as file:
         json.dump(errors, file, indent=2)
     

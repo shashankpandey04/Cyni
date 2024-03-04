@@ -4,7 +4,6 @@ import requests
 import sys
 import traceback
 import logging
-from prefixcommand import prefix_warn
 from utils import *
 import time
 import random
@@ -13,9 +12,7 @@ from menu import *
 import psutil
 import json
 import os
-import asyncio
 from threading import Thread
-#from hyme import run_staff_bot as run_hyme
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 import mysql.connector as msc
@@ -116,14 +113,6 @@ async def on_command_error(ctx, error):
         color=0xFF0000
     )
     await ctx.send(embed=sentry)
-    
-    error_data = {
-        "error_uid": error_uid,
-        "command": ctx.message.content,
-        "error": str(error),
-        "traceback": ''.join(traceback.format_exception(type(error), error, error.__traceback__))
-    }
-    
     log_error('cerror.json', error, error_uid)
 
 existing_uids = get_existing_uids()
