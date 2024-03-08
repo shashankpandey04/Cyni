@@ -20,18 +20,6 @@ db = mysql.connector.connect(
 )
 cursor = db.cursor()
 
-try:
-    with open('warnings.json', 'r') as warnings_file:
-        warnings = json.load(warnings_file)
-except FileNotFoundError:
-    warnings = {}
-
-def save_data():
-    with open('warnings.json', 'w') as warnings_file:
-        json.dump(warnings, warnings_file, indent=4)
-
-CONFIG_FILE = "server_config.json"
-
 def create_or_get_server_config(guild_id):
     """Create or get server configuration for a specific guild."""
     config = get_server_config(guild_id)
@@ -160,6 +148,7 @@ def load_custom_command():
                 if guild_id not in config:
                     config[guild_id] = {}
                 config[guild_id][command_name] = {
+                    "Command Name": command_name,
                     'title': title,
                     'description': description,
                     'colour': color,

@@ -52,7 +52,6 @@ async def on_ready():
     await load()
     await bot.tree.sync()
     bot.start_time = time.time()
-    save_data()
     for guild in bot.guilds:
         create_or_get_server_config(guild.id)
     cleanup_guild_data(bot)
@@ -618,9 +617,6 @@ async def servermanage(interaction:discord.Interaction):
                           - *Discord Staff Roles:* These roles grant permission to use Cyni's moderation commands.\n
                           - *Management Roles:* Users with these roles can utilize Cyni's management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel.
 
-                          **Mod Logger:**
-                          - *Moderation Log Channel:* This channel is designated for Cyni to log all moderation actions taken on the server.
-
                           **Server Config:**
                           - Easily view and edit your server configuration settings.
 
@@ -669,28 +665,21 @@ async def websearch(interaction:discord.Interaction, topic: str):
 async def ping(interaction: discord.Interaction):
     '''Check the bot's ping, external API response times, and system RAM usage.'''
     latency = round(bot.latency * 1000)
-    dbstatus = dbstatus()
+    db = dbstatus()
     support_server_id = 1152949579407442050
     support_server = bot.get_guild(support_server_id)
-    database_emoji = discord.utils.get(support_server.emojis, id=1210273731369373798)
+    database_emoji = discord.utils.get(support_server.emojis, id=1215565017718587422)
+    angle_right = discord.utils.get(support_server.emojis,id=1215565088589877299)
     start_time_birb = time.time()
-    response_birb = requests.get("https://birbapi.astrobirb.dev/birb")
-    birb_api_latency = round((time.time() - start_time_birb) * 1000)
-    start_time_joke = time.time()
-    response_joke = requests.get("https://official-joke-api.appspot.com/jokes/random")
-    joke_api_latency = round((time.time() - start_time_joke) * 1000)
-    average_api_latency = (birb_api_latency + joke_api_latency) / 2
     ram_usage = psutil.virtual_memory().percent
     uptime_seconds = time.time() - bot.start_time
     uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
     embed = discord.Embed(title='Bot Ping', color=0x00FF00)
-    embed.add_field(name='🟢 Pong!', value=f"{latency}ms", inline=True)
-    embed.add_field(name='Uptime', value=uptime_string, inline=True)
-    embed.add_field(name='API Latency', value=f"{round(bot.latency * 1000)}ms", inline=True)
-    embed.add_field(name='External API Latency', value=f"{average_api_latency}ms", inline=True)
-    embed.add_field(name='System RAM Usage', value=f"{ram_usage}%", inline=True)
-    embed.add_field(name=f"{database_emoji} Database Status", value=dbstatus, inline=True)
-    embed.add_field(name="Bot Version", value="6.2.0", inline=True)
+    embed.add_field(name=f'{angle_right} 🟢 Pong!', value=f"{latency}ms", inline=True)
+    embed.add_field(name=f'{angle_right} Uptime', value=uptime_string, inline=True)
+    embed.add_field(name=f'{angle_right} System RAM Usage', value=f"{ram_usage}%", inline=True)
+    embed.add_field(name=f"{database_emoji} Database Status", value=db, inline=True)
+    embed.add_field(name=f"{angle_right} Bot Version", value="6.2.0", inline=True)
     embed.set_thumbnail(url=bot.user.avatar.url)
     await interaction.response.send_message(embed=embed)
     
@@ -716,14 +705,11 @@ async def help(ctx):
    embed.add_field(name="Support Server",value="[Join Cyni Support Server for help.](https://discord.gg/2D29TSfNW6)",inline=False)
    await ctx.channel.send(embed=embed,view = SupportBtn())
 
-TOKEN = cynibeta_token()
-def run_cynibot():
-   bot.run(TOKEN)
+@bot.tree.command()
+async def vote(interaction:discord.Interaction):
+    embed = discord.Embed(title="Vote Cyni!")
+    await interaction.response.send_message(embed=embed,view=VoteView())
 
+TOKEN = cynibeta_token()
 def cyni():
-    bot_thread = Thread(target=run_cynibot)
-    #staff_bot_thread = Thread(target=run_hyme)
-    bot_thread.start()
-    #staff_bot_thread.start()
-    bot_thread.join()
-    #staff_bot_thread.join()
+   bot.run(TOKEN)
