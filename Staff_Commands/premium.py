@@ -20,24 +20,17 @@ class Premium(commands.Cog):
         print(f'{self.bot.user} loaded cog: Premium Staff Command')
 
     @commands.command()
-    async def set_premium(self,ctx, guild: int, status: str):
-        try:
-            if any(role.id in [dev_role_id] for role in ctx.author.roles):
-                status = status.lower()  # Convert to lowercase for case-insensitivity
-                if status in ['true', 'yes', 'on', '1']:
-                    premium_value = 1
-                elif status in ['false', 'no', 'off', '0']:
-                    premium_value = 0
-                else:
-                    await ctx.send("Invalid value for status. Please provide 'true' or 'false'.")
-                    return    
-                cursor = db.cursor()
-                cursor.execute("UPDATE server_config SET premium = %s WHERE guild_id = %s", (premium_value, guild))
-                db.commit()
-                cursor.close()
-                await ctx.send(f"Premium status has been set to {status}.")
-        except Exception as e:
-                await ctx.send(f"An error occurred while setting premium status: {e}")
+    async def set_premium(self,ctx, value: bool):
+        dev_users = [member.name for member in ctx.guild.get_role(dev_role_id).members]
+        if ctx.author.name in dev_users:
+            server_id = ctx.guild.id
+            query = "UPDATE server_config SET premium = %s WHERE guild_id = %s"
+            cursor.execute(query, (value, server_id))
+            db.commit()
+            await ctx.send(f"Premium status set to {value} for this server.")
+        else:
+            await ctx.send("You are not authorized to use this command.")
+
 
 async def setup(bot):
    await bot.add_cog(Premium(bot))

@@ -135,7 +135,7 @@ def load_custom_command():
     try:
         if db.is_connected():
             cursor = db.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM custom_commands")
+            cursor.execute("SELECT * FROM custom_commands where guild_id = %s", (guild_id))
             rows = cursor.fetchall()
             config = {}
             for row in rows:

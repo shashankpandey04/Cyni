@@ -126,7 +126,18 @@ sys.excepthook = handle_exception
 
 @bot.event
 async def on_guild_join(guild):
-  create_or_get_server_config(guild.id)
+    support_server_id = 1152949579407442050
+    support_channel_id = 1210248878599839774
+    support_server = bot.get_guild(support_server_id)
+    support_channel = support_server.get_channel(support_channel_id)
+    embed = discord.Embed(title="New Server Joined", color=0x00ff00)
+    embed.set_thumbnail(url=guild.icon.url)
+    embed.add_field(name="Server Name", value=guild.name, inline=False)
+    embed.add_field(name="Server ID", value=guild.id, inline=False)
+    embed.add_field(name="Owner", value=guild.owner, inline=False)
+    embed.add_field(name="Total Guilds", value=len(bot.guilds), inline=False)
+    await support_channel.send(embed=embed)
+    create_or_get_server_config(guild.id)
 
 @bot.tree.command()
 async def say(interaction: discord.Interaction, message: str):
