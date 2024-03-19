@@ -7,7 +7,7 @@ import logging
 from utils import *
 import time
 import random
-from tokens import cynibeta_token
+from tokens import get_token
 from menu import *
 import psutil
 import json
@@ -80,6 +80,7 @@ async def on_message(message):
     await bot.process_commands(message)
     try:
         guild_id = message.guild.id
+        user_id = message.author.id
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         server_config = cursor.fetchone()
         if server_config:
@@ -97,8 +98,31 @@ async def on_message(message):
                             if not author_can_warn:
                                 warning_message = f"{message.author.mention} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
                                 await message.channel.send(warning_message)
+        staff_or_management_roles = get_staff_or_management_roles(guild_id)
+        user_roles = [role.id for role in message.author.roles]
+        if any(role_id in user_roles for role_id in staff_or_management_roles):
+            mycur.execute("INSERT INTO activity_logs (user_id, guild_id, messages_sent) VALUES (%s, %s, 1) ON DUPLICATE KEY UPDATE messages_sent = messages_sent + 1", (user_id, guild_id))
+            mycon.commit()
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
+
+@bot.hybrid_group()
+async def activity(ctx):
+    pass
+
+@activity.command()
+async def leaderboard(ctx):
+    try:
+        mycur.execute("SELECT user_id, SUM(messages_sent) AS total_messages FROM activity_logs WHERE guild_id = %s GROUP BY user_id", (ctx.guild.id,))
+        activity_data = mycur.fetchall()
+        leaderboard_embed = discord.Embed(title="Activity Leaderboard", color=0x2F3136)
+        for user_id, total_messages in activity_data:
+            member = ctx.guild.get_member(user_id)
+            if member:
+                leaderboard_embed.add_field(name=member.display_name, value=f"Total Messages: {total_messages}", inline=False)
+        await ctx.send(embed=leaderboard_embed)
+    except Exception as e:
+        await ctx.send(f"An error occurred: {e}")
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -180,45 +204,73 @@ async def slowmode(interaction: discord.Interaction, duration: str):
   except Exception as error:
           await on_general_error(interaction, error)
 
-@bot.tree.command()
-async def roleadd(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
+@bot.hybrid_group()
+async def modmail(ctx):
+    pass
+
+@modmail.command()
+async def blacklist(ctx,member:discord.Member):
+    '''Blacklist user from opening mod mails.'''
+    await ctx.send(f"{member.mention} have been blacklisted!")
+
+@modmail.command()
+async def close(ctx):
+    '''Close Mod Mail Channel.'''
+    await ctx.send("Mod Mail closed.")
+
+@modmail.command()
+async def open(ctx,reason:str):
+    '''Open Mod Mail Channel.'''
+    await ctx.send(f"Mod Mail opened for the reason {reason}")
+
+@modmail.command()
+async def adduser(ctx,member:discord.Member):
+    '''Add user to Mod Mail Channel.'''
+    await ctx.send(f"{member.mention} added to Mod Mail Channel.")
+
+@modmail.command()
+async def removeuser(ctx,member:discord.Member):
+    '''Remove user from Mod Mail Channel.'''
+    await ctx.send(f"{member.mention} removed from Mod Mail Channel.")
+
+@bot.hybrid_group()
+async def role(ctx):
+    pass
+
+@role.command()
+async def add(ctx, member: discord.Member, role: discord.Role):
     '''Add a role to member'''
     try:
-        if await check_permissions(interaction, interaction.user):
-            if not interaction.user.guild_permissions.manage_roles:
-                await interaction.response.send_message("❌ You don't have the 'Manage Roles' permission.")
-            elif role >= member.top_role:
-                await interaction.response.send_message("❌ I can't add a role higher than or equal to the member's top role.")
+        if await check_permissions(ctx, ctx.author):
+            if not ctx.author.guild_permissions.manage_roles:
+                await ctx.response.send_message("❌ You don't have the 'Manage Roles' permission.")
             else:
                 await member.add_roles(role)
                 embed = discord.Embed(
                     title='Role added.',
                     description=f"Role {role.mention} added to {member.mention}",
                     color=0x00FF00)
-                await interaction.response.send_message(embed=embed)
+                await ctx.send(embed=embed)
         else:
-            await interaction.response.send_message("❌ You don't have permission to use this command.")
+            await ctx.send("❌ You don't have permission to use this command.")
     except Exception as error:
-        await on_general_error(interaction, error)
+        await on_general_error(ctx, error)
 
-@bot.tree.command()
-async def roleremove(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
-    '''Removes a role from member'''
+@role.command()
+async def remove(ctx, member: discord.Member, role: discord.Role):
+    '''Add a role to member'''
     try:
-        if await check_permissions(interaction, interaction.user):
-            if not interaction.user.guild_permissions.manage_roles:
-                await interaction.response.send_message("❌ You don't have the 'Manage Roles' permission.")
-            elif role >= member.top_role:
-                await interaction.response.send_message("❌ I can't remove a role higher than or equal to the member's top role.")
+        if await check_permissions(ctx, ctx.author):
+            if not ctx.author.guild_permissions.manage_roles:
+                await ctx.send("❌ You don't have the 'Manage Roles' permission.")
             else:
                 await member.remove_roles(role)
                 embed = discord.Embed(title='Role Removed.', description=f"Role {role.mention} is now removed from {member.mention}", color=0xFF0000)
-                await interaction.response.send_message(embed=embed)
+                await ctx.send(embed=embed)
         else:
-            await interaction.response.send_message("❌ You don't have permission to use this command.")
+            await ctx.send("❌ You don't have permission to use this command.")
     except Exception as error:
-        await on_general_error(interaction, error)
-
+        await on_general_error(ctx, error)
 
 @bot.tree.command()
 async def membercount(interaction: discord.Interaction):
@@ -229,48 +281,12 @@ async def membercount(interaction: discord.Interaction):
 async def membercount(interaction: discord.Interaction):
   await interaction.channel.send(f"{interaction.guild.member_count} members.")
 
-@bot.tree.command()
-async def promote(interaction: discord.Interaction, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str):
-  '''Promote Server Staff'''
-  try:
-      if await check_permissions_management(interaction, interaction.user):
-        channel = interaction.channel
-        embed = discord.Embed(title=f"{interaction.guild.name} Promotions.",color=0x00FF00)
-        embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Old Rank", value=old_rank.mention)
-        embed.add_field(name="New Rank", value=next_rank.mention)
-        embed.add_field(name="Approved By", value=approved.mention)
-        embed.add_field(name="Reason", value=reason)
-        embed.add_field(name="Signed By", value=interaction.user.mention)
-        await interaction.response.send_message("Promotion Sent", ephemeral=True)
-        await channel.send(member.mention, embed=embed)
-      else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_general_error(interaction, error)
+@bot.hybrid_group()
+async def application(ctx):
+    pass
 
-@bot.tree.command()
-async def demote(interaction: discord.Interaction, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str):
-  '''Demote Server Staff'''
-  try:
-      if await check_permissions_management(interaction, interaction.user):
-        channel = interaction.channel
-        embed = discord.Embed(title=f"{interaction.guild.name} Demotions.",color=0x00FF00)
-        embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Old Rank", value=old_rank.mention)
-        embed.add_field(name="New Rank", value=next_rank.mention)
-        embed.add_field(name="Approved By", value=approved.mention)
-        embed.add_field(name="Reason", value=reason)
-        embed.add_field(name="Signed By", value=interaction.user.mention)
-        await interaction.response.send_message("Demotion Sent", ephemeral=True)
-        await channel.send(member.mention, embed=embed)
-      else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_general_error(interaction, error)
-
-@bot.tree.command()
-async def passapp(interaction: discord.Interaction, member: discord.Member, *,server_message: str, feedback: str):
+@application.command()
+async def passed(interaction: discord.Interaction, member: discord.Member, *,server_message: str, feedback: str):
   '''Post Passed Application Result'''
   try:
       if await check_permissions_management(interaction, interaction.user):
@@ -288,27 +304,8 @@ async def passapp(interaction: discord.Interaction, member: discord.Member, *,se
   except Exception as error:
           await on_general_error(interaction, error)
 
-@bot.tree.command()
-async def infraction(interaction: discord.Interaction, member: discord.Member, *,server_message: str, feedback: str):
-  '''Post Infractions Result'''
-  try:
-      if await check_permissions_management(interaction, interaction.user):
-        channel = interaction.channel
-        embed = discord.Embed(
-        title=f"{interaction.guild.name} Staff Infractions.", color=0x00FF00)
-        embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Server Message", value=server_message)
-        embed.add_field(name="Feedback", value=feedback)
-        embed.add_field(name="Signed By", value=interaction.user.mention)
-        await interaction.response.send_message("Result Sent", ephemeral=True)
-        await channel.send(member.mention, embed=embed)
-      else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_general_error(interaction, error)
-
-@bot.tree.command()
-async def failapp(interaction: discord.Interaction, member: discord.Member, *,feedback: str):
+@application.command()
+async def failed(interaction: discord.Interaction, member: discord.Member, *,feedback: str):
   '''Post Failed Application result.'''
   try:
       if await check_permissions_management(interaction, interaction.user):
@@ -325,6 +322,72 @@ async def failapp(interaction: discord.Interaction, member: discord.Member, *,fe
   except Exception as error:
           await on_general_error(interaction, error)
 
+@bot.hybrid_group()
+async def staff(ctx):
+    pass
+
+@staff.command()
+async def infract(ctx, member: discord.Member, *,server_message: str, feedback: str):
+  '''Post Infractions Result'''
+  try:
+      if await check_permissions_management(ctx, ctx.author):
+        channel = ctx.channel
+        embed = discord.Embed(
+        title=f"{ctx.guild.name} Staff Infractions.", color=0x2F3136)
+        embed.add_field(name="Staff Name", value=member.mention)
+        embed.add_field(name="Server Message", value=server_message)
+        embed.add_field(name="Feedback", value=feedback)
+        embed.add_field(name="Signed By", value=ctx.author.mention)
+        embed.set_thumbnail(url=member.avatar.url)
+        await ctx.send("Result Sent")
+        await channel.send(member.mention, embed=embed)
+      else:
+        await ctx.send("❌ You don't have permission to use this command.")
+  except Exception as error:
+          await on_general_error(ctx, error)
+
+@staff.command()
+async def promote(ctx, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str):
+  '''Promote Server Staff'''
+  try:
+      if await check_permissions_management(ctx, ctx.author):
+        channel = ctx.channel
+        embed = discord.Embed(title=f"{ctx.guild.name} Promotions.",color=0x2F3136)
+        embed.add_field(name="Staff Name", value=member.mention)
+        embed.add_field(name="Old Rank", value=old_rank.mention)
+        embed.add_field(name="New Rank", value=next_rank.mention)
+        embed.add_field(name="Approved By", value=approved.mention)
+        embed.add_field(name="Reason", value=reason)
+        embed.add_field(name="Signed By", value=ctx.author.mention)
+        embed.set_thumbnail(url=member.avatar.url)
+        await ctx.send("Promotion Sent")
+        await channel.send(member.mention, embed=embed)
+      else:
+        await ctx.send("❌ You don't have permission to use this command.")
+  except Exception as error:
+          await on_general_error(ctx, error)
+
+@staff.command()
+async def demote(ctx, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str,channel: discord.TextChannel):
+  '''Demote Server Staff'''
+  try:
+      if await check_permissions_management(ctx, ctx.author):
+        channel = ctx.channel
+        embed = discord.Embed(title=f"{ctx.guild.name} Demotions.",color=0x2F3136)
+        embed.add_field(name="Staff Name", value=member.mention)
+        embed.add_field(name="Old Rank", value=old_rank.mention)
+        embed.add_field(name="New Rank", value=next_rank.mention)
+        embed.add_field(name="Approved By", value=approved.mention)
+        embed.add_field(name="Reason", value=reason)
+        embed.add_field(name="Signed By", value=ctx.author.mention)
+        embed.set_thumbnail(url=member.avatar.url)
+        await ctx.send("Demotion Sent", ephemeral=True)
+        await channel.send(member.mention, embed=embed)
+      else:
+        await ctx.send("❌ You don't have permission to use this command.")
+  except Exception as error:
+          await on_general_error(ctx, error)
+
 @bot.tree.command()
 async def purge(interaction: discord.Interaction, amount: int):   
   '''Purge messages from channel'''
@@ -337,8 +400,12 @@ async def purge(interaction: discord.Interaction, amount: int):
   except Exception as error:
           await on_general_error(interaction, error)
 
-@bot.tree.command()
-async def custom_run(interaction:discord.Interaction,command_name:str):
+@bot.hybrid_group()
+async def custom(ctx):
+    pass
+
+@custom.command()
+async def run(interaction:discord.Interaction,command_name:str):
     '''Run Custom Command'''
     if await check_permissions(interaction, interaction.user):
           await run_custom_command(interaction, command_name)
@@ -347,8 +414,8 @@ async def custom_run(interaction:discord.Interaction,command_name:str):
     else:
       await interaction.response.send_message("❌ You don't have permission to use this command.")
 
-@bot.tree.command()
-async def custom_manage(interaction:discord.Interaction, action:str, name:str):
+@custom.command()
+async def manage(interaction:discord.Interaction, action:str, name:str):
     '''Manage Custom Commands (create, delete, list)'''
     guild_id = interaction.guild.id
     try:
@@ -439,18 +506,14 @@ async def create_custom_command(interaction, command_name):
     guild_id = str(interaction.guild.id)
     mycur.execute("SELECT * FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
     existing_command = mycur.fetchone()
-
     if existing_command:
         await interaction.response.send_message(f"Custom command '{command_name}' already exists.")
         return
-    
     mycur.execute("SELECT COUNT(*) FROM custom_commands WHERE guild_id = %s", (guild_id,))
     command_count = mycur.fetchone()[0]
-
     if command_count >= 5:
         await interaction.response.send_message("Sorry, the server has reached the maximum limit of custom commands (5).")
         return
-    
     await interaction.response.send_message("Enter embed title:")
     title = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
     await interaction.channel.send("Enter embed description:")
@@ -463,16 +526,13 @@ async def create_custom_command(interaction, command_name):
     channel_input = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
     await interaction.channel.send("Enter role ID to ping (enter 'none' for no role):")
     role_id_input = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
-
     channel_id = int(channel_input.content[2:-1])
     role_id = int(role_id_input.content) if role_id_input.content.lower() != 'none' else None
-
     try:
         color_decimal = int(colour.content[1:], 16)
     except ValueError:
         await interaction.channel.send("Invalid hex color format. Please use the format #RRGGBB.")
         return
-
     image_url = image_url_input.content.strip()
     image_url = None if image_url.lower() == 'none' else image_url
     channel_id_str = channel_input.content.strip('<#>')
@@ -483,7 +543,6 @@ async def create_custom_command(interaction, command_name):
         return
     mycur.execute("INSERT INTO custom_commands (guild_id, command_name, title, description, color, image_url, channel, role) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (guild_id, command_name, title.content, description.content, color_decimal, image_url, channel_id, role_id))
     mycon.commit()
-
     await interaction.channel.send(f"Custom command '{command_name}' created successfully.")
     
 async def delete_custom_command(interaction, command_name):
@@ -511,8 +570,12 @@ async def pick(ctx, option1, option2):
   option = random.choice([option1, option2])
   await ctx.send(f"I pick {option}")
 
-@bot.tree.command()
-async def catimage(interaction:discord.Interaction):
+@bot.hybrid_group()
+async def image(ctx):
+    pass
+
+@image.command()
+async def cat(interaction:discord.Interaction):
   '''Get Random Cat Image'''
   response = requests.get("https://api.thecatapi.com/v1/images/search")
   data = response.json()
@@ -521,8 +584,8 @@ async def catimage(interaction:discord.Interaction):
   embed.set_image(url=image_url)
   await interaction.response.send_message(embed=embed)
 
-@bot.tree.command()
-async def dogimage(interaction: discord.Interaction):
+@image.command()
+async def dog(interaction: discord.Interaction):
     '''Get Random Dog Image'''
     response = requests.get("https://api.thedogapi.com/v1/images/search")
     data = response.json()
@@ -531,8 +594,18 @@ async def dogimage(interaction: discord.Interaction):
     embed.set_image(url=image_url)
     await interaction.response.send_message(embed=embed)
 
+@image.command()
+async def bird(interaction: discord.Interaction):
+    '''Get Random Bird Image'''
+    response = requests.get("https://birbapi.astrobirb.dev/birb")
+    data = response.json()
+    image_url = data["image_url"]
+    embed = discord.Embed(title="Random Bird Image", color=discord.Color.random())
+    embed.set_image(url=image_url)
+    await interaction.response.send_message(embed=embed)
+
 @bot.tree.command()
-async def getavatar(interaction: discord.Interaction, user: discord.User):
+async def avatar(interaction: discord.Interaction, user: discord.User):
   '''Get any user avatar from server'''
   try:
     embed = discord.Embed(title=f"{user.name}'s Profile Photo", color=0x00FFFF)
@@ -644,8 +717,12 @@ async def servermanage(interaction:discord.Interaction):
   except Exception as error:
           await on_general_error(interaction, error)
 
-@bot.tree.command()
-async def blocksearch(interaction:discord.Interaction, keyword: str):
+@bot.hybrid_group()
+async def web(ctx):
+    pass
+
+@web.command()
+async def block(interaction:discord.Interaction, keyword: str):
   """Add blocked words from Cyni Search in server."""
   if await check_permissions_management(interaction, interaction.user):
     embed = discord.Embed(title="Blocked Search",description=f"**Keyword:** {keyword}\n**Blocked By:** {interaction.user.mention}",color=0x00FF00)
@@ -660,8 +737,8 @@ async def blocksearch(interaction:discord.Interaction, keyword: str):
   else:
     await interaction.response.send_message("❌ You don't have permission to use this command.")
 
-@bot.tree.command()
-async def websearch(interaction:discord.Interaction, topic: str):
+@web.command()
+async def search(interaction:discord.Interaction, topic: str):
   """Search on web using CYNI Search API"""
   guild_id = str(interaction.guild.id)
   server_config = get_server_config(guild_id)
@@ -680,8 +757,7 @@ async def ping(interaction: discord.Interaction):
     support_server_id = 1152949579407442050
     support_server = bot.get_guild(support_server_id)
     database_emoji = discord.utils.get(support_server.emojis, id=1215565017718587422)
-    angle_right = discord.utils.get(support_server.emojis,id=1215565088589877299)
-    start_time_birb = time.time()
+    angle_right = discord.utils.get(support_server.emojis,id=1215565088589877299)()
     ram_usage = psutil.virtual_memory().percent
     uptime_seconds = time.time() - bot.start_time
     uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
@@ -692,16 +768,6 @@ async def ping(interaction: discord.Interaction):
     embed.add_field(name=f"{database_emoji} Database Status", value=db, inline=True)
     embed.add_field(name=f"{angle_right} Bot Version", value="6.2.0", inline=True)
     embed.set_thumbnail(url=bot.user.avatar.url)
-    await interaction.response.send_message(embed=embed)
-    
-@bot.tree.command()
-async def birdimage(interaction: discord.Interaction):
-    '''Get Random Bird Image'''
-    response = requests.get("https://birbapi.astrobirb.dev/birb")
-    data = response.json()
-    image_url = data["image_url"]
-    embed = discord.Embed(title="Random Bird Image", color=discord.Color.random())
-    embed.set_image(url=image_url)
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command()
@@ -721,6 +787,6 @@ async def vote(interaction:discord.Interaction):
     embed = discord.Embed(title="Vote Cyni!")
     await interaction.response.send_message(embed=embed,view=VoteView())
 
-TOKEN = cynibeta_token()
+TOKEN = get_token()
 def cyni():
    bot.run(TOKEN)

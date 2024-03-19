@@ -16,7 +16,7 @@ async def display_server_config(interaction):
             )
             embed.add_field(name="Staff Roles", value=staff_roles if staff_roles else "Not set", inline=False)
             embed.add_field(name="Management Roles", value=management_roles if management_roles else "Not set", inline=False)
-            #embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=False)
+            embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=False)
             embed.add_field(name="Premium", value="Enabled" if premium else "Disabled", inline=False)
             embed.add_field(name="Report Channel", value=f"<#{report_channel}>" if report_channel else "Not set", inline=False)
             embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=False)
@@ -36,7 +36,7 @@ class SetupBot(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label="Staff Management", description="Manage Staff to work with Cyni", emoji="👮"),
-            discord.SelectOption(label="LOA Module",description="Setup LOA Role & Staff Management Channel"),
+            discord.SelectOption(label="LOA Module",description="Setup LOA Role & Staff Management Channel",emoji="🏖️"),
             discord.SelectOption(label="Server Config", description="View/Edit Server Config", emoji="📜"),
             discord.SelectOption(label="Anti Ping", description="Setup Anti Ping Roles", emoji="🔕"),
             discord.SelectOption(label="Support Server", description="Join Cyni Support Server", emoji="👥")
@@ -47,8 +47,8 @@ class SetupBot(discord.ui.Select):
         if self.values[0] == "Staff Management":
             embed = discord.Embed(title="Staff Roles",description="Setup Staff Roles to work with Cyni",color=0xFF00)
             await interaction.response.send_message(embed=embed,view=SelectStaffRoleView(),ephemeral=True)
-        #elif self.values[0] == "Mod Log Channel":
-            #await interaction.response.send_message("Select a channel where all the logs like warning,role addition,etc. will be logged.", view=ModLogView(),ephemeral=True)
+        elif self.values[0] == "Mod Log Channel":
+            await interaction.response.send_message("Select a channel where all the logs like warning,role addition,etc. will be logged.", view=ModLogView(),ephemeral=True)
         elif self.values[0] == "Anti Ping":
             embed = discord.Embed(title="Anti Ping Roles",description="Setup Anti Ping Roles to work with Cyni",color=0xFF00)
             await interaction.response.send_message(embed=embed,view=AntiPingView(),ephemeral=True)
@@ -69,7 +69,7 @@ class ChangeCofig(discord.ui.Select):
          discord.SelectOption(label="Discord Staff Roles",description="Change Staff Roles",emoji="👮"),
          discord.SelectOption(label="Management Roles",description="Change Management Roles",emoji="🚨"),
          discord.SelectOption(label="Loa Role",description="Change Loa Role",emoji="🏝️"),
-         #discord.SelectOption(label="Log Channel",description="Change Mod Log Channel",emoji="📝"),
+         discord.SelectOption(label="Log Channel",description="Change Mod Log Channel",emoji="📝"),
          discord.SelectOption(label="Staff Management Channel",description="Change Staff Management Channel",emoji="📝")
       ]
       super().__init__(placeholder="Change Server Config",options=options,min_values=1,max_values=1)
@@ -81,8 +81,8 @@ class ChangeCofig(discord.ui.Select):
           await interaction.response.send_message(view=ManagementRoleView(),ephemeral=True)
         elif self.values[0] == "Loa Role":
           await interaction.response.send_message(view=LoaRoleView() ,ephemeral=True)
-        #elif self.values[0] == "Log Channel":
-          #await interaction.response.send_message(view=ModLogView(),ephemeral=True),
+        elif self.values[0] == "Log Channel":
+          await interaction.response.send_message(view=ModLogView(),ephemeral=True),
         elif self.values[0] == "Staff Management Channel":
           await interaction.response.send_message(view=StaffManagementChannelView(),ephemeral=True)
       except TimeoutError:

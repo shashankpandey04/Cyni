@@ -30,7 +30,7 @@ class StaffConnect(commands.Cog):
         print(f'{self.bot.user} loaded cog: Staff Connect')
     
     @commands.command()
-    async def cyni_staff(self,ctx, target_user: discord.Member = None):
+    async def staff_sync(self,ctx, target_user: discord.Member = None):
         target_user = target_user or ctx.author
         if any(role.id in [cyni_support_role_id, qa_team, support_role_id, senior_support_role_id, dev_role_id, management_role_id, trial_support_role_id] for role in ctx.author.roles):
             user_flags = []

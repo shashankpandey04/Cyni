@@ -245,6 +245,18 @@ def get_management_roles(guild_id):
     else:
         return []
 
+def get_staff_or_management_roles(guild_id):
+    """Get staff or management roles for a specific guild."""
+    sql = "SELECT staff_roles, management_roles FROM server_config WHERE guild_id = %s"
+    cursor.execute(sql, (guild_id,))
+    result = cursor.fetchone()
+    if result:
+        staff_roles = json.loads(result[0]) if result[0] else []
+        management_roles = json.loads(result[1]) if result[1] else []
+        return staff_roles + management_roles  # Concatenate staff and management roles
+    else:
+        return []
+    
 def save_management_roles(guild_id, management_roles):
     serialized_management_roles = json.dumps(management_roles)
     sql = "INSERT INTO server_config (guild_id, management_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE management_roles = VALUES(management_roles)"
@@ -296,7 +308,7 @@ def save_config(config):
         cursor = db.cursor()
         for guild_id, data in config.items():
             serialized_data = json.dumps(data)
-            cursor.execute("INSERT INTO server_config (guild_id, config_data) VALUES (%s, %s) ON DUPLICATE KEY UPDATE config_data = VALUES(config_data)", (guild_id, serialized_data))
+            cursor.execute("INSERT INTO server_config (guild_id, staff_roles, management_roles) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE staff_roles = VALUES(staff_roles), management_roles = VALUES(management_roles)", (guild_id, serialized_data['staff_roles'], serialized_data['management_roles']))
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving server configuration: {e}")
