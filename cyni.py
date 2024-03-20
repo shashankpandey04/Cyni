@@ -1,8 +1,6 @@
 import discord
 from discord.ext import commands
 import requests
-import sys
-import traceback
 import logging
 from utils import *
 import time
@@ -12,12 +10,9 @@ from menu import *
 import psutil
 import json
 import os
-from threading import Thread
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
-import mysql.connector as msc
-mycon=msc.connect(host='localhost',user='root',passwd='root',database='cyni')
-mycur=mycon.cursor()
+from db import *
 
 def dbstatus():
     if mycon.is_connected():
@@ -74,6 +69,8 @@ BOT_USER_ID = 1136945734399295538
 @bot.event
 async def on_message(message):
     if message.author.bot:
+        return
+    if message.content.startswith("::"):
         return
     if message.content.startswith(":jsk shutdown"):
         await message.channel.send("<@800203880515633163> Get to work!\n<@707064490826530888> You also!")
@@ -140,14 +137,6 @@ async def on_command_error(ctx, error):
 
 existing_uids = get_existing_uids()
 
-def handle_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        return
-    error_uid = generate_error_uid(existing_uids)
-    logger.error(f"Error UID: {error_uid}\n{''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))}")
-sys.excepthook = handle_exception
-
 @bot.event
 async def on_guild_join(guild):
     support_server_id = 1152949579407442050
@@ -172,7 +161,7 @@ async def say(interaction: discord.Interaction, message: str):
         await interaction.response.send_message("Message sent.", ephemeral=True)
         await channel.send(message)
     except Exception as e:
-        await on_general_error(interaction,e)
+        await on_command_error(interaction,e)
   else:
      await interaction.response.send_message("❌ You are not permitted to use this command",ephemeral=True)
 
@@ -202,7 +191,7 @@ async def slowmode(interaction: discord.Interaction, duration: str):
       else:
         await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(interaction, error)
+          await on_command_error(interaction, error)
 
 @bot.hybrid_group()
 async def modmail(ctx):
@@ -254,7 +243,7 @@ async def add(ctx, member: discord.Member, role: discord.Role):
         else:
             await ctx.send("❌ You don't have permission to use this command.")
     except Exception as error:
-        await on_general_error(ctx, error)
+        await on_command_error(ctx, error)
 
 @role.command()
 async def remove(ctx, member: discord.Member, role: discord.Role):
@@ -456,7 +445,7 @@ def load_custom_command(interaction):
                     'colour': color,
                     'image_url': image_url
                 }
-            print("Config:", config)  # Debugging: Print the config dictionary
+            print("Config:", config)
             return config
     except Error as e:
         print("Error while connecting to MySQL", e)
@@ -580,7 +569,7 @@ async def cat(interaction:discord.Interaction):
   response = requests.get("https://api.thecatapi.com/v1/images/search")
   data = response.json()
   image_url = data[0]["url"]
-  embed = discord.Embed(title="Random Cat Image", color=discord.Color.random())
+  embed = discord.Embed(title="Random Cat Image", color=0x2F3136)
   embed.set_image(url=image_url)
   await interaction.response.send_message(embed=embed)
 
@@ -590,7 +579,7 @@ async def dog(interaction: discord.Interaction):
     response = requests.get("https://api.thedogapi.com/v1/images/search")
     data = response.json()
     image_url = data[0]["url"]
-    embed = discord.Embed(title="Random Dog Image", color=discord.Color.random())
+    embed = discord.Embed(title="Random Dog Image", color=0x2F3136)
     embed.set_image(url=image_url)
     await interaction.response.send_message(embed=embed)
 
@@ -600,7 +589,7 @@ async def bird(interaction: discord.Interaction):
     response = requests.get("https://birbapi.astrobirb.dev/birb")
     data = response.json()
     image_url = data["image_url"]
-    embed = discord.Embed(title="Random Bird Image", color=discord.Color.random())
+    embed = discord.Embed(title="Random Bird Image", color=0x2F3136)
     embed.set_image(url=image_url)
     await interaction.response.send_message(embed=embed)
 
@@ -608,7 +597,7 @@ async def bird(interaction: discord.Interaction):
 async def avatar(interaction: discord.Interaction, user: discord.User):
   '''Get any user avatar from server'''
   try:
-    embed = discord.Embed(title=f"{user.name}'s Profile Photo", color=0x00FFFF)
+    embed = discord.Embed(title=f"{user.name}'s Profile Photo", color=0x2F3136)
     embed.set_image(url=user.avatar)
     await interaction.response.send_message(embed=embed)
   except Exception as error:
@@ -630,6 +619,68 @@ async def on_general_error(ctx, error):
     else:
         await ctx.channel.send(f"An error occurred (Error UID: `{error_uid}`). Please contact support.")
 
+@bot.hybrid_group()
+async def roblox(ctx):
+    pass
+
+@roblox.command()
+async def userid(ctx,userid:int):
+    '''Get Roblox User Info by User ID'''
+    api_url = f"https://users.roblox.com/v1/users/{userid}"
+    avatar_api_url = f"https://www.roblox.com/avatar-thumbnails?params=[{{userId:{userid}}}]"
+    response = requests.get(avatar_api_url)
+    avatar_data = response.json()[0]
+    thumbnail_url = avatar_data["thumbnailUrl"]
+    response = requests.get(api_url)
+    try:
+        if response.status_code == 200:
+            data = response.json()
+            embed = discord.Embed(title="User Info", color=0x2F3136)
+            embed.add_field(name="Rolox ID", value=data["id"], inline=False)
+            embed.add_field(name="Username", value=data["name"], inline=True)
+            embed.add_field(name="Display Name",value=data["displayName"],inline=False)
+            embed.add_field(name="Description",value=data["description"],inline=True)
+            embed.set_thumbnail(url=thumbnail_url)
+            embed.add_field(name="Is Banned", value=data["isBanned"], inline=False)
+            embed.add_field(name="Has Verified Badge",value=data["hasVerifiedBadge"],inline=True)
+            embed.add_field(name="Created", value=data["created"], inline=False)
+            await ctx.send(embed=embed)
+    except Exception as error:
+        await on_command_error(ctx,error)
+
+@roblox.command()
+async def username(ctx,username:str):
+    '''Get Roblox User Info by Username'''
+    api_url = "https://users.roblox.com/v1/usernames/users"
+    payload = {"usernames": [username], "excludeBannedUsers": True}
+    response = requests.post(api_url, json=payload)
+    if response.status_code == 200:
+        data = response.json()["data"][0]
+        try:
+            userid = data["id"]
+            await ctx.send(embed=robloxusername(userid))
+        except Exception as e:
+            await on_command_error(ctx,e)
+    else:
+        await ctx.send("User not found.")
+
+@bot.tree.command()
+async def sentry(interaction:discord.Interaction, error_uid:str):
+    try:
+        cursor.execute("SELECT * FROM error_logs WHERE uid = %s", (error_uid,))
+        error_log = cursor.fetchone()
+        if error_log:
+            uid, message, traceback, created_at = error_log
+            embed = discord.Embed(title="Error Log",description=f"Error UID: `{uid}`",color=0x2F3136)
+            embed.add_field(name="Message", value=message, inline=False)
+            embed.add_field(name="Traceback", value=traceback, inline=False)
+            embed.add_field(name="Created At", value=created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
+            await interaction.response.send_message(embed=embed)
+        else:
+            await interaction.response.send_message(f"No error log found for UID `{error_uid}`.")
+    except Exception as e:
+        await interaction.response.send_message(f"An error occurred while fetching the error log: {e}")
+
 @bot.tree.command()
 async def whois(interaction:discord.Interaction, user_info:str):
     guild_id = str(interaction.guild.id)
@@ -650,7 +701,7 @@ async def whois(interaction:discord.Interaction, user_info:str):
           discord_emoji = discord.utils.get(support_server.emojis, id=1191057244004044890)
           with open('staff.json', 'r') as file:
               staff_data = json.load(file)
-          embed = discord.Embed(title="User Information", color=member.color)
+          embed = discord.Embed(title="User Information", color=0x2F3136)
           hypesquad_flags = member.public_flags
           hypesquad_values = [str(flag).replace("UserFlags.", "").replace("_", " ").title() for flag in hypesquad_flags.all()]
           if hypesquad_values:
@@ -786,6 +837,11 @@ async def help(ctx):
 async def vote(interaction:discord.Interaction):
     embed = discord.Embed(title="Vote Cyni!")
     await interaction.response.send_message(embed=embed,view=VoteView())
+
+@bot.command()
+async def vote(ctx):
+    embed = discord.Embed(title="Vote Cyni!")
+    await ctx.send(embed=embed,view=VoteView())
 
 TOKEN = get_token()
 def cyni():

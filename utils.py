@@ -10,15 +10,9 @@ import random
 import time
 import mysql.connector
 import json
+from datetime import datetime
 from mysql.connector import Error
-
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root",
-    database="cyni"
-)
-cursor = db.cursor()
+from db import mycon as db, mycur as cursor
 
 def create_or_get_server_config(guild_id):
     """Create or get server configuration for a specific guild."""
@@ -181,25 +175,13 @@ def generate_error_uid(existing_uids):
 
 def log_error(error, error_uid):
     try:
-        db = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="root",
-            database="cyni"
-        )
         traceback.print_exception(type(error), error, error.__traceback__)
         insert_query = "INSERT INTO error_logs (uid, message, traceback) VALUES (%s, %s, %s)"
         values = (error_uid, str(error), traceback.format_exc())
-        cursor = db.cursor()
         cursor.execute(insert_query, values)
         db.commit()
-        cursor.close()
-
     except Exception as e:
         print("Failed to log error:", e)
-    finally:
-        if db.is_connected():
-            db.close()
 
 async def check_permissions(ctx, user):
     staff_roles = get_staff_roles(str(ctx.guild.id))
@@ -397,3 +379,25 @@ def save_staff_management_channel(guild_id, staff_management_channel_id):
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving staff management channel: {e}")
+
+def robloxusername(userid):
+    api_url = f"https://users.roblox.com/v1/users/{userid}"
+    avatar_api_url = f"https://www.roblox.com/avatar-thumbnails?params=[{{userId:{userid}}}]"
+    response = requests.get(avatar_api_url)
+    avatar_data = response.json()[0]
+    thumbnail_url = avatar_data["thumbnailUrl"]
+    response = requests.get(api_url)
+    data = response.json()
+    created_timestamp = datetime.strptime(data["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
+    created_unix_timestamp = int(created_timestamp.timestamp())
+    created_str = f"<t:{created_unix_timestamp}:R>"
+    embed = discord.Embed(title="User Info", color=0x2F3136)
+    embed.add_field(name="User ID", value=data["id"], inline=True)
+    embed.add_field(name="Username", value=data["name"], inline=True)
+    embed.add_field(name="Display Name",value=data["displayName"],inline=True)
+    embed.add_field(name="Description",value=data["description"],inline=True)
+    embed.set_thumbnail(url=thumbnail_url)
+    embed.add_field(name="Is Banned", value=data["isBanned"], inline=True)
+    embed.add_field(name="Has Verified Badge",value=data["hasVerifiedBadge"],inline=True)
+    embed.add_field(name="Created", value=created_str, inline=True)
+    return embed

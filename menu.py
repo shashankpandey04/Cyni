@@ -1,5 +1,6 @@
 import discord
 from utils import *
+from db import *
 
 async def display_server_config(interaction):
     try:

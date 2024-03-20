@@ -1,18 +1,6 @@
 import discord
 from discord.ext import commands
-import requests
-from cyni import on_general_error
-from discord import app_commands
-import json
-import mysql.connector
-mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="root",
-  database="cyni"
-)
-
-mycursor = mydb.cursor()
+from db import mycur as mycursor
 
 class Whois(commands.Cog):
     def __init__(self,bot):
@@ -24,7 +12,6 @@ class Whois(commands.Cog):
 
     @commands.command()
     async def whois(self, ctx, *, user_info=None):
-        guild_id = str(ctx.guild.id)
         if user_info is None:
             member = ctx.author
         else:

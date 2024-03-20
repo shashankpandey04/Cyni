@@ -45,7 +45,6 @@ class Roblox(commands.Cog):
                     embed.add_field(name="Verified Badge",value=data["hasVerifiedBadge"],inline=False)
                     embed.add_field(name="User ID", value=data["id"], inline=False)
                     await ctx.send(embed=embed)
-                await ctx.send("Search By User Id")
         except Exception as e:
             await on_general_error(ctx,e)
 

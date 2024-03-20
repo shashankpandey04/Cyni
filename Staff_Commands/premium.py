@@ -1,14 +1,6 @@
 import mysql.connector
 from discord.ext import commands
-
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root",
-    database="cyni"
-)
-cursor = db.cursor()
-
+from db import mycon as db, mycur as cursor
 dev_role_id = 1152951022885535804
 
 class Premium(commands.Cog):

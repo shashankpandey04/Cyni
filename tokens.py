@@ -1,6 +1,4 @@
-import mysql.connector as msc
-mycon=msc.connect(host='localhost',user='root',passwd='root',database='cyni')
-mycur=mycon.cursor()
+from db import *
 
 def get_token():
     mycur.execute('SELECT token FROM token where name = "Cyni Beta"')

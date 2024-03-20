@@ -9,17 +9,7 @@ dev_role_id = 1152951022885535804
 management_role_id = 1200642991556145192
 trial_support_role_id = 1187279033872957551
 qa_team = 1211064601051930634
-
-import mysql.connector
-
-mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="root",
-  database="cyni"
-)
-
-mycursor = mydb.cursor()
+from db import mycon as mydb, mycur as mycursor
 
 class StaffConnect(commands.Cog):
     def __init__(self, bot):
