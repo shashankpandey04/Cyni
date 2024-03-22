@@ -259,16 +259,12 @@ async def remove(ctx, member: discord.Member, role: discord.Role):
         else:
             await ctx.send("❌ You don't have permission to use this command.")
     except Exception as error:
-        await on_general_error(ctx, error)
+        await on_command_error(ctx, error)
 
 @bot.tree.command()
 async def membercount(interaction: discord.Interaction):
   '''Gives the total number of members in server.'''
   await interaction.response.send_message(f"{interaction.guild.member_count} members.")
-
-@bot.command()
-async def membercount(interaction: discord.Interaction):
-  await interaction.channel.send(f"{interaction.guild.member_count} members.")
 
 @bot.hybrid_group()
 async def application(ctx):
@@ -291,7 +287,7 @@ async def passed(interaction: discord.Interaction, member: discord.Member, *,ser
       else:
         await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(interaction, error)
+          await on_command_error(interaction, error)
 
 @application.command()
 async def failed(interaction: discord.Interaction, member: discord.Member, *,feedback: str):
@@ -309,7 +305,7 @@ async def failed(interaction: discord.Interaction, member: discord.Member, *,fee
       else:
           await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(interaction, error)
+          await on_command_error(interaction, error)
 
 @bot.hybrid_group()
 async def staff(ctx):
@@ -333,7 +329,7 @@ async def infract(ctx, member: discord.Member, *,server_message: str, feedback: 
       else:
         await ctx.send("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(ctx, error)
+          await on_command_error(ctx, error)
 
 @staff.command()
 async def promote(ctx, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str):
@@ -354,7 +350,7 @@ async def promote(ctx, member: discord.Member, *,old_rank: discord.Role, next_ra
       else:
         await ctx.send("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(ctx, error)
+          await on_command_error(ctx, error)
 
 @staff.command()
 async def demote(ctx, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str,channel: discord.TextChannel):
@@ -375,7 +371,7 @@ async def demote(ctx, member: discord.Member, *,old_rank: discord.Role, next_ran
       else:
         await ctx.send("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(ctx, error)
+          await on_command_error(ctx, error)
 
 @bot.tree.command()
 async def purge(interaction: discord.Interaction, amount: int):   
@@ -387,7 +383,7 @@ async def purge(interaction: discord.Interaction, amount: int):
     else:
       await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(interaction, error)
+          await on_command_error(interaction, error)
 
 @bot.hybrid_group()
 async def custom(ctx):
@@ -419,7 +415,7 @@ async def manage(interaction:discord.Interaction, action:str, name:str):
                 await interaction.response.send_message("Invalid action. Valid actions are: create, delete, list.")
             await interaction.response.send_message("Custom command executed successfully.")
     except Exception as error:
-          await on_general_error(interaction, error)
+          await on_command_error(interaction, error)
 
 def load_custom_command(interaction):
     try:
@@ -601,23 +597,7 @@ async def avatar(interaction: discord.Interaction, user: discord.User):
     embed.set_image(url=user.avatar)
     await interaction.response.send_message(embed=embed)
   except Exception as error:
-        await on_general_error(interaction, error)
-
-@bot.event
-async def on_general_error(ctx, error):
-    file_path = 'cerror.json'
-    existing_uids = get_existing_uids(file_path)
-    error_uid = generate_error_uid(existing_uids)
-    log_error(error, error_uid)
-    if isinstance(ctx, discord.Interaction):
-        embed = discord.Embed(
-            title="❌ An error occurred",
-            description=f"An error occurred (Error UID: `{error_uid}`). Please contact support.",
-            color=0xFF0000
-        )
-        await ctx.channel.send(embed=embed)
-    else:
-        await ctx.channel.send(f"An error occurred (Error UID: `{error_uid}`). Please contact support.")
+        await on_command_error(interaction, error)
 
 @bot.hybrid_group()
 async def roblox(ctx):
@@ -664,6 +644,7 @@ async def username(ctx,username:str):
     else:
         await ctx.send("User not found.")
 
+cyni_support_role_id = 1158043149424398406
 @bot.tree.command()
 async def sentry(interaction:discord.Interaction, error_uid:str):
     try:
@@ -736,12 +717,6 @@ async def support(interaction:discord.Interaction):
   embed = discord.Embed(title="Cyni Support Server",description="Need any help?\nJoin Cyni Support Server.",color=0x00FF00)
   await interaction.response.send_message(embed=embed ,view=SupportBtn())
 
-@bot.command()
-async def support(interaction:discord.Interaction):
-  '''Join Cyni Support Server'''
-  embed = discord.Embed(title="Cyni Support Server",description="Need any help?\nJoin Cyni Support Server.",color=0x00FF00)
-  await interaction.channel.send(embed=embed ,view=SupportBtn())
-
 @bot.tree.command()
 async def servermanage(interaction:discord.Interaction):
   '''Manage Your Server with Cyni'''
@@ -766,7 +741,7 @@ async def servermanage(interaction:discord.Interaction):
     else:
       await interaction.response.send_message("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_general_error(interaction, error)
+          await on_command_error(interaction, error)
 
 @bot.hybrid_group()
 async def web(ctx):
@@ -825,13 +800,6 @@ async def ping(interaction: discord.Interaction):
 async def joke(interaction:discord.Interaction):
    joke = fetch_random_joke()
    await interaction.response.send_message(joke)
-
-@bot.command()
-async def help(ctx):
-   embed = discord.Embed(title="Cyni Help",color=0x00FF00)
-   embed.add_field(name="Cyni Docs",value="[Cyni Docs](https://qupr-digital.gitbook.io/cyni-docs/)",inline=False)
-   embed.add_field(name="Support Server",value="[Join Cyni Support Server for help.](https://discord.gg/2D29TSfNW6)",inline=False)
-   await ctx.channel.send(embed=embed,view = SupportBtn())
 
 @bot.tree.command()
 async def vote(interaction:discord.Interaction):
