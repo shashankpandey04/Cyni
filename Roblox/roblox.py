@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import requests
-from cyni import on_general_error
+from cyni import on_command_error
 
 class Roblox(commands.Cog):
     def __init__(self, bot):
@@ -46,7 +46,7 @@ class Roblox(commands.Cog):
                     embed.add_field(name="User ID", value=data["id"], inline=False)
                     await ctx.send(embed=embed)
         except Exception as e:
-            await on_general_error(ctx,e)
+            await on_command_error(ctx,e)
 
 async def setup(bot):
    await bot.add_cog(Roblox(bot))

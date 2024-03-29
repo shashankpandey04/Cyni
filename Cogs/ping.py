@@ -3,7 +3,7 @@ from discord.ext import commands
 import time
 import requests
 import psutil
-from cyni import dbstatus, on_general_error
+from cyni import dbstatus, on_command_error
 from utils import fetch_random_joke
 
 class Ping(commands.Cog):

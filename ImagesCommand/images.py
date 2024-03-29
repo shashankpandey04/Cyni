@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import requests
-from cyni import on_general_error
+from cyni import on_command_error
 from discord import app_commands
 
 class Images(commands.Cog):
@@ -23,7 +23,7 @@ class Images(commands.Cog):
             embed.set_image(url=image_url)
             await ctx.send(embed=embed)
         except Exception as e:
-            on_general_error(ctx,e)
+            on_command_error(ctx,e)
     
     @commands.command()
     async def birb(self,ctx):
@@ -36,7 +36,7 @@ class Images(commands.Cog):
             embed.set_image(url=image_url)
             await ctx.send(embed=embed)
         except Exception as e:
-            on_general_error(ctx,e)
+            on_command_error(ctx,e)
     
     @commands.command()
     async def cat(self,ctx):
@@ -49,7 +49,7 @@ class Images(commands.Cog):
             embed.set_image(url=image_url)
             await ctx.send(embed=embed)
         except Exception as e:
-            on_general_error(ctx,e)
+            on_command_error(ctx,e)
 
 async def setup(bot):
    await bot.add_cog(Images(bot))
