@@ -806,11 +806,6 @@ async def vote(interaction:discord.Interaction):
     embed = discord.Embed(title="Vote Cyni!")
     await interaction.response.send_message(embed=embed,view=VoteView())
 
-@bot.command()
-async def vote(ctx):
-    embed = discord.Embed(title="Vote Cyni!")
-    await ctx.send(embed=embed,view=VoteView())
-
 TOKEN = get_token()
 def cyni():
    bot.run(TOKEN)
