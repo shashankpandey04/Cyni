@@ -743,7 +743,7 @@ async def servermanage(interaction:discord.Interaction):
   except Exception as error:
           await on_command_error(interaction, error)
 
-@bot.hybrid_group()
+'''@bot.hybrid_group()
 async def web(ctx):
     pass
 
@@ -773,7 +773,7 @@ async def search(interaction:discord.Interaction, topic: str):
       await interaction.response.send_message("Blocked word found in search query.")
       return
   result = search_api(topic)
-  await interaction.response.send_message(f"{result}....")
+  await interaction.response.send_message(f"{result}....")'''
 
 @bot.tree.command()
 async def ping(interaction: discord.Interaction):

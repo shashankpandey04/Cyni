@@ -1,14 +1,9 @@
 import json
-from bs4 import BeautifulSoup
-import wikipediaapi
-from googlesearch import search
 import requests
 import traceback
 import discord
 import string
 import random
-import time
-import mysql.connector
 import json
 from datetime import datetime
 from mysql.connector import Error
@@ -81,7 +76,7 @@ def list_custom_commands_embeds(interaction):
         embeds.append(embed)
     return embeds
 
-
+'''
 wiki_wiki = wikipediaapi.Wikipedia('english')
 
 def search_api(topic):
@@ -124,7 +119,7 @@ def truncate_to_nearest_sentence(data, max_length):
           return truncated_data[:last_period_index + 1]
       else:
           return truncated_data
-
+'''
 def load_custom_command():
     try:
         if db.is_connected():

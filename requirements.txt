@@ -1,11 +1,4 @@
 discord
-requests
 psutil
 requests
-time
-beautifulsoup4
-discord
-google
-mysql-connector-python
-requests
-wikipedia-api
+jishaku
