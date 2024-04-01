@@ -2,3 +2,4 @@ discord
 psutil
 requests
 jishaku
+mysql-connector
