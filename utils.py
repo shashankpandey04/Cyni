@@ -6,7 +6,6 @@ import string
 import random
 import json
 from datetime import datetime
-from mysql.connector import Error
 from db import mycon as db, mycur as cursor
 
 def create_or_get_server_config(guild_id):
@@ -46,7 +45,7 @@ def save_custom_command(config):
                     image_url = details.get('image_url', '')
                     cursor.execute("INSERT INTO custom_commands (guild_id, command_name, title, description, color, image_url) VALUES (%s, %s, %s, %s, %s, %s)", (guild_id, command_name, title, description, color, image_url))
             db.commit()
-    except Error as e:
+    except Exception as e:
         print("Error while connecting to MySQL", e)
     finally:
         if 'connection' in locals() and db.is_connected():
@@ -144,7 +143,7 @@ def load_custom_command():
                     'image_url': image_url
                 }
             return config
-    except Error as e:
+    except Exception as e:
         print("Error while connecting to MySQL", e)
     finally:
         if 'connection' in locals() and db.is_connected():

@@ -4,3 +4,4 @@ requests
 jishaku
 googlesearch-python
 beautifulsoup4
+mysql-connector-python
