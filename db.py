@@ -5,7 +5,7 @@ try:
         host='cynibot_cyni',
         user='mysql',
         passwd='995ef7a66cb1feb880bd',
-        database='cyni'
+        database='cynibot'
     )
     mycur = mycon.cursor()
 
