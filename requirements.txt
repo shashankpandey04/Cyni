@@ -2,4 +2,5 @@ discord
 psutil
 requests
 jishaku
-mysql-connector
+googlesearch-python
+beautifulsoup4

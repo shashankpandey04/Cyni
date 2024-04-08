@@ -13,6 +13,7 @@ import os
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 from db import *
+import re
 
 def dbstatus():
     if mycon.is_connected():
@@ -66,15 +67,20 @@ async def on_thread_create(ctx):
 
 BOT_USER_ID = 1136945734399295538
 
+racial_slurs = ["nigger", "nigga"]
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
-    if message.content.startswith("::"):
+    elif message.content.startswith("::"):
         return
-    if message.content.startswith(":jsk shutdown"):
+    elif message.content.startswith("?ssu" or "?ssd" or "?ssup"):
+        return
+    elif message.content.startswith(":jsk shutdown"):
         await message.channel.send("<@800203880515633163> Get to work!\n<@707064490826530888> You also!")
-    await bot.process_commands(message)
+        return
+    await check_for_racial_slurs(message)
     try:
         guild_id = message.guild.id
         user_id = message.author.id
@@ -103,6 +109,16 @@ async def on_message(message):
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
 
+async def check_for_racial_slurs(message):
+    clean_message = message.content.lower().strip()
+    for slur in racial_slurs:
+        slur_variations = generate_variations(slur)
+        for variation in slur_variations:
+            if variation in clean_message:
+                await message.delete()
+                await message.channel.send("Please refrain from using racial slurs.")
+                return
+            
 @bot.hybrid_group()
 async def activity(ctx):
     pass
@@ -132,6 +148,7 @@ async def on_command_error(ctx, error):
         description=f"Error I'd `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
         color=0xFF0000
     )
+    sentry.add_field(name="Error", value=error, inline=False)
     await ctx.send(embed=sentry)
     log_error(error, error_uid)
 
@@ -193,7 +210,7 @@ async def slowmode(interaction: discord.Interaction, duration: str):
   except Exception as error:
           await on_command_error(interaction, error)
 
-@bot.hybrid_group()
+"""@bot.hybrid_group()
 async def modmail(ctx):
     pass
 
@@ -221,7 +238,7 @@ async def adduser(ctx,member:discord.Member):
 async def removeuser(ctx,member:discord.Member):
     '''Remove user from Mod Mail Channel.'''
     await ctx.send(f"{member.mention} removed from Mod Mail Channel.")
-
+"""
 @bot.hybrid_group()
 async def role(ctx):
     pass

@@ -396,3 +396,21 @@ def robloxusername(userid):
     embed.add_field(name="Has Verified Badge",value=data["hasVerifiedBadge"],inline=True)
     embed.add_field(name="Created", value=created_str, inline=True)
     return embed
+
+def generate_variations(word):
+    variations = []
+    substitutions = {
+        'a': '@',
+        'A': '@',
+        'e': '3',
+        'i': '1',
+        'I': '1',
+        'o': '0',
+        's': '$'
+    }
+    for char in word:
+        if char.lower() in substitutions:
+            for sub in substitutions[char.lower()]:
+                variation = word[:word.index(char)] + sub + word[word.index(char) + 1:]
+                variations.append(variation)
+    return variations
