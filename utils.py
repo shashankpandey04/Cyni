@@ -62,7 +62,7 @@ def list_custom_commands_embeds(interaction):
     for name, details in custom_commands.items():
         color_value = details.get('colour', discord.Color.default().value)
         try:
-            color = int(color_value)  # Attempt to convert color value to int
+            color = int(color_value)
         except ValueError:
             async def send_error_message():
                 await interaction.channel.send("Invalid color value found in database.")
@@ -413,3 +413,18 @@ def generate_variations(word):
                 variation = word[:word.index(char)] + sub + word[word.index(char) + 1:]
                 variations.append(variation)
     return variations
+
+racial_slurs = ["nigger", "nigga"]
+async def check_for_racial_slurs(message):
+    clean_message = message.content.lower().strip()
+    for slur in racial_slurs:
+        slur_variations = generate_variations(slur)
+        for variation in slur_variations:
+            if variation in clean_message:
+                await message.delete()
+                await message.channel.send("Please refrain from using racial slurs.")
+                return
+            
+async def no_permission(interaction:discord.Interaction):
+        embed = discord.Embed(title="Not Permitted",description="You are not allowed to interact with this command/response.",color=0x2F3136)
+        await interaction.response.send_message(embed=embed)
