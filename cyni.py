@@ -26,30 +26,22 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
-async def load(bot):
-    for filename in os.listdir('./Cogs'):
-        if filename.endswith('.py'):
-            await bot.load_extension(f'Cogs.{filename[:-3]}')
-            print(f'Loaded {filename}')
-    for filename in os.listdir("./Roblox"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"Roblox.{filename[:-3]}")
-            print(f"Loaded {filename}")
-    for filename in os.listdir("./ImagesCommand"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
-            print(f"Loaded {filename}")
-    for filename in os.listdir("./Staff_Commands"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
-            print(f"Loaded {filename}")
+async def load_cogs():
+    for cog_dir in ["Cogs", "Roblox", "ImagesCommand", "Staff_Commands"]:
+        for filename in os.listdir(f'./{cog_dir}'):
+            if filename.endswith('.py'):
+                try:
+                    bot.load_extension(f'{cog_dir}.{filename[:-3]}')
+                    print(f'[✅] Loaded {cog_dir}.{filename[:-3]}')
+                except Exception as e:
+                    print(f'[❌] Failed to load {cog_dir}.{filename[:-3]}: {e}')
 
 @bot.event
 async def on_ready():
     try:
-        await load(bot)
+        await load_cogs()
     except Exception as e:
-        print(f"Error occurred during cog loading: {e}")
+        print(f'Error occurred during cog loading: {e}')
     await bot.tree.sync()
     bot.start_time = time.time()
     for guild in bot.guilds:
