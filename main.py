@@ -31,11 +31,12 @@ async def setup_bot():
         for guild in bot.guilds:
             create_or_get_server_config(guild.id)
         cleanup_guild_data(bot)
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
         await bot.load_extension("jishaku")
         print(f'Logged in as {bot.user.name} - {bot.user.id}')
         print(f'Version: {discord.__version__}')
         print('------')
+        
+        # Set the application ID here
         await bot.tree.sync(application_id=1136945734399295538)
     except Exception as e:
         print(f'An error occurred during startup: {e}')
