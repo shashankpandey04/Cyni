@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 from db import *
 import re
-import aiohttp
 
 def dbstatus():
     if mycon.is_connected():
@@ -26,22 +25,27 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
-async def load_cogs():
-    for cog_dir in ["Cogs", "Roblox", "ImagesCommand", "Staff_Commands"]:
-        for filename in os.listdir(f'./{cog_dir}'):
-            if filename.endswith('.py'):
-                try:
-                    bot.load_extension(f'{cog_dir}.{filename[:-3]}')
-                    print(f'[✅] Loaded {cog_dir}.{filename[:-3]}')
-                except Exception as e:
-                    print(f'[❌] Failed to load {cog_dir}.{filename[:-3]}: {e}')
+async def load():
+    for filename in os.listdir('./Cogs'):
+        if filename.endswith('.py'):
+            await bot.load_extension(f'Cogs.{filename[:-3]}')
+            print(f'Loaded {filename}')
+    for filename in os.listdir("./Roblox"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"Roblox.{filename[:-3]}")
+            print(f"Loaded {filename}")
+    for filename in os.listdir("./ImagesCommand"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
+            print(f"Loaded {filename}")
+    for filename in os.listdir("./Staff_Commands"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
+            print(f"Loaded {filename}")
 
 @bot.event
 async def on_ready():
-    try:
-        await load_cogs()
-    except Exception as e:
-        print(f'Error occurred during cog loading: {e}')
+    await load()
     await bot.tree.sync()
     bot.start_time = time.time()
     for guild in bot.guilds:
@@ -60,28 +64,23 @@ async def on_thread_create(ctx):
         await ctx.purge(limit=1)
     else:
         return
-bot_owner_id = '1201129677457215558'
+
 BOT_USER_ID = 1136945734399295538
+
+racial_slurs = ["nigger", "nigga"]
 
 @bot.event
 async def on_message(message):
-    await bot.process_commands(message)
     if message.author.bot:
         return
-    elif message.content.startswith("?jsk shutdown"):
-        await message.channel.send("<@1201129677457215558> Get to work!\n<@707064490826530888> You also!")
+    elif message.content.startswith("::"):
+        return
+    elif message.content.startswith("?ssu" or "?ssd" or "?ssup"):
+        return
+    elif message.content.startswith(":jsk shutdown"):
+        await message.channel.send("<@800203880515633163> Get to work!\n<@707064490826530888> You also!")
         return
     await check_for_racial_slurs(message)
-    if bot.user.mentioned_in(message) and str(message.author.id) == bot_owner_id:
-        await message.channel.send("Deployment triggered! 🚀")
-        deployment_url = "http://172.93.103.105:3000/api/deploy/d410185117e4bfa2a60c17f26234b44091ee1b47cdae5aca"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(deployment_url) as response:
-                if response.status == 200:
-                    print("Deployment successful")
-                else:
-                    print("Deployment failed")
-        return
     try:
         guild_id = message.guild.id
         user_id = message.author.id
@@ -110,6 +109,16 @@ async def on_message(message):
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
 
+async def check_for_racial_slurs(message):
+    clean_message = message.content.lower().strip()
+    for slur in racial_slurs:
+        slur_variations = generate_variations(slur)
+        for variation in slur_variations:
+            if variation in clean_message:
+                await message.delete()
+                await message.channel.send("Please refrain from using racial slurs.")
+                return
+            
 @bot.hybrid_group()
 async def activity(ctx):
     pass
@@ -128,21 +137,10 @@ async def leaderboard(ctx):
     except Exception as e:
         await ctx.send(f"An error occurred: {e}")
 
-@activity.command()
-async def clear(ctx):
-    if await check_permissions_management(ctx,ctx.author):
-        try:
-            embed = discord.Embed(title="Manage Activity")
-            embed.add_field(name="What it does?",value="From this command you can reset your server's Activity leaderboard.")
-            mycur.execute(f"DELTE FROM activity_logs where guild_id = '{ctx.guild.id}'")
-            await ctx.send("✅Leaderboard Reset | Successfully.")
-        except Exception as error:
-            await on_command_error(ctx,error)
-    else:
-        await no_permission()
-            
 @bot.event
 async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound) and ctx.message.content.startswith('?warn'):
+        return
     existing_uids = get_existing_uids()
     error_uid = generate_error_uid(existing_uids)
     sentry = discord.Embed(
@@ -733,7 +731,7 @@ async def whois(interaction:discord.Interaction, user_info:str):
 @bot.tree.command()
 async def support(interaction:discord.Interaction):
   '''Join Cyni Support Server'''
-  embed = discord.Embed(title="Cyni Support Server",description="Need any help?\nJoin Cyni Support Server.",color=0x2F3136)
+  embed = discord.Embed(title="Cyni Support Server",description="Need any help?\nJoin Cyni Support Server.",color=0x00FF00)
   await interaction.response.send_message(embed=embed ,view=SupportBtn())
 
 @bot.tree.command()
@@ -755,7 +753,7 @@ async def servermanage(interaction:discord.Interaction):
                           **Support Server:**
                           - Need assistance? Join the Cyni Support Server for help.
                             '''
-                            ,color=0x2F3136) 
+                            ,color=0x00FF00) 
       await interaction.response.send_message(embed=embed, view=SetupView(),ephemeral=True)
     else:
       await interaction.response.send_message("❌ You don't have permission to use this command.")
@@ -806,7 +804,7 @@ async def ping(interaction: discord.Interaction):
     ram_usage = psutil.virtual_memory().percent
     uptime_seconds = time.time() - bot.start_time
     uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
-    embed = discord.Embed(title='Bot Ping', color=0x2F3136)
+    embed = discord.Embed(title='Bot Ping', color=0x00FF00)
     embed.add_field(name=f'{angle_right} 🟢 Pong!', value=f"{latency}ms", inline=True)
     embed.add_field(name=f'{angle_right} Uptime', value=uptime_string, inline=True)
     embed.add_field(name=f'{angle_right} System RAM Usage', value=f"{ram_usage}%", inline=True)
