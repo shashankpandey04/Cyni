@@ -5,8 +5,7 @@ from tokens import get_token
 from utils import create_or_get_server_config, cleanup_guild_data
 import os
 import time
-# Importing bot instance from cyni.py
-from cyni import bot
+from cyni import bot  # Importing bot instance from cyni.py
 
 async def load_extensions_from_directory(bot, directory):
     """Load extensions (Cogs) from a specified directory."""
@@ -24,8 +23,7 @@ async def load_all_extensions(bot, directories):
     for directory in directories:
         await load_extensions_from_directory(bot, directory)
 
-@bot.event
-async def on_ready():
+async def setup_bot():
     try:
         directories = ['Cogs', 'Roblox', 'ImagesCommand', 'Staff_Commands']
         await load_all_extensions(bot, directories)
@@ -38,12 +36,11 @@ async def on_ready():
         print(f'Logged in as {bot.user.name} - {bot.user.id}')
         print(f'Version: {discord.__version__}')
         print('------')
-        
-        # Set the application ID here
         await bot.tree.sync(application_id=1136945734399295538)
     except Exception as e:
         print(f'An error occurred during startup: {e}')
 
 if __name__ == '__main__':
     TOKEN = get_token()
+    asyncio.run(setup_bot())
     bot.run(TOKEN)
