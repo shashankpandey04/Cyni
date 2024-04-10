@@ -1,9 +1,9 @@
-import os
-import time
+import asyncio
 import discord
 from discord.ext import commands
 from tokens import get_token
 from utils import create_or_get_server_config, cleanup_guild_data
+import os
 
 # Importing bot instance from cyni.py
 from cyni import bot
@@ -41,5 +41,5 @@ async def main():
     print('------')
 
 if __name__ == '__main__':
-    bot.loop.run_until_complete(main())
+    asyncio.run(main())
     bot.run(get_token())
