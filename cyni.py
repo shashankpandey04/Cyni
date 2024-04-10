@@ -29,19 +29,19 @@ bot.remove_command('help')
 async def load(bot):
     for filename in os.listdir('./Cogs'):
         if filename.endswith('.py'):
-            bot.load_extension(f'Cogs.{filename[:-3]}')
+            await bot.load_extension(f'Cogs.{filename[:-3]}')
             print(f'Loaded {filename}')
     for filename in os.listdir("./Roblox"):
         if filename.endswith(".py"):
-            bot.load_extension(f"Roblox.{filename[:-3]}")
+            await bot.load_extension(f"Roblox.{filename[:-3]}")
             print(f"Loaded {filename}")
     for filename in os.listdir("./ImagesCommand"):
         if filename.endswith(".py"):
-            bot.load_extension(f"ImagesCommand.{filename[:-3]}")
+            await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
             print(f"Loaded {filename}")
     for filename in os.listdir("./Staff_Commands"):
         if filename.endswith(".py"):
-            bot.load_extension(f"Staff_Commands.{filename[:-3]}")
+            await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
             print(f"Loaded {filename}")
 
 @bot.event
