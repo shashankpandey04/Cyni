@@ -25,36 +25,6 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
-async def load():
-    for filename in os.listdir('./Cogs'):
-        if filename.endswith('.py'):
-            await bot.load_extension(f'Cogs.{filename[:-3]}')
-            print(f'Loaded {filename}')
-    for filename in os.listdir("./Roblox"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"Roblox.{filename[:-3]}")
-            print(f"Loaded {filename}")
-    for filename in os.listdir("./ImagesCommand"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
-            print(f"Loaded {filename}")
-    for filename in os.listdir("./Staff_Commands"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
-            print(f"Loaded {filename}")
-
-@bot.event
-async def on_ready():
-    await load()
-    await bot.tree.sync()
-    bot.start_time = time.time()
-    for guild in bot.guilds:
-        create_or_get_server_config(guild.id)
-    cleanup_guild_data(bot)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
-    await bot.load_extension("jishaku")
-    print(f'Logged in as {bot.user.name} - {bot.user.id}')
-
 cyni_support_role_id = 800203880515633163
 @bot.event
 async def on_thread_create(ctx):
@@ -822,7 +792,3 @@ async def joke(interaction:discord.Interaction):
 async def vote(interaction:discord.Interaction):
     embed = discord.Embed(title="Vote Cyni!")
     await interaction.response.send_message(embed=embed,view=VoteView())
-
-TOKEN = get_token()
-def cyni():
-   bot.run(TOKEN)
