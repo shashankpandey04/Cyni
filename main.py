@@ -1,3 +1,4 @@
 from cyni import cyni
 
-cyni()
+if __name__ == "__main__":
+    cyni()

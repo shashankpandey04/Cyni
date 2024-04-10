@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 from db import *
 import re
+import aiohttp
 
 def dbstatus():
     if mycon.is_connected():
@@ -67,17 +68,28 @@ async def on_thread_create(ctx):
         await ctx.purge(limit=1)
     else:
         return
-
+bot_owner_id = '1201129677457215558'
 BOT_USER_ID = 1136945734399295538
 
 @bot.event
 async def on_message(message):
+    await bot.process_commands(message)
     if message.author.bot:
         return
     elif message.content.startswith("?jsk shutdown"):
         await message.channel.send("<@1201129677457215558> Get to work!\n<@707064490826530888> You also!")
         return
     await check_for_racial_slurs(message)
+    if bot.user.mentioned_in(message) and str(message.author.id) == bot_owner_id:
+        await message.channel.send("Deployment triggered! 🚀")
+        deployment_url = "http://172.93.103.105:3000/api/deploy/d410185117e4bfa2a60c17f26234b44091ee1b47cdae5aca"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(deployment_url) as response:
+                if response.status == 200:
+                    print("Deployment successful")
+                else:
+                    print("Deployment failed")
+        return
     try:
         guild_id = message.guild.id
         user_id = message.author.id
