@@ -41,13 +41,14 @@ racial_slurs = ["nigger", "nigga"]
 
 @bot.event
 async def on_message(message):
+    await bot.process_commands(message)
     if message.author.bot:
         return
-    elif message.content.startswith("::"):
+    if message.content.startswith("::"):
         return
-    elif message.content.startswith("?ssu" or "?ssd" or "?ssup"):
+    if message.content.startswith("?ssu" or "?ssd" or "?ssup"):
         return
-    elif message.content.startswith(":jsk shutdown"):
+    if message.content.startswith(":jsk shutdown"):
         await message.channel.send("<@800203880515633163> Get to work!\n<@707064490826530888> You also!")
         return
     await check_for_racial_slurs(message)
@@ -89,6 +90,37 @@ async def check_for_racial_slurs(message):
                 await message.channel.send("Please refrain from using racial slurs.")
                 return
             
+async def load():
+    for filename in os.listdir('./Cogs'):
+        if filename.endswith('.py'):
+            await bot.load_extension(f'Cogs.{filename[:-3]}')
+            print(f'Loaded {filename}')
+    for filename in os.listdir("./Roblox"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"Roblox.{filename[:-3]}")
+            print(f"Loaded {filename}")
+    for filename in os.listdir("./ImagesCommand"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
+            print(f"Loaded {filename}")
+    for filename in os.listdir("./Staff_Commands"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
+            print(f"Loaded {filename}")
+
+@bot.event
+async def on_ready():
+    await load()
+    await bot.tree.sync()
+    bot.start_time = time.time()
+    for guild in bot.guilds:
+        create_or_get_server_config(guild.id)
+    cleanup_guild_data(bot)
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
+    await bot.load_extension("jishaku")
+    print(f'Logged in as {bot.user.name} - {bot.user.id}')
+    print(f"DB Status: {dbstatus()}")
+
 @bot.hybrid_group()
 async def activity(ctx):
     pass
@@ -792,3 +824,7 @@ async def joke(interaction:discord.Interaction):
 async def vote(interaction:discord.Interaction):
     embed = discord.Embed(title="Vote Cyni!")
     await interaction.response.send_message(embed=embed,view=VoteView())
+
+TOKEN = get_token()
+def cyni():
+    bot.run(TOKEN)
