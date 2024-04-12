@@ -325,8 +325,11 @@ def update_server_config(guild_id, data):
     try:
         cursor = db.cursor()
         serialized_data = json.dumps(data)
-        cursor.execute("INSERT INTO server_config (guild_id, config_data) VALUES (%s, %s) ON DUPLICATE KEY UPDATE config_data = VALUES(config_data)", (guild_id, serialized_data))
-        db.commit()
+        try:
+            cursor.execute("INSERT INTO server_config (guild_id, config_data) VALUES (%s, %s) ON DUPLICATE KEY UPDATE config_data = VALUES(config_data)", (guild_id, serialized_data))
+            db.commit()
+        except Exception as e:
+            pass
     except Exception as e:
         print(f"An error occurred while updating server configuration: {e}")
     finally:

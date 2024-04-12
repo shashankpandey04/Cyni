@@ -36,7 +36,7 @@ async def on_thread_create(ctx):
         return
 
 BOT_USER_ID = 1136945734399295538
-
+dev = ['1201129677457215558','707064490826530888']
 racial_slurs = ["nigger", "nigga"]
 
 @bot.event
@@ -49,8 +49,11 @@ async def on_message(message):
     if message.content.startswith("?ssu" or "?ssd" or "?ssup"):
         return
     if message.content.startswith(":jsk shutdown"):
-        await message.channel.send("<@800203880515633163> Get to work!\n<@707064490826530888> You also!")
-        return
+        if message.author.id in dev:
+            await message.channel.send("<@800203880515633163> Get to work!\n<@707064490826530888> You also!")
+            return
+        else:
+            await message.channel.send("Bruh! Nice Try!")
     await check_for_racial_slurs(message)
     try:
         guild_id = message.guild.id
@@ -139,10 +142,39 @@ async def leaderboard(ctx):
     except Exception as e:
         await ctx.send(f"An error occurred: {e}")
 
+@activity.command()
+async def stats(ctx, member: discord.Member):
+    try:
+        mycur.execute("SELECT * FROM activity_logs WHERE user_id = %s AND guild_id = %s", (member.id, ctx.guild.id))
+        activity_data = mycur.fetchone()
+        if activity_data:
+            user_id, guild_id, messages_sent = activity_data
+            stats_embed = discord.Embed(title="Activity Stats", color=0x2F3136)
+            stats_embed.add_field(name="User ID", value=user_id)
+            stats_embed.add_field(name="Guild ID", value=guild_id)
+            stats_embed.add_field(name="Total Messages Sent", value=messages_sent)
+            stats_embed.set_thumbnail(url=member.avatar.url)
+            await ctx.send(embed=stats_embed)
+        else:
+            await ctx.send("No activity data found for this user.")
+    except Exception as e:
+        await ctx.send(f"An error occurred: {e}")
+
+@activity.command()
+async def reset(ctx):
+    try:
+        if check_permissions_management(ctx, ctx.author):
+            mycur.execute("DELETE FROM activity_logs WHERE guild_id = %s", (ctx.guild.id))
+            mycon.commit()
+            embed = discord.Embed(title="Activity Stats Reset", description="Activity stats reset successfully.", color=0x2F3136)
+            await ctx.send("Activity stats reset successfully.")
+        else:
+            await ctx.send("You don't have permission to use this command.")
+    except Exception as e:
+        await ctx.send(f"An error occurred: {e}")
+
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound) and ctx.message.content.startswith('?warn'):
-        return
     existing_uids = get_existing_uids()
     error_uid = generate_error_uid(existing_uids)
     sentry = discord.Embed(
@@ -150,11 +182,8 @@ async def on_command_error(ctx, error):
         description=f"Error I'd `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
         color=0xFF0000
     )
-    sentry.add_field(name="Error", value=error, inline=False)
     await ctx.send(embed=sentry)
     log_error(error, error_uid)
-
-existing_uids = get_existing_uids()
 
 @bot.event
 async def on_guild_join(guild):
@@ -162,7 +191,7 @@ async def on_guild_join(guild):
     support_channel_id = 1210248878599839774
     support_server = bot.get_guild(support_server_id)
     support_channel = support_server.get_channel(support_channel_id)
-    embed = discord.Embed(title="New Server Joined", color=0x00ff00)
+    embed = discord.Embed(title="New Server Joined", color=0x2F3136)
     embed.set_thumbnail(url=guild.icon.url)
     embed.add_field(name="Server Name", value=guild.name, inline=False)
     embed.add_field(name="Server ID", value=guild.id, inline=False)
@@ -257,7 +286,7 @@ async def add(ctx, member: discord.Member, role: discord.Role):
                 embed = discord.Embed(
                     title='Role added.',
                     description=f"Role {role.mention} added to {member.mention}",
-                    color=0x00FF00)
+                    color=0x2F3136)
                 await ctx.send(embed=embed)
         else:
             await ctx.send("❌ You don't have permission to use this command.")
@@ -273,7 +302,9 @@ async def remove(ctx, member: discord.Member, role: discord.Role):
                 await ctx.send("❌ You don't have the 'Manage Roles' permission.")
             else:
                 await member.remove_roles(role)
-                embed = discord.Embed(title='Role Removed.', description=f"Role {role.mention} is now removed from {member.mention}", color=0xFF0000)
+                embed = discord.Embed(title='Role Removed.', 
+                                      description=f"Role {role.mention} is now removed from {member.mention}",
+                                      color=0x2F3136)
                 await ctx.send(embed=embed)
         else:
             await ctx.send("❌ You don't have permission to use this command.")
@@ -290,16 +321,16 @@ async def application(ctx):
     pass
 
 @application.command()
-async def passed(interaction: discord.Interaction, member: discord.Member, *,server_message: str, feedback: str):
+async def passed(interaction: discord.Interaction, member: discord.Member,*,feedback: str):
   '''Post Passed Application Result'''
   try:
       if await check_permissions_management(interaction, interaction.user):
         channel = interaction.channel
         embed = discord.Embed(
-        title=f"{interaction.guild.name} Application Passed.", color=0x00FF00)
+        title=f"{interaction.guild.name} | Application Result.", color=0x2F3136)
         embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Server Message", value=server_message)
         embed.add_field(name="Feedback", value=feedback)
+        embed.set_thumbnail(url=member.avatar.url)
         embed.add_field(name="Signed By", value=interaction.user.mention)
         await interaction.response.send_message("Result Sent", ephemeral=True)
         await channel.send(member.mention, embed=embed)
@@ -315,11 +346,13 @@ async def failed(interaction: discord.Interaction, member: discord.Member, *,fee
       if await check_permissions_management(interaction, interaction.user):
           channel = interaction.channel
           embed = discord.Embed(
-          title=f"{interaction.guild.name} Application Failed.", color=0xFF0000)
+            title=f"{interaction.guild.name} | Application Result.", 
+            color=0x2F3136)
           embed.add_field(name="Staff Name", value=member.mention)
           embed.add_field(name="Feedback", value=feedback)
           embed.add_field(name="Signed By", value=interaction.user.mention)
-          await interaction.response.send_message("Result Sent", ephemeral=True)
+          embed.set_thumbnail(url=member.avatar.url)
+          await interaction.response.send_message("Result Posted", ephemeral=True)
           await channel.send(member.mention, embed=embed)
       else:
           await interaction.response.send_message("❌ You don't have permission to use this command.")
@@ -331,19 +364,19 @@ async def staff(ctx):
     pass
 
 @staff.command()
-async def infract(ctx, member: discord.Member, *,server_message: str, feedback: str):
-  '''Post Infractions Result'''
+async def infract(ctx, member: discord.Member, *,rank:discord.Role,reason: str):
+  '''Infract Server Staff'''
   try:
       if await check_permissions_management(ctx, ctx.author):
         channel = ctx.channel
         embed = discord.Embed(
-        title=f"{ctx.guild.name} Staff Infractions.", color=0x2F3136)
+        title=f"{ctx.guild.name} | Staff Infractions.", color=0x2F3136)
         embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Server Message", value=server_message)
-        embed.add_field(name="Feedback", value=feedback)
+        embed.add_field(name="Feedback", value=reason)
+        embed.add_field(name="Rank", value=rank.mention)
         embed.add_field(name="Signed By", value=ctx.author.mention)
         embed.set_thumbnail(url=member.avatar.url)
-        await ctx.send("Result Sent")
+        await member.add_roles(rank)
         await channel.send(member.mention, embed=embed)
       else:
         await ctx.send("❌ You don't have permission to use this command.")
@@ -351,42 +384,19 @@ async def infract(ctx, member: discord.Member, *,server_message: str, feedback: 
           await on_command_error(ctx, error)
 
 @staff.command()
-async def promote(ctx, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str):
+async def promote(ctx, member: discord.Member, *,rank: discord.Role,approval: discord.Role, reason: str):
   '''Promote Server Staff'''
   try:
       if await check_permissions_management(ctx, ctx.author):
-        channel = ctx.channel
         embed = discord.Embed(title=f"{ctx.guild.name} Promotions.",color=0x2F3136)
         embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Old Rank", value=old_rank.mention)
-        embed.add_field(name="New Rank", value=next_rank.mention)
-        embed.add_field(name="Approved By", value=approved.mention)
+        embed.add_field(name="New Rank", value=rank.mention)
+        embed.add_field(name="Approved By", value=approval.mention)
         embed.add_field(name="Reason", value=reason)
         embed.add_field(name="Signed By", value=ctx.author.mention)
         embed.set_thumbnail(url=member.avatar.url)
-        await ctx.send("Promotion Sent")
-        await channel.send(member.mention, embed=embed)
-      else:
-        await ctx.send("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_command_error(ctx, error)
-
-@staff.command()
-async def demote(ctx, member: discord.Member, *,old_rank: discord.Role, next_rank: discord.Role,approved: discord.Role, reason: str,channel: discord.TextChannel):
-  '''Demote Server Staff'''
-  try:
-      if await check_permissions_management(ctx, ctx.author):
-        channel = ctx.channel
-        embed = discord.Embed(title=f"{ctx.guild.name} Demotions.",color=0x2F3136)
-        embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Old Rank", value=old_rank.mention)
-        embed.add_field(name="New Rank", value=next_rank.mention)
-        embed.add_field(name="Approved By", value=approved.mention)
-        embed.add_field(name="Reason", value=reason)
-        embed.add_field(name="Signed By", value=ctx.author.mention)
-        embed.set_thumbnail(url=member.avatar.url)
-        await ctx.send("Demotion Sent", ephemeral=True)
-        await channel.send(member.mention, embed=embed)
+        await member.add_roles(rank)
+        await ctx.send(member.mention, embed=embed)
       else:
         await ctx.send("❌ You don't have permission to use this command.")
   except Exception as error:
@@ -409,41 +419,45 @@ async def custom(ctx):
     pass
 
 @custom.command()
-async def run(interaction:discord.Interaction,command_name:str):
+async def run(ctx,command_name:str):
     '''Run Custom Command'''
-    if await check_permissions(interaction, interaction.user):
-          await run_custom_command(interaction, command_name)
-          embed = discord.Embed(title="Custom Command Executed",description=f"Custom Command {command_name} executed by {interaction.user.mention}",color=0x00FF00)
-          await interaction.response.send_message(embed=embed)
+    if await check_permissions(ctx, ctx.author):
+          await run_custom_command(ctx, command_name)
+          embed = discord.Embed(title="Custom Command Executed",description=f"Custom Command {command_name} executed by {ctx.author.mention}",color=0x00FF00)
+          await ctx.send(embed=embed)
     else:
-      await interaction.response.send_message("❌ You don't have permission to use this command.")
+      await ctx.send("❌ You don't have permission to use this command.")
 
 @custom.command()
-async def manage(interaction:discord.Interaction, action:str, name:str):
-    '''Manage Custom Commands (create, delete, list)'''
-    guild_id = interaction.guild.id
-    try:
-      if await check_permissions_management(interaction, interaction.user):
-            if action == 'create':
-                await create_custom_command(interaction, name) 
-            elif action == 'delete':
-                await delete_custom_command(interaction, name)
-            elif action == 'list':
-                await list_custom_commands(interaction)
-            else:
-                await interaction.response.send_message("Invalid action. Valid actions are: create, delete, list.")
-            await interaction.response.send_message("Custom command executed successfully.")
-    except Exception as error:
-          await on_command_error(interaction, error)
+async def list(ctx):
+    '''List Custom Commands'''
+    await list_custom_commands(ctx)
 
-def load_custom_command(interaction):
+@custom.command()
+async def manage(ctx, action:str, name:str):
+    '''Manage Custom Commands (create, delete, list)'''
+    guild_id = ctx.guild.id
     try:
-        guild_id = str(interaction.guild.id)
+        if await check_permissions_management(ctx, ctx.author):
+            if action == 'create':
+                await create_custom_command(ctx, name) 
+            elif action == 'delete':
+                await delete_custom_command(ctx, name)
+            else:
+                await ctx.send("Invalid action. Valid actions are: create, delete")
+                await ctx.channel.purge(limit=1)
+        else:
+            await ctx.send("❌ You don't have permission to use this command.")
+    except Exception as error:
+          await on_command_error(ctx, error)
+
+async def load_custom_command(ctx):
+    try:
+        guild_id = str(ctx.guild.id)
         if db.is_connected():
             cursor = db.cursor(dictionary=True)
             cursor.execute("SELECT * FROM custom_commands where guild_id = %s", (guild_id,))
             rows = cursor.fetchall()
-            print("Rows:", rows)
             config = {}
             for row in rows:
                 guild_id = str(row['guild_id'])
@@ -452,15 +466,18 @@ def load_custom_command(interaction):
                 description = row['description']
                 color = row['color']
                 image_url = row['image_url']
+                channel = row['channel']
+                role = row['role']
                 if guild_id not in config:
                     config[guild_id] = {}
                 config[guild_id][command_name] = {
                     'title': title,
                     'description': description,
                     'colour': color,
-                    'image_url': image_url
+                    'image_url': image_url,
+                    'channel': channel,
+                    'role': role
                 }
-            print("Config:", config)
             return config
     except Exception as e:
         print("Error while connecting to MySQL", e)
@@ -469,73 +486,84 @@ def load_custom_command(interaction):
             cursor.close()
     return {}
 
-async def list_custom_commands(interaction):
-    embeds = list_custom_commands_embeds(interaction)
-    for embed in embeds:
-        await interaction.channel.send(embed=embed)
+async def list_custom_commands(ctx):
+    config = await load_custom_command(ctx)
+    guild_id = str(ctx.guild.id)
+    custom_commands = config.get(guild_id, {})
+    if not custom_commands:
+        await ctx.channel.send(embed=discord.Embed(description="No custom commands found for this server."))
+        return
+    embed = discord.Embed(title="Custom Commands", color=0x2F3136)
+    for name, details in custom_commands.items():
+        channel = ctx.guild.get_channel(details.get('channel'))
+        role_mention = f"<@&{details.get('role')}>" if details.get('role') else "N/A"
+        embed.add_field(
+            name=f"Command Name: {name}",
+            value=f"**Channel:** {channel.mention if channel else 'N/A'}\n**Role Mention:** {role_mention}",
+            inline=False
+        )
+    await ctx.send(embed=embed)
 
-async def run_custom_command(interaction, command_name):
-    guild_id = str(interaction.guild.id)
+async def run_custom_command(ctx, command_name):
+    guild_id = str(ctx.guild.id)
     mycur.execute("SELECT * FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
     command_details = mycur.fetchone()
-
     if command_details:
+        title = command_details[2]
+        description = command_details[3]
+        color = discord.Colour(int(command_details[4]))  # Convert to discord.Colour
         embed = discord.Embed(
-            title=command_details[2],
-            description=command_details[3],
-            color=command_details[4]
+            title=title,
+            description=description,
+            color=color
         )
-        embed.set_footer(text="Executed By: " + interaction.user.name)
+        embed.set_footer(text="Executed By: " + ctx.author.name)
         if command_details[5]:
             embed.set_image(url=command_details[5])
-        
         channel_id = command_details[6]
         channel = bot.get_channel(channel_id)
         role_id = command_details[7]
-
         if role_id:
-            role = interaction.guild.get_role(role_id)
+            role = ctx.guild.get_role(role_id)
             if role:
                 await channel.send(f"<@&{role_id}>")  
             else:
-                await interaction.channel.send("Role not found. Please make sure the role exists.")
+                await ctx.send("Role not found. Please make sure the role exists.")
                 return
-        
         await channel.send(embed=embed)
-        await interaction.channel.send(f"Custom command '{command_name}' executed in {channel.mention}.")
     else:
-        await interaction.channel.send(f"Custom command '{command_name}' not found.")
+        await ctx.send(f"Custom command '{command_name}' not found.")
 
-async def create_custom_command(interaction, command_name):
-    guild_id = str(interaction.guild.id)
+async def create_custom_command(ctx, command_name):
+    guild_id = str(ctx.guild.id)
     mycur.execute("SELECT * FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
     existing_command = mycur.fetchone()
     if existing_command:
-        await interaction.response.send_message(f"Custom command '{command_name}' already exists.")
+        await ctx.channel.send(f"Custom command '{command_name}' already exists.")
         return
     mycur.execute("SELECT COUNT(*) FROM custom_commands WHERE guild_id = %s", (guild_id,))
     command_count = mycur.fetchone()[0]
     if command_count >= 5:
-        await interaction.response.send_message("Sorry, the server has reached the maximum limit of custom commands (5).")
+        await ctx.channel.send("Sorry, the server has reached the maximum limit of custom commands (5).")
         return
-    await interaction.response.send_message("Enter embed title:")
-    title = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
-    await interaction.channel.send("Enter embed description:")
-    description = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
-    await interaction.channel.send("Enter embed colour (hex format, e.g., #RRGGBB):")
-    colour = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
-    await interaction.channel.send("Enter image URL (enter 'none' for no image):")
-    image_url_input = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
-    await interaction.channel.send("Enter default channel to post message (mention the channel):")
-    channel_input = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
-    await interaction.channel.send("Enter role ID to ping (enter 'none' for no role):")
-    role_id_input = await bot.wait_for('message', check=lambda m: m.author == interaction.user, timeout=60)
+    await ctx.channel.send("Enter embed title:")
+    title = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.channel.send("Enter embed description:")
+    description = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.channel.send("Enter embed colour (hex format, e.g., #RRGGBB):")
+    colour = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.channel.send("Enter image URL (enter 'none' for no image):")
+    image_url_input = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.channel.send("Enter default channel to post message (mention the channel):")
+    channel_input = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
+    await ctx.channel.send("Enter role ID to ping (enter 'none' for no role):")
+    role_id_input = await bot.wait_for('message', check=lambda m: m.author == ctx.author, timeout=60)
     channel_id = int(channel_input.content[2:-1])
     role_id = int(role_id_input.content) if role_id_input.content.lower() != 'none' else None
     try:
         color_decimal = int(colour.content[1:], 16)
     except ValueError:
-        await interaction.channel.send("Invalid hex color format. Please use the format #RRGGBB.")
+        await ctx.send("Invalid hex color format. Please use the format #RRGGBB.")
         return
     image_url = image_url_input.content.strip()
     image_url = None if image_url.lower() == 'none' else image_url
@@ -543,11 +571,11 @@ async def create_custom_command(interaction, command_name):
     try:
         channel_id = int(channel_id_str)
     except ValueError:
-        await interaction.channel.send("Invalid channel mention. Please mention a valid channel.")
+        await ctx.send("Invalid channel mention. Please mention a valid channel.")
         return
     mycur.execute("INSERT INTO custom_commands (guild_id, command_name, title, description, color, image_url, channel, role) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (guild_id, command_name, title.content, description.content, color_decimal, image_url, channel_id, role_id))
     mycon.commit()
-    await interaction.channel.send(f"Custom command '{command_name}' created successfully.")
+    await ctx.send(f"Custom command '{command_name}' created successfully.")
     
 async def delete_custom_command(interaction, command_name):
     guild_id = str(interaction.guild.id)
@@ -557,10 +585,8 @@ async def delete_custom_command(interaction, command_name):
     if not existing_command:
         await interaction.channel.send(f"Custom command '{command_name}' not found.")
         return
-
     mycur.execute("DELETE FROM custom_commands WHERE guild_id = %s AND command_name = %s", (guild_id, command_name))
     mycon.commit()
-
     await interaction.channel.send(f"Custom command '{command_name}' deleted successfully.")
 
 @bot.tree.command()
@@ -579,40 +605,50 @@ async def image(ctx):
     pass
 
 @image.command()
-async def cat(interaction:discord.Interaction):
+async def cat(ctx):
   '''Get Random Cat Image'''
+  message = "Fetching Random Cat Image..."
+  await ctx.channel.send(message)
   response = requests.get("https://api.thecatapi.com/v1/images/search")
   data = response.json()
   image_url = data[0]["url"]
+  await ctx.channel.purge(limit=1)
   embed = discord.Embed(title="Random Cat Image", color=0x2F3136)
   embed.set_image(url=image_url)
-  await interaction.response.send_message(embed=embed)
+  await ctx.send("Random Cat Image fetched successfully.",embed=embed)
 
 @image.command()
-async def dog(interaction: discord.Interaction):
+async def dog(ctx):
     '''Get Random Dog Image'''
+    await ctx.channel.send("Fetching Random Dog Image...")
     response = requests.get("https://api.thedogapi.com/v1/images/search")
     data = response.json()
     image_url = data[0]["url"]
+    await ctx.channel.purge(limit=1)
     embed = discord.Embed(title="Random Dog Image", color=0x2F3136)
     embed.set_image(url=image_url)
-    await interaction.response.send_message(embed=embed)
+    await ctx.send("Random Dog Image fetched successfully.",embed=embed)
 
 @image.command()
-async def bird(interaction: discord.Interaction):
+async def bird(ctx):
     '''Get Random Bird Image'''
-    response = requests.get("https://birbapi.astrobirb.dev/birb")
-    data = response.json()
-    image_url = data["image_url"]
-    embed = discord.Embed(title="Random Bird Image", color=0x2F3136)
-    embed.set_image(url=image_url)
-    await interaction.response.send_message(embed=embed)
+    try:
+        await ctx.send("Fetching Random Bird Image...")
+        response = requests.get("https://birbapi.astrobirb.dev/birb")
+        data = response.json()
+        image_url = data["image_url"]
+        await ctx.channel.purge(limit=1)
+        embed = discord.Embed(title="Random Bird Image", color=0x2F3136)
+        embed.set_image(url=image_url)
+        await ctx.send("Random Bird Image fetched successfully.",embed=embed)
+    except Exception as error:
+        await on_command_error(ctx, error)
 
 @bot.tree.command()
 async def avatar(interaction: discord.Interaction, user: discord.User):
   '''Get any user avatar from server'''
   try:
-    embed = discord.Embed(title=f"{user.name}'s Profile Photo", color=0x2F3136)
+    embed = discord.Embed(title=f"{user.name} Aavatar", color=0x2F3136)
     embed.set_image(url=user.avatar)
     await interaction.response.send_message(embed=embed)
   except Exception as error:
@@ -684,7 +720,6 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
 @bot.tree.command()
 async def whois(interaction:discord.Interaction, user_info:str):
     guild_id = str(interaction.guild.id)
-    server_config = get_server_config(guild_id)
     if user_info is None:
           member = interaction.user
     else:
