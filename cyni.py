@@ -184,6 +184,8 @@ async def reset(ctx):
 
 @bot.event
 async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return
     existing_uids = get_existing_uids()
     error_uid = generate_error_uid(existing_uids)
     sentry = discord.Embed(
