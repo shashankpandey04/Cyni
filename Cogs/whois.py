@@ -24,8 +24,8 @@ class Whois(commands.Cog):
             support_server_id = 1152949579407442050
             support_server = self.bot.get_guild(support_server_id)
             user_emoji = discord.utils.get(support_server.emojis, id=1191057214727786598)
-            cyni_emoji = discord.utils.get(support_server.emojis, id=1185563043015446558)
-            discord_emoji = discord.utils.get(support_server.emojis, id=1191057244004044890)
+            cyni_emoji = discord.utils.get(support_server.emojis, id=1210274111956324444)
+            discord_emoji = discord.utils.get(support_server.emojis, id=1215565113663430696)
             
             # Fetch staff data from MySQL
             sql = "SELECT flags FROM staff WHERE user_id = %s"
@@ -65,6 +65,6 @@ class Whois(commands.Cog):
             await ctx.send(embed=embed)
         else:
             await ctx.send("User not found.")
-            
+
 async def setup(bot):
    await bot.add_cog(Whois(bot))

@@ -6,11 +6,7 @@ from cyni import on_command_error
 class Roblox(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print(f'{self.bot.user} loaded cog: Roblox')
-            
+        
     @commands.command()
     async def search(self,ctx,user:str):
         try:

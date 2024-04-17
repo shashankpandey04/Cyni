@@ -6,10 +6,6 @@ class Help(commands.Cog):
     def __init__ (self,bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print(f"{self.bot.user} loaded Jokes Help.")
-    
     @commands.command()
     async def help(self,ctx):
         embed = discord.Embed(title="Cyni Help",color=0x00FF00)

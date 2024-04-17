@@ -1,6 +1,22 @@
 import discord
 from utils import *
 from db import *
+from discord.ui import Button, View
+
+class ConfirmView(View):
+    def __init__(self):
+        super().__init__()
+        self.value = None
+
+    @discord.ui.button(label='Yes', style=discord.ButtonStyle.success)
+    async def yes_button(self, button: Button, interaction: discord.Interaction):
+        self.value = True
+        self.stop()
+
+    @discord.ui.button(label='No', style=discord.ButtonStyle.danger)
+    async def no_button(self, button: Button, interaction: discord.Interaction):
+        self.value = False
+        self.stop()
 
 async def display_server_config(interaction):
     try:

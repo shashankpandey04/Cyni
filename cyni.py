@@ -26,6 +26,7 @@ bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
 cyni_support_role_id = 800203880515633163
+
 @bot.event
 async def on_thread_create(ctx):
     print("Thread created!")
@@ -97,19 +98,15 @@ async def load():
     for filename in os.listdir('./Cogs'):
         if filename.endswith('.py'):
             await bot.load_extension(f'Cogs.{filename[:-3]}')
-            print(f'Loaded {filename}')
     for filename in os.listdir("./Roblox"):
         if filename.endswith(".py"):
             await bot.load_extension(f"Roblox.{filename[:-3]}")
-            print(f"Loaded {filename}")
     for filename in os.listdir("./ImagesCommand"):
         if filename.endswith(".py"):
             await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
-            print(f"Loaded {filename}")
     for filename in os.listdir("./Staff_Commands"):
         if filename.endswith(".py"):
             await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
-            print(f"Loaded {filename}")
 
 @bot.event
 async def on_ready():
@@ -121,7 +118,7 @@ async def on_ready():
     cleanup_guild_data(bot)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
     await bot.load_extension("jishaku")
-    print(f'Logged in as {bot.user.name} - {bot.user.id}')
+    print(f'Bot is ready. Logged in as {bot.user}')
     print(f"DB Status: {dbstatus()}")
 
 @bot.hybrid_group()
@@ -130,6 +127,7 @@ async def activity(ctx):
 
 @activity.command()
 async def leaderboard(ctx):
+    '''Get activity leaderboard for the server.'''
     try:
         mycur.execute("SELECT user_id, SUM(messages_sent) AS total_messages FROM activity_logs WHERE guild_id = %s GROUP BY user_id", (ctx.guild.id,))
         activity_data = mycur.fetchall()
@@ -144,6 +142,7 @@ async def leaderboard(ctx):
 
 @activity.command()
 async def stats(ctx, member: discord.Member):
+    '''Get activity stats for a user.'''
     try:
         mycur.execute("SELECT * FROM activity_logs WHERE user_id = %s AND guild_id = %s", (member.id, ctx.guild.id))
         activity_data = mycur.fetchone()
@@ -162,12 +161,22 @@ async def stats(ctx, member: discord.Member):
 
 @activity.command()
 async def reset(ctx):
+    '''Reset activity stats for the server.'''
     try:
-        if check_permissions_management(ctx, ctx.author):
-            mycur.execute("DELETE FROM activity_logs WHERE guild_id = %s", (ctx.guild.id))
-            mycon.commit()
-            embed = discord.Embed(title="Activity Stats Reset", description="Activity stats reset successfully.", color=0x2F3136)
-            await ctx.send("Activity stats reset successfully.")
+        management_roles = get_management_roles(ctx.guild.id)
+        if isinstance(management_roles, int):
+            management_roles = [management_roles]
+        if check_permissions_management(ctx, management_roles):
+            embed = discord.Embed(title="Confirm Activity Stats Reset", description="Are you sure you want to reset activity stats?", color=0x2F3136)
+            view = ConfirmView()
+            await ctx.send(embed=embed, view=view)
+            await view.wait()
+            if view.value:
+                mycur.execute("DELETE FROM activity_logs WHERE guild_id = %s", (ctx.guild.id,))
+                mycon.commit()
+                await ctx.send("Activity stats reset successfully.")
+            else:
+                await ctx.send("Activity stats reset canceled.")
         else:
             await ctx.send("You don't have permission to use this command.")
     except Exception as e:
@@ -629,21 +638,6 @@ async def dog(ctx):
     embed.set_image(url=image_url)
     await ctx.send("Random Dog Image fetched successfully.",embed=embed)
 
-@image.command()
-async def bird(ctx):
-    '''Get Random Bird Image'''
-    try:
-        await ctx.send("Fetching Random Bird Image...")
-        response = requests.get("https://birbapi.astrobirb.dev/birb")
-        data = response.json()
-        image_url = data["image_url"]
-        await ctx.channel.purge(limit=1)
-        embed = discord.Embed(title="Random Bird Image", color=0x2F3136)
-        embed.set_image(url=image_url)
-        await ctx.send("Random Bird Image fetched successfully.",embed=embed)
-    except Exception as error:
-        await on_command_error(ctx, error)
-
 @bot.tree.command()
 async def avatar(interaction: discord.Interaction, user: discord.User):
   '''Get any user avatar from server'''
@@ -706,7 +700,7 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
         cursor.execute("SELECT * FROM error_logs WHERE uid = %s", (error_uid,))
         error_log = cursor.fetchone()
         if error_log:
-            uid, message, traceback, created_at = error_log
+            uid, message, traceback, created_at = error_log[1:]
             embed = discord.Embed(title="Error Log",description=f"Error UID: `{uid}`",color=0x2F3136)
             embed.add_field(name="Message", value=message, inline=False)
             embed.add_field(name="Traceback", value=traceback, inline=False)
@@ -718,52 +712,59 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
         await interaction.response.send_message(f"An error occurred while fetching the error log: {e}")
 
 @bot.tree.command()
-async def whois(interaction:discord.Interaction, user_info:str):
-    guild_id = str(interaction.guild.id)
-    if user_info is None:
-          member = interaction.user
-    else:
-          if user_info.startswith('<@') and user_info.endswith('>'):
-              user_id = int(user_info[2:-1])
-              member = interaction.guild.get_member(user_id)
-          else:
-              member = discord.utils.find(lambda m: m.name == user_info, interaction.guild.members)
-    if member:
-          support_server_id = 1152949579407442050
-          support_server = bot.get_guild(support_server_id)
-          user_emoji = discord.utils.get(support_server.emojis, id=1191057214727786598)
-          cyni_emoji = discord.utils.get(support_server.emojis, id=1185563043015446558)
-          discord_emoji = discord.utils.get(support_server.emojis, id=1191057244004044890)
-          with open('staff.json', 'r') as file:
-              staff_data = json.load(file)
-          embed = discord.Embed(title="User Information", color=0x2F3136)
-          hypesquad_flags = member.public_flags
-          hypesquad_values = [str(flag).replace("UserFlags.", "").replace("_", " ").title() for flag in hypesquad_flags.all()]
-          if hypesquad_values:
-              hypesquad_text = "\n".join(hypesquad_values)
-              embed.add_field(name=f"{discord_emoji} Discord Flags", value=f"{hypesquad_text}", inline=True)
-          user_flags = staff_data.get(member.name, "").replace("{cyni_emoji}", "")
-          user_flags = [flag.strip() for flag in user_flags.split("\n") if flag.strip()]
-          if user_flags:
-              staff_text = "\n".join(user_flags)
-              embed.add_field(name=f'{cyni_emoji} Staff Flags', value=f" {staff_text}", inline=True)
-          embed.set_thumbnail(url=member.avatar.url)
-          embed.add_field(name=f"{user_emoji} Username", value=member.name, inline=True)
-          embed.add_field(name="User ID", value=member.id, inline=True)
-          embed.add_field(name="Joined Server", value=f"<t:{int(member.joined_at.timestamp())}:R>", inline=True)
-          embed.add_field(name="Joined Discord", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
-          if member == member.guild.owner:
-              embed.add_field(name="Role", value="Server Owner", inline=True)
-          elif member.guild_permissions.administrator:
-              embed.add_field(name="Role", value="Administrator", inline=True)
-          elif member.guild_permissions.manage_messages:
-              embed.add_field(name="Role", value="Moderator", inline=True)
-          else:
-              embed.add_field(name="Role", value="Member", inline=True)
-          embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
-          await interaction.response.send_message(embed=embed)
-    else:
-          await interaction.response.send_message("User not found.")
+async def whois(interaction: discord.Interaction, user_info: discord.Member = None):
+    try:
+        if user_info is None:
+            member = interaction.user
+        else:
+            if user_info.startswith('<@') and user_info.endswith('>'):
+                user_id = int(user_info[2:-1])
+                member = interaction.guild.get_member(user_id)
+            if member:
+                support_server_id = 1152949579407442050
+                support_server = bot.get_guild(support_server_id)
+                user_emoji = discord.utils.get(support_server.emojis, id=1191057214727786598)
+                cyni_emoji = discord.utils.get(support_server.emojis, id=1185563043015446558)
+                discord_emoji = discord.utils.get(support_server.emojis, id=1191057244004044890)
+                sql = "SELECT flags FROM staff WHERE user_id = %s"
+                val = (member.id,)
+                mycur.execute(sql, val)
+                result = mycur.fetchone()
+                if result:
+                    staff_flags = result[0]
+                else:
+                    staff_flags = ""
+
+                embed = discord.Embed(title="User Information", color=member.color)
+                hypesquad_flags = member.public_flags
+                hypesquad_values = [str(flag).replace("UserFlags.", "").replace("_", " ").title() for flag in hypesquad_flags.all()]
+                if hypesquad_values:
+                    hypesquad_text = "\n".join(hypesquad_values)
+                    embed.add_field(name=f"{discord_emoji} Discord Flags", value=f"{hypesquad_text}", inline=True)
+                user_flags = staff_flags.replace("{cyni_emoji}", "")
+                user_flags = [flag.strip() for flag in user_flags.split("\n") if flag.strip()]
+                if user_flags:
+                    staff_text = "\n".join(user_flags)
+                    embed.add_field(name=f'{cyni_emoji} Staff Flags', value=f" {staff_text}", inline=True)
+                embed.set_thumbnail(url=member.avatar.url)
+                embed.add_field(name=f"{user_emoji} Username", value=member.name, inline=True)
+                embed.add_field(name="User ID", value=member.id, inline=True)
+                embed.add_field(name="Joined Server", value=f"<t:{int(member.joined_at.timestamp())}:R>", inline=True)
+                embed.add_field(name="Joined Discord", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
+                if member == member.guild.owner:
+                    embed.add_field(name="Role", value="Server Owner", inline=True)
+                elif member.guild_permissions.administrator:
+                    embed.add_field(name="Role", value="Administrator", inline=True)
+                elif member.guild_permissions.manage_messages:
+                    embed.add_field(name="Role", value="Moderator", inline=True)
+                else:
+                    embed.add_field(name="Role", value="Member", inline=True)
+                embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
+                await interaction.response.send_message(embed=embed)
+            else:
+                await interaction.response.send_message("User not found.",ephemeral=True)
+    except Exception as error:
+        await on_command_error(interaction, error)
 
 @bot.tree.command()
 async def support(interaction:discord.Interaction):
