@@ -5,7 +5,7 @@ import logging
 from utils import *
 import time
 import random
-from tokens import get_token
+from tokens import *
 from menu import *
 import psutil
 import json
@@ -22,7 +22,7 @@ def dbstatus():
         return "Disconnected"
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=':', intents=intents)
+bot = commands.Bot(command_prefix='?', intents=intents)
 bot.remove_command('help')
 
 cyni_support_role_id = 800203880515633163
@@ -735,8 +735,7 @@ async def whois(interaction: discord.Interaction, user_info: discord.Member = No
                 if result:
                     staff_flags = result[0]
                 else:
-                    staff_flags = ""
-
+                    staff_flags = ""    
                 embed = discord.Embed(title="User Information", color=member.color)
                 hypesquad_flags = member.public_flags
                 hypesquad_values = [str(flag).replace("UserFlags.", "").replace("_", " ").title() for flag in hypesquad_flags.all()]
@@ -863,6 +862,6 @@ async def vote(interaction:discord.Interaction):
     embed = discord.Embed(title="Vote Cyni!")
     await interaction.response.send_message(embed=embed,view=VoteView())
 
-TOKEN = get_token()
+TOKEN = cyni_token()
 def cyni():
     bot.run(TOKEN)
