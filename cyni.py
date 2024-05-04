@@ -865,3 +865,4 @@ async def vote(interaction:discord.Interaction):
 TOKEN = cyni_token()
 def cyni():
     bot.run(TOKEN)
+    #running the bot
