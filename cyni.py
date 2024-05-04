@@ -203,19 +203,12 @@ async def on_command_error(ctx, error):
         description=f"Error I'd `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
         color=0xFF0000
     )
-    await ctx.send(embed=sentry)
-    log_error(error, error_uid)
-
-@bot.event
-async def on_interaction_error(interaction, error):
-    error_uid = generate_error_uid()
-    sentry = discord.Embed(
-        title="❌ An error occurred.",
-        description=f"Error I'd `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
-        color=0xFF0000
-    )
-    await interaction.response.send_message(embed=sentry)
-    log_error(error, error_uid)
+    try:
+        await ctx.send(embed=sentry)
+        log_error(error, error_uid)
+    except:
+        await ctx.response.send_message(embed=sentry)
+        log_error(error, error_uid)
 
 @bot.event
 async def on_guild_join(guild):
@@ -820,7 +813,7 @@ async def whois(interaction: discord.Interaction, user_info: discord.Member = No
             else:
                 await interaction.response.send_message("User not found.",ephemeral=True)
     except Exception as error:
-        await on_interaction_error(interaction, error)
+        await on_command_error(interaction, error)
     finally:
         mycur.close()
 
