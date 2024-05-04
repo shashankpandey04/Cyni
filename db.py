@@ -4,7 +4,7 @@ try:
     mycon = mysql.connect(
         host='cynibot_cyni',
         user='mysql',
-        passwd='995ef7a66cb1feb880bd',
+        passwd='56ba27b994b10fe620e1',
         database='cynibot'
     )
     mycur = mycon.cursor()
