@@ -21,7 +21,7 @@ class Ping(commands.Cog):
         support_server_id = 1152949579407442050
         support_server = self.bot.get_guild(support_server_id)
         database_emoji = discord.utils.get(support_server.emojis, id=1215565017718587422)
-        angle_right = discord.utils.get(support_server.emojis,id=1215565088589877299)()
+        angle_right = discord.utils.get(support_server.emojis,id=1215565088589877299)
         ram_usage = psutil.virtual_memory().percent
         uptime_seconds = time.time() - self.bot.start_time
         uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
