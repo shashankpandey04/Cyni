@@ -20,6 +20,7 @@ class ConfirmView(View):
 
 async def display_server_config(interaction):
     try:
+        curosr = db.cursor()
         guild_id = str(interaction.guild.id)
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         server_config = cursor.fetchone()
@@ -48,6 +49,7 @@ async def display_server_config(interaction):
             await interaction.response.send_message("Server config not found.", ephemeral=True)
     except Exception as e:
         print(f"An error occurred while fetching server config: {e}")
+    curosr.close()
 
 class SetupBot(discord.ui.Select):
     def __init__(self):
