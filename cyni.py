@@ -118,7 +118,7 @@ async def on_ready():
     for guild in bot.guilds:
         create_or_get_server_config(guild.id)
     cleanup_guild_data(bot)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="v6 Testing"))
     await bot.load_extension("jishaku")
     print(f'Bot is ready. Logged in as {bot.user}')
     print(f"DB Status: {dbstatus()}")
