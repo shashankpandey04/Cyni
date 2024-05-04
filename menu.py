@@ -1,6 +1,6 @@
 import discord
 from utils import *
-from db import *
+from db import mycon
 from discord.ui import Button, View
 
 class ConfirmView(View):
@@ -20,12 +20,12 @@ class ConfirmView(View):
 
 async def display_server_config(interaction):
     try:
-        curosr = db.cursor()
+        cursor = mycon.cursor()
         guild_id = str(interaction.guild.id)
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         server_config = cursor.fetchone()
         if server_config:
-            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel = server_config
+            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel,infraction_channel,promotion_channel,prefix = server_config
         
             embed = discord.Embed(
                 title="Server Config",
@@ -43,13 +43,17 @@ async def display_server_config(interaction):
             embed.add_field(name="Bypass Anti Ping Roles", value=bypass_anti_ping_roles if bypass_anti_ping_roles else "Not set", inline=False)
             embed.add_field(name="Loa Role", value=loa_role if loa_role else "Not set", inline=False)
             embed.add_field(name="Staff Management Channel", value=f"<#{staff_management_channel}>" if staff_management_channel else "Not set", inline=False)
+            embed.add_field(name="Infraction Channel", value=f"<#{infraction_channel}>" if infraction_channel else "Not set", inline=False)
+            embed.add_field(name="Promotion Channel", value=f"<#{promotion_channel}>" if promotion_channel else "Not set", inline=False)
+            embed.add_field(name="Prefix", value=prefix if prefix else "?", inline=False)
 
             await interaction.response.send_message(view = ChangeConfigView(), embed=embed, ephemeral=True)
         else:
             await interaction.response.send_message("Server config not found.", ephemeral=True)
     except Exception as e:
         print(f"An error occurred while fetching server config: {e}")
-    curosr.close()
+    finally:
+        cursor.close()
 
 class SetupBot(discord.ui.Select):
     def __init__(self):

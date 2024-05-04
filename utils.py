@@ -6,7 +6,7 @@ import string
 import random
 import json
 from datetime import datetime
-from db import mycon as db, mycur as cursor
+from db import mycon as db
 
 def create_or_get_server_config(guild_id):
     """Create or get server configuration for a specific guild."""
@@ -150,25 +150,15 @@ def load_custom_command():
             cursor.close()
     return {}
 
-def get_existing_uids(file_path='cerror.json'):
-    try:
-        with open(file_path, 'r') as file:
-            errors = json.load(file)
-    except (json.JSONDecodeError, FileNotFoundError):
-        errors = []
-
-    existing_uids = set(error['uid'] for error in errors)
-    return existing_uids
-
-def generate_error_uid(existing_uids):
+def generate_error_uid():
     while True:
         error_uid = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         full_uid = "err_" + error_uid
-        if full_uid not in existing_uids:
-            return full_uid
+        return full_uid
 
 def log_error(error, error_uid):
     try:
+        cursor = db.cursor()
         traceback.print_exception(type(error), error, error.__traceback__)
         insert_query = "INSERT INTO error_logs (uid, message, traceback) VALUES (%s, %s, %s)"
         values = (error_uid, str(error), traceback.format_exc())
@@ -176,6 +166,8 @@ def log_error(error, error_uid):
         db.commit()
     except Exception as e:
         print("Failed to log error:", e)
+    finally:
+        cursor.close()
 
 async def check_permissions(ctx, user):
     staff_roles = get_staff_roles(str(ctx.guild.id))
@@ -200,50 +192,73 @@ def fetch_random_joke():
 #MYSQL
 
 def get_staff_roles(guild_id):
-    """Get staff roles for a specific guild."""
-    sql = "SELECT staff_roles FROM server_config WHERE guild_id = %s"
-    cursor.execute(sql, (guild_id,))
-    result = cursor.fetchone()
-    if result:
-        staff_roles = json.loads(result[0]) if result[0] else []
-        return staff_roles
-    else:
-        return []
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT staff_roles FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            staff_roles = json.loads(result[0]) if result[0] else []
+            return staff_roles
+        else:
+            return []
+    except Exception as e:
+        print(f"An error occurred while getting staff roles: {e}")
+    finally:
+        cursor.close()
 
 def get_management_roles(guild_id):
-    """Get management roles for a specific guild."""
-    sql = "SELECT management_roles FROM server_config WHERE guild_id = %s"
-    cursor.execute(sql, (guild_id,))
-    result = cursor.fetchone()
-    if result:
-        management_roles = json.loads(result[0]) if result[0] else []
-        return management_roles
-    else:
-        return []
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT management_roles FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            management_roles = json.loads(result[0]) if result[0] else []
+            return management_roles
+        else:
+            return []
+    except Exception as e:
+        print(f"An error occurred while getting management roles: {e}")
+    finally:
+        cursor.close()
 
 def get_staff_or_management_roles(guild_id):
-    """Get staff or management roles for a specific guild."""
-    sql = "SELECT staff_roles, management_roles FROM server_config WHERE guild_id = %s"
-    cursor.execute(sql, (guild_id,))
-    result = cursor.fetchone()
-    if result:
-        staff_roles = json.loads(result[0]) if result[0] else []
-        management_roles = json.loads(result[1]) if result[1] else []
-        return staff_roles + management_roles  # Concatenate staff and management roles
-    else:
-        return []
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT staff_roles, management_roles FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            staff_roles = json.loads(result[0]) if result[0] else []
+            management_roles = json.loads(result[1]) if result[1] else []
+            return staff_roles + management_roles  # Concatenate staff and management roles
+        else:
+            return []
+    except Exception as e:
+        print(f"An error occurred while getting staff or management roles: {e}")
+    finally:
+        cursor.close()
     
 def save_management_roles(guild_id, management_roles):
-    serialized_management_roles = json.dumps(management_roles)
-    sql = "INSERT INTO server_config (guild_id, management_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE management_roles = VALUES(management_roles)"
-    cursor.execute(sql, (guild_id, serialized_management_roles))
-    db.commit()
+    try:
+        cursor = db.cursor()
+        serialized_management_roles = json.dumps(management_roles)
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO server_config (guild_id, management_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE management_roles = VALUES(management_roles)", (guild_id, serialized_management_roles))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving management roles: {e}")
+    finally:
+        cursor.close()
 
 def save_staff_roles(guild_id, staff_roles):
-    serialized_staff_roles = json.dumps(staff_roles)
-    sql = "INSERT INTO server_config (guild_id, staff_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE staff_roles = VALUES(staff_roles)"
-    cursor.execute(sql, (guild_id, serialized_staff_roles))
-    db.commit()
+    try:
+        cursor = db.cursor()
+        serialized_staff_roles = json.dumps(staff_roles)
+        cursor.execute("INSERT INTO server_config (guild_id, staff_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE staff_roles = VALUES(staff_roles)", (guild_id, serialized_staff_roles))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving staff roles: {e}")
+    finally:
+        cursor.close()
 
 def cleanup_guild_data(bot):
     try:
@@ -337,45 +352,63 @@ def update_server_config(guild_id, data):
 
 def save_mod_log_channel(guild_id, mod_log_channel_id):
     try:
+        cursor = db.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, mod_log_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE mod_log_channel = VALUES(mod_log_channel)", (guild_id, mod_log_channel_id))
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving mod log channel: {e}")
+    finally:
+        cursor.close()
 
 def set_anti_ping_option(guild_id, enable):
     try:
+        cursor = db.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, anti_ping) VALUES (%s, %s) ON DUPLICATE KEY UPDATE anti_ping = VALUES(anti_ping)", (guild_id, enable))
         db.commit()
     except Exception as e:
         print(f"An error occurred while setting anti-ping option: {e}")
+    finally:
+        cursor.close()
     
 def save_anti_ping_roles(guild_id, anti_ping_roles):
     try:
+        cursor = db.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, anti_ping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE anti_ping_roles = VALUES(anti_ping_roles)", (guild_id, json.dumps(anti_ping_roles)))
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving anti-ping roles: {e}")
+    finally:
+        cursor.close()
 
 def save_anti_ping_bypass_roles(guild_id, anti_ping_bypass_roles):
     try:
+        cursor = db.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, bypass_anti_ping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE bypass_anti_ping_roles = VALUES(bypass_anti_ping_roles)", (guild_id, json.dumps(anti_ping_bypass_roles)))
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving anti-ping bypass roles: {e}")
+    finally:
+        cursor.close()
 
 def save_loa_roles(guild_id, loa_roles):
     try:
+        cursor = db.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, loa_role) VALUES (%s, %s) ON DUPLICATE KEY UPDATE loa_role = VALUES(loa_role)", (guild_id, json.dumps(loa_roles)))
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving LOA roles: {e}")
+    finally:
+        cursor.close()
 
 def save_staff_management_channel(guild_id, staff_management_channel_id):
     try:
+        cursor = db.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, staff_management_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE staff_management_channel = VALUES(staff_management_channel)", (guild_id, staff_management_channel_id))
         db.commit()
     except Exception as e:
         print(f"An error occurred while saving staff management channel: {e}")
+    finally:
+        cursor.close()
 
 def robloxusername(userid):
     api_url = f"https://users.roblox.com/v1/users/{userid}"
