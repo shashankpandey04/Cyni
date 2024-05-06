@@ -157,6 +157,7 @@ def generate_error_uid():
         return full_uid
 
 def log_error(error, error_uid):
+    cursor = None  # Initialize cursor variable outside the try block
     try:
         cursor = db.cursor()
         traceback.print_exception(type(error), error, error.__traceback__)
@@ -167,7 +168,8 @@ def log_error(error, error_uid):
     except Exception as e:
         print("Failed to log error:", e)
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close() 
 
 async def check_permissions(ctx, user):
     staff_roles = get_staff_roles(str(ctx.guild.id))

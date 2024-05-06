@@ -185,10 +185,12 @@ async def on_command_error(ctx, error):
         color=0xFF0000
     )
     try:
-        await ctx.send(embed=sentry)
+        if ctx.interaction is not None:
+            await ctx.interaction.response.send_message(embed=sentry)
+        else:
+            await ctx.send(embed=sentry)
         log_error(error, error_uid)
     except:
-        await ctx.send(embed=sentry)
         log_error(error, error_uid)
 
 @bot.event
@@ -263,43 +265,39 @@ async def application(ctx):
     pass
 
 @application.command()
-async def passed(interaction: discord.Interaction, member: discord.Member,*,feedback: str):
+async def passed(ctx, member: discord.Member,*,feedback: str):
   '''Post Passed Application Result'''
   try:
-      if await check_permissions_management(interaction, interaction.user):
-        channel = interaction.channel
+      if await check_permissions_management(ctx, ctx.author):
         embed = discord.Embed(
-        title=f"{interaction.guild.name} | Application Result.", color=0x2F3136)
+        title=f"{ctx.guild.name} | Application Result.", color=0x2F3136)
         embed.add_field(name="Staff Name", value=member.mention)
         embed.add_field(name="Feedback", value=feedback)
         embed.set_thumbnail(url=member.avatar.url)
-        embed.add_field(name="Signed By", value=interaction.user.mention)
-        await interaction.response.send_message("Result Sent", ephemeral=True)
-        await channel.send(member.mention, embed=embed)
+        embed.add_field(name="Signed By", value=ctx.author.mention)
+        await ctx.send(member.mention, embed=embed)
       else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
+        await ctx.sed("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_command_error(interaction, error)
+          await on_command_error(ctx, error)
 
 @application.command()
-async def failed(interaction: discord.Interaction, member: discord.Member, *,feedback: str):
+async def failed(ctx, member: discord.Member, *,feedback: str):
   '''Post Failed Application result.'''
   try:
-      if await check_permissions_management(interaction, interaction.user):
-          channel = interaction.channel
+      if await check_permissions_management(ctx, ctx.author):
           embed = discord.Embed(
-            title=f"{interaction.guild.name} | Application Result.", 
+            title=f"{ctx.guild.name} | Application Result.", 
             color=0x2F3136)
           embed.add_field(name="Staff Name", value=member.mention)
           embed.add_field(name="Feedback", value=feedback)
-          embed.add_field(name="Signed By", value=interaction.user.mention)
+          embed.add_field(name="Signed By", value=ctx.author.mention)
           embed.set_thumbnail(url=member.avatar.url)
-          await interaction.response.send_message("Result Posted", ephemeral=True)
-          await channel.send(member.mention, embed=embed)
+          await ctx.send("Result Posted")
       else:
-          await interaction.response.send_message("❌ You don't have permission to use this command.")
+          await ctx.send("❌ You don't have permission to use this command.")
   except Exception as error:
-          await on_command_error(interaction, error)
+          await on_command_error(ctx, error)
 
 @bot.hybrid_group()
 async def staff(ctx):
@@ -311,12 +309,15 @@ async def infract(ctx, member: discord.Member, *, rank: discord.Role, reason: st
     try:
         if await check_permissions_management(ctx, ctx.author):
             channel_id = get_infraction_channel(ctx.guild.id)  # Get the channel ID
-            channel_id = int(channel_id)
-            infraction_channel = get(ctx.guild.channels, id=channel_id)  # Get the channel object
+            if channel_id is None:
+                await ctx.send("❌ Infraction channel not found.")
+                return
+
+            infraction_channel = get(ctx.guild.channels, id=int(channel_id))  # Get the channel object
             if infraction_channel is None:
                 await ctx.send("❌ Infraction channel not found.")
                 return
-            
+
             embed = discord.Embed(
                 title=f"{ctx.guild.name} | Staff Infractions.", color=0x2F3136)
             embed.add_field(name="Staff Name", value=member.mention)
@@ -324,18 +325,14 @@ async def infract(ctx, member: discord.Member, *, rank: discord.Role, reason: st
             embed.add_field(name="Rank", value=rank.mention)
             embed.add_field(name="Signed By", value=ctx.author.mention)
             embed.set_thumbnail(url=member.avatar.url)
-            
-            try:
-                await member.remove_roles(rank)
-                await ctx.send("Infraction Sent")
-                await infraction_channel.send(member.mention, embed=embed)  # Send response to infraction channel
-            except Exception as e:
-                await ctx.send("Infraction Sent")
-                await infraction_channel.send(member.mention, embed=embed)
+
+            await ctx.send("Infraction Sent")
+            await infraction_channel.send(member.mention, embed=embed)
         else:
             await ctx.send("❌ You don't have permission to use this command.")
     except Exception as error:
         await on_command_error(ctx, error)
+
 
 @staff.command()
 async def promote(ctx, member: discord.Member, *, rank: discord.Role, approval: discord.Role, reason: str):
@@ -644,6 +641,36 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
     finally:
         cursor.close()
 
+@bot.hybrid_group()
+async def server(ctx):
+    pass
+
+@server.command()
+async def manage(ctx):
+  '''Manage Your Server with Cyni'''
+  try:
+    if ctx.author.guild_permissions.administrator:
+      embed = discord.Embed(title="Server Manage",description='''
+                          **Staff Roles:**
+                          - *Discord Staff Roles:* These roles grant permission to use Cyni's moderation commands.\n
+                          - *Management Roles:* Users with these roles can utilize Cyni's management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel.
+
+                          **Server Config:**
+                          - Easily view and edit your server configuration settings.
+
+                          **Anti-ping Module:**
+                          - Messages are sent if a user with specific roles attempts to ping anyone. Bypass roles can be configured to allow certain users to ping others with that role.
+
+                          **Support Server:**
+                          - Need assistance? Join the Cyni Support Server for help.
+                            '''
+                            ,color=0x00FF00) 
+      await ctx.send(embed=embed, view=SetupView())
+    else:
+      await ctx.send("❌ You don't have permission to use this command.")
+  except Exception as error:
+          await on_command_error(ctx, error)
+
 TOKEN = get_token()
 def cyni():
-    bot.run(TOKEN)
+    bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GCBPXE.ie_HUfZBrTNtuhvslpKS_L6fjLHSyUT-h7t9gg")

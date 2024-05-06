@@ -62,7 +62,8 @@ class SetupBot(discord.ui.Select):
             discord.SelectOption(label="LOA Module",description="Setup LOA Role & Staff Management Channel",emoji="🏖️"),
             discord.SelectOption(label="Server Config", description="View/Edit Server Config", emoji="📜"),
             discord.SelectOption(label="Anti Ping", description="Setup Anti Ping Roles", emoji="🔕"),
-            discord.SelectOption(label="Support Server", description="Join Cyni Support Server", emoji="👥")
+            discord.SelectOption(label="Support Server", description="Join Cyni Support Server", emoji="👥"),
+            discord.SelectOption(label="Staff Management Channel", description="Select Staff Management Channel", emoji="📝")
         ]
         super().__init__(placeholder="Setup Cyni", options=options, min_values=1, max_values=1)
 
@@ -80,6 +81,8 @@ class SetupBot(discord.ui.Select):
         elif self.values[0] == "Support Server":
             embed = discord.Embed(title="Cyni Support", description="Need any help with Cyni?\nJoin support server.", color=0xFF00)
             await interaction.response.send_message(embed=embed, view=SupportBtn(), ephemeral=True)
+        elif self.values[0] == "Staff Management Channel":
+            await interaction.response.send_message(view=SelectChannelsView(),ephemeral=True)
 
 class SetupView(discord.ui.View):
     def __init__ (self):
@@ -92,8 +95,7 @@ class ChangeCofig(discord.ui.Select):
          discord.SelectOption(label="Discord Staff Roles",description="Change Staff Roles",emoji="👮"),
          discord.SelectOption(label="Management Roles",description="Change Management Roles",emoji="🚨"),
          discord.SelectOption(label="Loa Role",description="Change Loa Role",emoji="🏝️"),
-         discord.SelectOption(label="Staff Management Channels",description="Change channels for LOA Request, Infraction, Promotion",emoji="📝"),        
-      ]
+        ]
       super().__init__(placeholder="Change Server Config",options=options,min_values=1,max_values=1)
     async def callback(self,interaction: discord.Interaction):
       try:
@@ -103,8 +105,6 @@ class ChangeCofig(discord.ui.Select):
           await interaction.response.send_message(view=ManagementRoleView(),ephemeral=True)
         elif self.values[0] == "Loa Role":
           await interaction.response.send_message(view=LoaRoleView() ,ephemeral=True)
-        elif self.values[0] == "Staff Management Channels":
-            await interaction.response.send_message(view=SelectChannelsView(),ephemeral=True)
       except TimeoutError:
         await interaction.response.send_message("Timed out. Please try again.")
         return
@@ -345,7 +345,7 @@ class SelectChannelsView(discord.ui.View):
     def __init__ (self):
       super().__init__()
       self.add_item(SelectChannels())
-    
+
 class SelectChannels(discord.ui.Select):
     def __init__(self):
         options = [
@@ -370,50 +370,34 @@ class SelectChannels(discord.ui.Select):
         except TimeoutError:
             await interaction.channel.send("Timed out. Please try again.")
             return
-        
+
 class InfractionChannelView(discord.ui.View):
-    def __init__ (self, user):
+    def __init__ (self):
         super().__init__()
-        self.user = user
         self.add_item(InfractionChannel())
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user == self.user
-
-    async def send_instructions(self, channel):
-        embed = discord.Embed(
-            title="Select Infraction Channel",
-            description="Please select the channel where infractions will be logged.",
-            color=0x00FF00
-        )
-        await channel.send(embed=embed)
 
 class InfractionChannel(discord.ui.ChannelSelect):
     def __init__(self):
         super().__init__(placeholder="Select Infraction Channel")
-    
+
     async def callback(self, interaction: discord.Interaction):
         try:
             await interaction.response.defer()
             response = self.values[0].id if self.values else None
             guild_id = interaction.guild.id
             save_infraction_channel(guild_id, response)
-            
+
             embed = discord.Embed(description="Infraction Channel saved.", color=0x00FF00)
-            await interaction.channel.send(embed=embed, ephemeral=True)
+            await interaction.channel.send(embed=embed)
             self.view.stop()
         except TimeoutError:
             await interaction.channel.send(f"{interaction.user.mention} Timed out. Please try again.")
             return
 
 class PromotionChannelView(discord.ui.View):
-    def __init__ (self, user):
+    def __init__ (self):
         super().__init__()
-        self.user = user
         self.add_item(PromotionChannel())
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user == self.user
 
 class PromotionChannel(discord.ui.ChannelSelect):
     def __init__(self):
@@ -425,7 +409,7 @@ class PromotionChannel(discord.ui.ChannelSelect):
             response = self.values[0].id if self.values else None
             guild_id = interaction.guild.id
             save_promotion_channel(guild_id, response)
-            
+
             embed = discord.Embed(description="Promotion Channel saved.", color=0x00FF00)
             await interaction.channel.send(embed=embed, ephemeral=True)
             self.view.stop()
