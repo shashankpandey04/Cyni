@@ -673,4 +673,4 @@ async def manage(ctx):
 
 TOKEN = get_token()
 def cyni():
-    bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GCBPXE.ie_HUfZBrTNtuhvslpKS_L6fjLHSyUT-h7t9gg")
+    bot.run(TOKEN)
