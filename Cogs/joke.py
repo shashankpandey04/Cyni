@@ -6,11 +6,7 @@ class Jokes(commands.Cog):
     def __init__ (self,bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print(f"{self.bot.user} loaded Jokes Cog.")
-    
-    @commands.command()
+    @commands.hybrid_command(name="joke", aliases=["j"], brief="Get a random joke", description="Get a random joke from the internet.", usage="joke", help="Get a random joke from the internet.")
     async def joke(self,ctx):
         joke = fetch_random_joke()
         await ctx.send(joke)

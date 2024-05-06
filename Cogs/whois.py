@@ -10,7 +10,7 @@ class Whois(commands.Cog):
     async def on_ready(self):
         print(f'{self.bot.user} loaded cog: Whois')
 
-    @commands.command()
+    @commands.hybrid_command(name="whois", aliases=["userinfo","w"], brief="Get user information", description="Get information about a user in the server.", usage="whois [user]", help="Get information about a user in the server. If no user is specified, the bot will return information about the command author.")
     async def whois(self, ctx, *, user_info=None):
         try:
             mycursor = mydb.cursor()

@@ -4,12 +4,10 @@ import requests
 import logging
 from utils import *
 import time
-import random
 from tokens import *
 from menu import *
-import psutil
-import json
 import os
+from discord.utils import get
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 from db import mycon
@@ -21,23 +19,14 @@ def dbstatus():
         return "Disconnected"
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='?', intents=intents)
+bot = commands.Bot(command_prefix=':', intents=intents)
 bot.remove_command('help')
 
 cyni_support_role_id = 800203880515633163
 
-@bot.event
-async def on_thread_create(ctx):
-    print("Thread created!")
-    if ctx.channel.parent_id == 1158047746159284254:
-        await ctx.send(f"<@{cyni_support_role_id}")
-        await ctx.purge(limit=1)
-    else:
-        return
-
 BOT_USER_ID = 1136945734399295538
 dev = ['1201129677457215558','707064490826530888']
-racial_slurs = ["nigger", "nigga"]
+racial_slurs = []
 
 @bot.event
 async def on_message(message):
@@ -52,9 +41,7 @@ async def on_message(message):
         if message.author.id in dev:
             await message.channel.send("<@800203880515633163> Get to work!")
             return
-        else:
-            await message.channel.send("Bruh! Nice Try!")
-    await check_for_racial_slurs(message)
+    #await check_for_racial_slurs(message)
     try:
         guild_id = message.guild.id
         user_id = message.author.id
@@ -83,7 +70,8 @@ async def on_message(message):
             mycon.commit()
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
-    cursor.close()
+    finally:
+        cursor.close()
     
 
 async def check_for_racial_slurs(message):
@@ -95,20 +83,15 @@ async def check_for_racial_slurs(message):
                 await message.delete()
                 await message.channel.send("Please refrain from using racial slurs.")
                 return
-            
+
 async def load():
-    for filename in os.listdir('./Cogs'):
-        if filename.endswith('.py'):
-            await bot.load_extension(f'Cogs.{filename[:-3]}')
-    for filename in os.listdir("./Roblox"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"Roblox.{filename[:-3]}")
-    for filename in os.listdir("./ImagesCommand"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"ImagesCommand.{filename[:-3]}")
-    for filename in os.listdir("./Staff_Commands"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"Staff_Commands.{filename[:-3]}")
+    for directory in ["Cogs", "Roblox", "ImagesCommand", "Staff_Commands", "Moderation"]:
+        for filename in os.listdir(f"./{directory}"):
+            if filename.endswith('.py'):
+                try:
+                    await bot.load_extension(f"{directory}.{filename[:-3]}")
+                except Exception as e:
+                    print(f"Failed to load extension '{filename}': {e}")
 
 @bot.event
 async def on_ready():
@@ -120,8 +103,6 @@ async def on_ready():
     cleanup_guild_data(bot)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="v6 Testing"))
     await bot.load_extension("jishaku")
-    print(f'Bot is ready. Logged in as {bot.user}')
-    print(f"DB Status: {dbstatus()}")
 
 @bot.hybrid_group()
 async def activity(ctx):
@@ -200,14 +181,14 @@ async def on_command_error(ctx, error):
     error_uid = generate_error_uid()
     sentry = discord.Embed(
         title="❌ An error occurred.",
-        description=f"Error I'd `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
+        description=f"Error ID: `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
         color=0xFF0000
     )
     try:
         await ctx.send(embed=sentry)
         log_error(error, error_uid)
     except:
-        await ctx.response.send_message(embed=sentry)
+        await ctx.send(embed=sentry)
         log_error(error, error_uid)
 
 @bot.event
@@ -225,76 +206,6 @@ async def on_guild_join(guild):
     await support_channel.send(embed=embed)
     create_or_get_server_config(guild.id)
 
-@bot.tree.command()
-async def say(interaction: discord.Interaction, message: str):
-  '''Broadcasts a message in the channel'''
-  channel = interaction.channel
-  if await check_permissions(interaction, interaction.user):
-    try:
-        await interaction.response.send_message("Message sent.", ephemeral=True)
-        await channel.send(message)
-    except Exception as e:
-        await on_command_error(interaction,e)
-  else:
-     await interaction.response.send_message("❌ You are not permitted to use this command",ephemeral=True)
-
-@bot.tree.command()
-async def slowmode(interaction: discord.Interaction, duration: str):
-  '''Sets slowmode in channel'''
-  time_units = {'s': 1, 'm': 60, 'h': 3600}
-  try:
-      if await check_permissions(interaction, interaction.user):
-        try:
-          amount = int(duration[:-1])
-          unit = duration[-1]
-          if unit not in time_units:
-            raise ValueError
-        except (ValueError, IndexError):
-          await interaction.response.send_message('Invalid duration format. Please use a number followed by "s" for seconds, "m" for minutes, or "h" for hours.',ephemeral=True)
-          return
-        total_seconds = amount * time_units[unit]
-        if total_seconds == 0:
-          await interaction.response.send_message("Slow mode disabled from the channel.")
-        elif total_seconds > 21600:
-          await interaction.response.send_message('Slow mode duration cannot exceed 6 hours (21600 seconds).')
-          return
-        else:
-          await interaction.channel.edit(slowmode_delay=total_seconds)
-          await interaction.response.send_message(f'Slow mode set to {amount} {unit} in this channel.',ephemeral=True)
-      else:
-        await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_command_error(interaction, error)
-
-"""@bot.hybrid_group()
-async def modmail(ctx):
-    pass
-
-@modmail.command()
-async def blacklist(ctx,member:discord.Member):
-    '''Blacklist user from opening mod mails.'''
-    await ctx.send(f"{member.mention} have been blacklisted!")
-
-@modmail.command()
-async def close(ctx):
-    '''Close Mod Mail Channel.'''
-    await ctx.send("Mod Mail closed.")
-
-@modmail.command()
-async def open(ctx,reason:str):
-    '''Open Mod Mail Channel.'''
-    await ctx.send(f"Mod Mail opened for the reason {reason}")
-
-@modmail.command()
-async def adduser(ctx,member:discord.Member):
-    '''Add user to Mod Mail Channel.'''
-    await ctx.send(f"{member.mention} added to Mod Mail Channel.")
-
-@modmail.command()
-async def removeuser(ctx,member:discord.Member):
-    '''Remove user from Mod Mail Channel.'''
-    await ctx.send(f"{member.mention} removed from Mod Mail Channel.")
-"""
 @bot.hybrid_group()
 async def role(ctx):
     pass
@@ -395,49 +306,72 @@ async def staff(ctx):
     pass
 
 @staff.command()
-async def infract(ctx, member: discord.Member, *,rank:discord.Role,reason: str):
-  '''Infract Server Staff'''
-  try:
-      if await check_permissions_management(ctx, ctx.author):
-        embed = discord.Embed(
-        title=f"{ctx.guild.name} | Staff Infractions.", color=0x2F3136)
-        embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Feedback", value=reason)
-        embed.add_field(name="Rank", value=rank.mention)
-        embed.add_field(name="Signed By", value=ctx.author.mention)
-        embed.set_thumbnail(url=member.avatar.url)
-        try:
-          await member.remove_roles(rank)
-          await ctx.send(member.mention, embed=embed)
-        except Exception as e:
-            await ctx.send(member.mention, embed=embed)
-      else:
-        await ctx.send("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_command_error(ctx, error)
+async def infract(ctx, member: discord.Member, *, rank: discord.Role, reason: str):
+    '''Infract Server Staff'''
+    try:
+        if await check_permissions_management(ctx, ctx.author):
+            channel_id = get_infraction_channel(ctx.guild.id)  # Get the channel ID
+            channel_id = int(channel_id)
+            infraction_channel = get(ctx.guild.channels, id=channel_id)  # Get the channel object
+            if infraction_channel is None:
+                await ctx.send("❌ Infraction channel not found.")
+                return
+            
+            embed = discord.Embed(
+                title=f"{ctx.guild.name} | Staff Infractions.", color=0x2F3136)
+            embed.add_field(name="Staff Name", value=member.mention)
+            embed.add_field(name="Feedback", value=reason)
+            embed.add_field(name="Rank", value=rank.mention)
+            embed.add_field(name="Signed By", value=ctx.author.mention)
+            embed.set_thumbnail(url=member.avatar.url)
+            
+            try:
+                await member.remove_roles(rank)
+                await ctx.send("Infraction Sent")
+                await infraction_channel.send(member.mention, embed=embed)  # Send response to infraction channel
+            except Exception as e:
+                await ctx.send("Infraction Sent")
+                await infraction_channel.send(member.mention, embed=embed)
+        else:
+            await ctx.send("❌ You don't have permission to use this command.")
+    except Exception as error:
+        await on_command_error(ctx, error)
 
 @staff.command()
-async def promote(ctx, member: discord.Member, *,rank: discord.Role,approval: discord.Role, reason: str):
-  '''Promote Server Staff'''
-  try:
-      if await check_permissions_management(ctx, ctx.author):
-        embed = discord.Embed(title=f"{ctx.guild.name} Promotions.",color=0x2F3136)
-        embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="New Rank", value=rank.mention)
-        embed.add_field(name="Approved By", value=approval.mention)
-        embed.add_field(name="Reason", value=reason)
-        embed.add_field(name="Signed By", value=ctx.author.mention)
-        embed.set_thumbnail(url=member.avatar.url)
-        try:
-          await member.remove_roles(approval)
-          await member.add_roles(rank)
-          await ctx.send(member.mention, embed=embed)
-        except Exception as e:
-            await ctx.send(member.mention, embed=embed)
-      else:
-        await ctx.send("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_command_error(ctx, error)
+async def promote(ctx, member: discord.Member, *, rank: discord.Role, approval: discord.Role, reason: str):
+    '''Promote Server Staff'''
+    try:
+        if await check_permissions_management(ctx, ctx.author):
+            channel_id = get_promo_channel(ctx.guild.id)  # Get the channel ID
+            #converting channel_id into integer
+            channel_id = int(channel_id)
+            print(channel_id)
+            promo_channel = discord.utils.get(ctx.guild.channels, id=channel_id)  # Get the channel object
+            print(promo_channel)
+            if promo_channel is None:
+                await ctx.send("❌ Promo channel not found.")
+                return
+            
+            embed = discord.Embed(title=f"{ctx.guild.name} Promotions.", color=0x2F3136)
+            embed.add_field(name="Staff Name", value=member.mention)
+            embed.add_field(name="New Rank", value=rank.mention)
+            embed.add_field(name="Approved By", value=approval.mention)
+            embed.add_field(name="Reason", value=reason)
+            embed.add_field(name="Signed By", value=ctx.author.mention)
+            embed.set_thumbnail(url=member.avatar.url)
+            
+            try:
+                await member.remove_roles(approval)
+                await member.add_roles(rank)
+                await ctx.send("Promotion Sent")
+                await promo_channel.send(member.mention, embed=embed)  # Send response to promo channel
+            except Exception as e:
+                await ctx.send("Promotion Sent")
+                await promo_channel.send(member.mention, embed=embed)
+        else:
+            await ctx.send("❌ You don't have permission to use this command.")
+    except Exception as error:
+        await on_command_error(ctx, error)
 
 @bot.tree.command()
 async def purge(interaction: discord.Interaction, amount: int):   
@@ -644,56 +578,6 @@ async def delete_custom_command(interaction, command_name):
     finally:
         mycur.close()
 
-@bot.tree.command()
-async def pick(interaction: discord.Interaction, option1:str, option2:str):
-  '''Pick between two options'''
-  option = random.choice([option1, option2])
-  await interaction.response.send_message(f"I pick {option}")
-
-@bot.command(name='pick')
-async def pick(ctx, option1, option2):
-  option = random.choice([option1, option2])
-  await ctx.send(f"I pick {option}")
-
-@bot.hybrid_group()
-async def image(ctx):
-    pass
-
-@image.command()
-async def cat(ctx):
-  '''Get Random Cat Image'''
-  message = "Fetching Random Cat Image..."
-  await ctx.channel.send(message)
-  response = requests.get("https://api.thecatapi.com/v1/images/search")
-  data = response.json()
-  image_url = data[0]["url"]
-  await ctx.channel.purge(limit=1)
-  embed = discord.Embed(title="Random Cat Image", color=0x2F3136)
-  embed.set_image(url=image_url)
-  await ctx.send("Random Cat Image fetched successfully.",embed=embed)
-
-@image.command()
-async def dog(ctx):
-    '''Get Random Dog Image'''
-    await ctx.channel.send("Fetching Random Dog Image...")
-    response = requests.get("https://api.thedogapi.com/v1/images/search")
-    data = response.json()
-    image_url = data[0]["url"]
-    await ctx.channel.purge(limit=1)
-    embed = discord.Embed(title="Random Dog Image", color=0x2F3136)
-    embed.set_image(url=image_url)
-    await ctx.send("Random Dog Image fetched successfully.",embed=embed)
-
-@bot.tree.command()
-async def avatar(interaction: discord.Interaction, user: discord.User):
-  '''Get any user avatar from server'''
-  try:
-    embed = discord.Embed(title=f"{user.name} Aavatar", color=0x2F3136)
-    embed.set_image(url=user.avatar)
-    await interaction.response.send_message(embed=embed)
-  except Exception as error:
-        await on_command_error(interaction, error)
-
 @bot.hybrid_group()
 async def roblox(ctx):
     pass
@@ -760,159 +644,6 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
     finally:
         cursor.close()
 
-@bot.tree.command()
-async def whois(interaction: discord.Interaction, user_info: discord.Member = None):
-    try:
-        mycur = mycon.cursor()
-        if user_info is None:
-            member = interaction.user
-        else:
-            if user_info.startswith('<@') and user_info.endswith('>'):
-                user_id = int(user_info[2:-1])
-                member = interaction.guild.get_member(user_id)
-            if member:
-                support_server_id = 1152949579407442050
-                support_server = bot.get_guild(support_server_id)
-                user_emoji = discord.utils.get(support_server.emojis, id=1191057214727786598)
-                cyni_emoji = discord.utils.get(support_server.emojis, id=1185563043015446558)
-                discord_emoji = discord.utils.get(support_server.emojis, id=1191057244004044890)
-                sql = "SELECT flags FROM staff WHERE user_id = %s"
-                val = (member.id,)
-                mycur.execute(sql, val)
-                result = mycur.fetchone()
-                if result:
-                    staff_flags = result[0]
-                else:
-                    staff_flags = ""    
-                embed = discord.Embed(title="User Information", color=member.color)
-                hypesquad_flags = member.public_flags
-                hypesquad_values = [str(flag).replace("UserFlags.", "").replace("_", " ").title() for flag in hypesquad_flags.all()]
-                if hypesquad_values:
-                    hypesquad_text = "\n".join(hypesquad_values)
-                    embed.add_field(name=f"{discord_emoji} Discord Flags", value=f"{hypesquad_text}", inline=True)
-                user_flags = staff_flags.replace("{cyni_emoji}", "")
-                user_flags = [flag.strip() for flag in user_flags.split("\n") if flag.strip()]
-                if user_flags:
-                    staff_text = "\n".join(user_flags)
-                    embed.add_field(name=f'{cyni_emoji} Staff Flags', value=f" {staff_text}", inline=True)
-                embed.set_thumbnail(url=member.avatar.url)
-                embed.add_field(name=f"{user_emoji} Username", value=member.name, inline=True)
-                embed.add_field(name="User ID", value=member.id, inline=True)
-                embed.add_field(name="Joined Server", value=f"<t:{int(member.joined_at.timestamp())}:R>", inline=True)
-                embed.add_field(name="Joined Discord", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
-                if member == member.guild.owner:
-                    embed.add_field(name="Role", value="Server Owner", inline=True)
-                elif member.guild_permissions.administrator:
-                    embed.add_field(name="Role", value="Administrator", inline=True)
-                elif member.guild_permissions.manage_messages:
-                    embed.add_field(name="Role", value="Moderator", inline=True)
-                else:
-                    embed.add_field(name="Role", value="Member", inline=True)
-                embed.set_footer(text=f"Requested by {interaction.user}", icon_url=interaction.user.avatar.url)
-                await interaction.response.send_message(embed=embed)
-            else:
-                await interaction.response.send_message("User not found.",ephemeral=True)
-    except Exception as error:
-        await on_command_error(interaction, error)
-    finally:
-        mycur.close()
-
-@bot.tree.command()
-async def support(interaction:discord.Interaction):
-  '''Join Cyni Support Server'''
-  embed = discord.Embed(title="Cyni Support Server",description="Need any help?\nJoin Cyni Support Server.",color=0x00FF00)
-  await interaction.response.send_message(embed=embed ,view=SupportBtn())
-
-@bot.tree.command()
-async def servermanage(interaction:discord.Interaction):
-  '''Manage Your Server with Cyni'''
-  try:
-    if interaction.user.guild_permissions.administrator:
-      embed = discord.Embed(title="Server Manage",description='''
-                          **Staff Roles:**
-                          - *Discord Staff Roles:* These roles grant permission to use Cyni's moderation commands.\n
-                          - *Management Roles:* Users with these roles can utilize Cyni's management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel.
-
-                          **Server Config:**
-                          - Easily view and edit your server configuration settings.
-
-                          **Anti-ping Module:**
-                          - Messages are sent if a user with specific roles attempts to ping anyone. Bypass roles can be configured to allow certain users to ping others with that role.
-
-                          **Support Server:**
-                          - Need assistance? Join the Cyni Support Server for help.
-                            '''
-                            ,color=0x00FF00) 
-      await interaction.response.send_message(embed=embed, view=SetupView(),ephemeral=True)
-    else:
-      await interaction.response.send_message("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_command_error(interaction, error)
-
-'''@bot.hybrid_group()
-async def web(ctx):
-    pass
-
-@web.command()
-async def block(interaction:discord.Interaction, keyword: str):
-  """Add blocked words from Cyni Search in server."""
-  if await check_permissions_management(interaction, interaction.user):
-    embed = discord.Embed(title="Blocked Search",description=f"**Keyword:** {keyword}\n**Blocked By:** {interaction.user.mention}",color=0x00FF00)
-    await interaction.response.send_message("Blocked Search Added", ephemeral=True)
-    with open("server_config.json", "r") as file:
-        server_config = json.load(file)
-        guild_id = str(interaction.guild.id)
-        server_config[guild_id]["blocked_search"].append(keyword)
-    with open("server_config.json", "w") as file:
-        json.dump(server_config, file, indent=4)     
-    await interaction.response.send_message(embed=embed)
-  else:
-    await interaction.response.send_message("❌ You don't have permission to use this command.")
-
-@web.command()
-async def search(interaction:discord.Interaction, topic: str):
-  """Search on web using CYNI Search API"""
-  guild_id = str(interaction.guild.id)
-  server_config = get_server_config(guild_id)
-  blocked_search = server_config.get('blocked_search', [])
-  if topic in blocked_search:
-      await interaction.response.send_message("Blocked word found in search query.")
-      return
-  result = search_api(topic)
-  await interaction.response.send_message(f"{result}....")'''
-
-@bot.tree.command()
-async def ping(interaction: discord.Interaction):
-    '''Check the bot's ping, external API response times, and system RAM usage.'''
-    latency = round(bot.latency * 1000)
-    db = dbstatus()
-    support_server_id = 1152949579407442050
-    support_server = bot.get_guild(support_server_id)
-    database_emoji = discord.utils.get(support_server.emojis, id=1215565017718587422)
-    angle_right = discord.utils.get(support_server.emojis,id=1215565088589877299)()
-    ram_usage = psutil.virtual_memory().percent
-    uptime_seconds = time.time() - bot.start_time
-    uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
-    embed = discord.Embed(title='Bot Ping', color=0x00FF00)
-    embed.add_field(name=f'{angle_right} 🟢 Pong!', value=f"{latency}ms", inline=True)
-    embed.add_field(name=f'{angle_right} Uptime', value=uptime_string, inline=True)
-    embed.add_field(name=f'{angle_right} System RAM Usage', value=f"{ram_usage}%", inline=True)
-    embed.add_field(name=f"{database_emoji} Database Status", value=db, inline=True)
-    embed.add_field(name=f"{angle_right} Bot Version", value="6.2.0", inline=True)
-    embed.set_thumbnail(url=bot.user.avatar.url)
-    await interaction.response.send_message(embed=embed)
-
-@bot.tree.command()
-async def joke(interaction:discord.Interaction):
-   joke = fetch_random_joke()
-   await interaction.response.send_message(joke)
-
-@bot.tree.command()
-async def vote(interaction:discord.Interaction):
-    embed = discord.Embed(title="Vote Cyni!")
-    await interaction.response.send_message(embed=embed,view=VoteView())
-
 TOKEN = get_token()
 def cyni():
     bot.run(TOKEN)
-    #running the bot

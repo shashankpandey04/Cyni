@@ -461,6 +461,50 @@ async def check_for_racial_slurs(message):
                 await message.channel.send("Please refrain from using racial slurs.")
                 return
             
-async def no_permission(interaction:discord.Interaction):
-        embed = discord.Embed(title="Not Permitted",description="You are not allowed to interact with this command/response.",color=0x2F3136)
-        await interaction.response.send_message(embed=embed)
+def save_promotion_channel(guild_id,channel_id):
+    try:
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO server_config (guild_id, promotion_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE promotion_channel = VALUES(promotion_channel)", (guild_id, channel_id))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving LOA roles: {e}")
+    finally:
+        cursor.close()
+
+def save_infraction_channel(guild_id,channel_id):
+    try:
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO server_config (guild_id, infraction_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE infraction_channel = VALUES(infraction_channel)", (guild_id, channel_id))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving LOA roles: {e}")
+    finally:
+        cursor.close()
+
+def get_promo_channel(guild_id):
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT promotion_channel FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting promotion channel: {e}")
+    finally:
+        cursor.close()
+
+def get_infraction_channel(guild_id):
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT infraction_channel FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting infraction channel: {e}")
+    finally:
+        cursor.close()

@@ -12,7 +12,7 @@ class Images(commands.Cog):
     async def on_ready(self):
         print(f'{self.bot.user} loaded cog: Images')
 
-    @commands.command()
+    @commands.hybrid_command(name="doge", aliases=["dog"], brief="Get a random dog image", description="Get a random dog image from the internet.", usage="doge", help="Get a random dog image from the internet.")
     async def doge(self,ctx):
         '''Get Doge Image'''
         try:
@@ -25,20 +25,7 @@ class Images(commands.Cog):
         except Exception as e:
             on_command_error(ctx,e)
     
-    @commands.command()
-    async def birb(self,ctx):
-        '''Get Random Bird Image'''
-        try:
-            response = requests.get("https://birbapi.astrobirb.dev/birb")
-            data = response.json()
-            image_url = data["image_url"]
-            embed = discord.Embed(title="Random Bird Image", color=discord.Color.random())
-            embed.set_image(url=image_url)
-            await ctx.send(embed=embed)
-        except Exception as e:
-            on_command_error(ctx,e)
-    
-    @commands.command()
+    @commands.hybrid_command(name="cat", aliases=["kitty"], brief="Get a random cat image", description="Get a random cat image from the internet.", usage="cat", help="Get a random cat image from the internet.")
     async def cat(self,ctx):
         try:
             '''Get Random Cat Image'''
