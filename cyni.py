@@ -138,7 +138,7 @@ async def stats(ctx, member: discord.Member):
         total = len(activity_data)
         if activity_data:
             stats_embed = discord.Embed(title="Activity Stats", color=0x2F3136)
-            stats_embed.add_field(name="User ID", value=f"<@{ctx.author.id}>",inline=False)
+            stats_embed.add_field(name="User ID", value=f"<@{member.id}>",inline=False)
             stats_embed.add_field(name="Total Messages Sent", value=total, inline=False)
             stats_embed.set_thumbnail(url=member.avatar.url)
             await ctx.send(embed=stats_embed)
