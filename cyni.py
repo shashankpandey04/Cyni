@@ -19,7 +19,7 @@ def dbstatus():
         return "Disconnected"
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=':', intents=intents)
+bot = commands.Bot(command_prefix='?', intents=intents)
 bot.remove_command('help')
 
 cyni_support_role_id = 800203880515633163
@@ -33,11 +33,11 @@ async def on_message(message):
     await bot.process_commands(message)
     if message.author.bot:
         return
-    if message.content.startswith("::"):
+    if message.content.startswith("??"):
         return
     if message.content.startswith("?ssu" or "?ssd" or "?ssup"):
         return
-    if message.content.startswith(":jsk shutdown"):
+    if message.content.startswith("?jsk shutdown"):
         if message.author.id in dev:
             await message.channel.send("<@800203880515633163> Get to work!")
             return
@@ -103,7 +103,7 @@ async def on_ready():
     for guild in bot.guilds:
         create_or_get_server_config(guild.id)
     cleanup_guild_data(bot)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="v6 Testing"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="v6 | /help"))
     await bot.load_extension("jishaku")
 
 @bot.hybrid_group()
