@@ -19,7 +19,7 @@ class Images(commands.Cog):
             response = requests.get("https://api.thedogapi.com/v1/images/search")
             data = response.json()
             image_url = data[0]["url"]
-            embed = discord.Embed(title="Random Dog Image", color=discord.Color.random())
+            embed = discord.Embed(title="Random Dog Image", color=0x2F3136)
             embed.set_image(url=image_url)
             await ctx.send(embed=embed)
         except Exception as e:
@@ -32,7 +32,7 @@ class Images(commands.Cog):
             response = requests.get("https://api.thecatapi.com/v1/images/search")
             data = response.json()
             image_url = data[0]["url"]
-            embed = discord.Embed(title="Random Cat Image", color=discord.Color.random())
+            embed = discord.Embed(title="Random Cat Image", color=0x2F3136)
             embed.set_image(url=image_url)
             await ctx.send(embed=embed)
         except Exception as e:

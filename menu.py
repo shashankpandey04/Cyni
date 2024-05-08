@@ -354,7 +354,7 @@ class SelectChannels(discord.ui.Select):
             discord.SelectOption(label="Promotion Channel", description="Select Promotion Channel", emoji="📝"),
             discord.SelectOption(label="Log Channel", description="Select Mod Log Channel", emoji="📝")
         ]
-        super().__init__(placeholder="Select Channel", options=options, min_values=1, max_values=1)
+        super().__init__(placeholder="Select Category", options=options, min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
         try:
@@ -411,7 +411,7 @@ class PromotionChannel(discord.ui.ChannelSelect):
             save_promotion_channel(guild_id, response)
 
             embed = discord.Embed(description="Promotion Channel saved.", color=0x00FF00)
-            await interaction.channel.send(embed=embed, ephemeral=True)
+            await interaction.channel.send(embed=embed)
             self.view.stop()
         except TimeoutError:
             await interaction.channel.send(f"{interaction.user.mention} Timed out. Please try again.")

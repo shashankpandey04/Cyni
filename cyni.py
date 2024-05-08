@@ -48,6 +48,7 @@ async def on_message(message):
         cursor = mycon.cursor()
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         server_config = cursor.fetchone()
+        cursor.close()
         if server_config:
             guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel,infraction_channel,promotion_channel,prefix = server_config
             if anti_ping == 1:
@@ -61,17 +62,18 @@ async def on_message(message):
                         if has_management_role:
                             author_can_warn = any(str(role.id) in anti_ping_roles for role in message.author.roles)
                             if not author_can_warn:
-                                warning_message = f"{message.author.mention} Refrain from pinging users with Anti-ping enabled role, if it's not necessary."
-                                await message.channel.send(warning_message)
+                                embed = discord.Embed(title="Anti-Ping Warning", description=f"{message.author.mention} attempted to ping {mentioned_user.mention} in {message.channel.mention}.", color=0xFF0000)
+                                embed.set_image(url="https://media.tenor.com/aslruXgPKHEAAAAM/discord-ping.gif")
+                                await message.channel.send(embed=embed)
         staff_or_management_roles = get_staff_or_management_roles(guild_id)
         user_roles = [role.id for role in message.author.roles]
         if any(role_id in user_roles for role_id in staff_or_management_roles):
+            cursor = mycon.cursor()
             cursor.execute("INSERT INTO activity_logs (user_id, guild_id, messages_sent) VALUES (%s, %s, 1) ON DUPLICATE KEY UPDATE messages_sent = messages_sent + 1", (user_id, guild_id))
             mycon.commit()
+            cursor.close()
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
-    finally:
-        cursor.close()
     
 
 async def check_for_racial_slurs(message):
@@ -459,7 +461,7 @@ async def list_custom_commands(ctx):
     guild_id = str(ctx.guild.id)
     custom_commands = config.get(guild_id, {})
     if not custom_commands:
-        await ctx.channel.send(embed=discord.Embed(description="No custom commands found for this server."))
+        await ctx.send(embed=discord.Embed(description="No custom commands found for this server.",color=0x2F3136))
         return
     embed = discord.Embed(title="Custom Commands", color=0x2F3136)
     for name, details in custom_commands.items():
@@ -641,36 +643,9 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
     finally:
         cursor.close()
 
-@bot.hybrid_group()
-async def server(ctx):
-    pass
-
-@server.command()
-async def manage(ctx):
-  '''Manage Your Server with Cyni'''
-  try:
-    if ctx.author.guild_permissions.administrator:
-      embed = discord.Embed(title="Server Manage",description='''
-                          **Staff Roles:**
-                          - *Discord Staff Roles:* These roles grant permission to use Cyni's moderation commands.\n
-                          - *Management Roles:* Users with these roles can utilize Cyni's management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel.
-
-                          **Server Config:**
-                          - Easily view and edit your server configuration settings.
-
-                          **Anti-ping Module:**
-                          - Messages are sent if a user with specific roles attempts to ping anyone. Bypass roles can be configured to allow certain users to ping others with that role.
-
-                          **Support Server:**
-                          - Need assistance? Join the Cyni Support Server for help.
-                            '''
-                            ,color=0x00FF00) 
-      await ctx.send(embed=embed, view=SetupView())
-    else:
-      await ctx.send("❌ You don't have permission to use this command.")
-  except Exception as error:
-          await on_command_error(ctx, error)
-
 TOKEN = get_token()
 def cyni():
-    bot.run(TOKEN)
+    bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GXCnNm.0dj9lXOM6VxPS311QXpoZPuIVXOGkSMIuURv3I")
+
+if __name__ == "__main__":
+    cyni()

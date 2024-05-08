@@ -6,8 +6,8 @@ class SlowMode(commands.Cog):
     def __init__(self,bot):
         self.bot = bot
 
-    @commands.command(name="slowmode", aliases=["slow"])
-    async def slowmode(self, ctx, duration: str):
+    @commands.hybrid_command(name="slowmode", aliases=["slow"])
+    async def slowmode(self, ctx, duration: str = '0s'):
         '''Sets slowmode in channel'''
         time_units = {'s': 1, 'm': 60, 'h': 3600}
         try:
