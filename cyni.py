@@ -643,9 +643,6 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
     finally:
         cursor.close()
 
-TOKEN = get_token()
+TOKEN = cyni_token()
 def cyni():
-    bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GXCnNm.0dj9lXOM6VxPS311QXpoZPuIVXOGkSMIuURv3I")
-
-if __name__ == "__main__":
-    cyni()
+    bot.run(TOKEN)
