@@ -134,13 +134,12 @@ async def stats(ctx, member: discord.Member):
     try:
         mycur = mycon.cursor()
         mycur.execute("SELECT * FROM activity_logs WHERE user_id = %s AND guild_id = %s", (member.id, ctx.guild.id))
-        activity_data = mycur.fetchone()
+        activity_data = mycur.fetchall()
+        total = len(activity_data)
         if activity_data:
-            user_id, guild_id, messages_sent = activity_data
             stats_embed = discord.Embed(title="Activity Stats", color=0x2F3136)
-            stats_embed.add_field(name="User ID", value=user_id)
-            stats_embed.add_field(name="Guild ID", value=guild_id)
-            stats_embed.add_field(name="Total Messages Sent", value=messages_sent)
+            stats_embed.add_field(name="User ID", value=f"<@{ctx.author.id}>",inline=False)
+            stats_embed.add_field(name="Total Messages Sent", value=total, inline=False)
             stats_embed.set_thumbnail(url=member.avatar.url)
             await ctx.send(embed=stats_embed)
         else:
