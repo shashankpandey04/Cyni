@@ -26,7 +26,7 @@ cyni_support_role_id = 800203880515633163
 
 BOT_USER_ID = 1136945734399295538
 dev = ['1201129677457215558','707064490826530888']
-racial_slurs = []
+racial_slurs = ["nigger", "nigga",'nsfw','hentai','nude','naked']
 @bot.event
 async def on_message(message):
     await bot.process_commands(message)
