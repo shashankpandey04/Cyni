@@ -1,10 +1,7 @@
 import discord
 from discord.ext import commands
 import time
-import requests
-import psutil
-from cyni import dbstatus, on_command_error
-from utils import fetch_random_joke
+from cyni import dbstatus
 
 class Ping(commands.Cog):
     def __init__(self, bot):

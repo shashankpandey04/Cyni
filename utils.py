@@ -452,16 +452,6 @@ def generate_variations(word):
                 variations.append(variation)
     return variations
 
-racial_slurs = ["nigger", "nigga"]
-async def check_for_racial_slurs(message):
-    clean_message = message.content.lower().strip()
-    for slur in racial_slurs:
-        slur_variations = generate_variations(slur)
-        for variation in slur_variations:
-            if variation in clean_message:
-                await message.delete()
-                await message.channel.send("Please refrain from using racial slurs.")
-                return
             
 def save_promotion_channel(guild_id,channel_id):
     try:
@@ -508,5 +498,59 @@ def get_infraction_channel(guild_id):
             return None
     except Exception as e:
         print(f"An error occurred while getting infraction channel: {e}")
+    finally:
+        cursor.close()
+
+def save_application_channel(guild_id,channel_id):
+    try:
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO server_config (guild_id, application_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE application_channel = VALUES(application_channel)", (guild_id, channel_id))
+        db.commit()
+    except Exception as e:
+        print(f"An error occurred while saving LOA roles: {e}")
+    finally:
+        cursor.close()
+
+def get_application_channel(guild_id):
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT application_channel FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting application channel: {e}")
+    finally:
+        cursor.close()
+
+def save_message_quota(guild_id, quota):
+    try:
+        # Insert or update message quota
+        cursor = db.cursor()
+        query = """
+        INSERT INTO server_config (guild_id, message_quota)
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE message_quota = VALUES(message_quota)
+        """
+        cursor.execute(query, (guild_id, quota))
+        db.commit() 
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        cursor.close()
+
+def get_message_quota(guild_id):
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT message_quota FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting message quota: {e}")
     finally:
         cursor.close()

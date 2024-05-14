@@ -2,7 +2,7 @@ import discord
 from utils import *
 from db import mycon
 from discord.ui import Button, View
-
+from Modals.message_quota import MessageQuota
 class ConfirmView(View):
     def __init__(self):
         super().__init__()
@@ -25,27 +25,29 @@ async def display_server_config(interaction):
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         server_config = cursor.fetchone()
         if server_config:
-            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel,infraction_channel,promotion_channel,prefix = server_config
-        
+            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel,infraction_channel,promotion_channel,prefix,application_channel,message_quota = server_config
+            print(message_quota)
             embed = discord.Embed(
                 title="Server Config",
                 description=f"**Server Name:** {interaction.guild.name}\n**Server ID:** {guild_id}",
                 color=0x00FF00
             )
-            embed.add_field(name="Staff Roles", value=staff_roles if staff_roles else "Not set", inline=False)
-            embed.add_field(name="Management Roles", value=management_roles if management_roles else "Not set", inline=False)
-            embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=False)
-            embed.add_field(name="Premium", value="Enabled" if premium else "Disabled", inline=False)
-            embed.add_field(name="Report Channel", value=f"<#{report_channel}>" if report_channel else "Not set", inline=False)
-            embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=False)
-            embed.add_field(name="Anti Ping", value="Enabled" if anti_ping else "Disabled", inline=False)
-            embed.add_field(name="Anti Ping Roles", value=anti_ping_roles if anti_ping_roles else "Not set", inline=False)
-            embed.add_field(name="Bypass Anti Ping Roles", value=bypass_anti_ping_roles if bypass_anti_ping_roles else "Not set", inline=False)
-            embed.add_field(name="Loa Role", value=loa_role if loa_role else "Not set", inline=False)
-            embed.add_field(name="Staff Management Channel", value=f"<#{staff_management_channel}>" if staff_management_channel else "Not set", inline=False)
-            embed.add_field(name="Infraction Channel", value=f"<#{infraction_channel}>" if infraction_channel else "Not set", inline=False)
-            embed.add_field(name="Promotion Channel", value=f"<#{promotion_channel}>" if promotion_channel else "Not set", inline=False)
-            embed.add_field(name="Prefix", value=prefix if prefix else "?", inline=False)
+            embed.add_field(name="Staff Roles", value=staff_roles if staff_roles else "Not set", inline=True)
+            embed.add_field(name="Management Roles", value=management_roles if management_roles else "Not set", inline=True)
+            embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=True)
+            embed.add_field(name="Premium", value="Enabled" if premium else "Disabled", inline=True)
+            embed.add_field(name="Report Channel", value=f"<#{report_channel}>" if report_channel else "Not set", inline=True)
+            embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=True)
+            embed.add_field(name="Anti Ping", value="Enabled" if anti_ping else "Disabled", inline=True)
+            embed.add_field(name="Anti Ping Roles", value=anti_ping_roles if anti_ping_roles else "Not set", inline=True)
+            embed.add_field(name="Bypass Anti Ping Roles", value=bypass_anti_ping_roles if bypass_anti_ping_roles else "Not set", inline=True)
+            embed.add_field(name="Loa Role", value=loa_role if loa_role else "Not set", inline=True)
+            embed.add_field(name="Staff Management Channel", value=f"<#{staff_management_channel}>" if staff_management_channel else "Not set", inline=True)
+            embed.add_field(name="Infraction Channel", value=f"<#{infraction_channel}>" if infraction_channel else "Not set", inline=True)
+            embed.add_field(name="Promotion Channel", value=f"<#{promotion_channel}>" if promotion_channel else "Not set", inline=True)
+            embed.add_field(name="Prefix", value=prefix if prefix else "?", inline=True)
+            embed.add_field(name="Application Channel", value=f"<#{application_channel}>" if application_channel else "Not set", inline=True)
+            embed.add_field(name="Message Quota", value=message_quota if message_quota else "Not set", inline=True)
 
             await interaction.response.send_message(view = ChangeConfigView(), embed=embed, ephemeral=True)
         else:
@@ -59,11 +61,10 @@ class SetupBot(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(label="Staff Management", description="Manage Staff to work with Cyni", emoji="👮"),
-            discord.SelectOption(label="LOA Module",description="Setup LOA Role & Staff Management Channel",emoji="🏖️"),
             discord.SelectOption(label="Server Config", description="View/Edit Server Config", emoji="📜"),
             discord.SelectOption(label="Anti Ping", description="Setup Anti Ping Roles", emoji="🔕"),
-            discord.SelectOption(label="Support Server", description="Join Cyni Support Server", emoji="👥"),
-            discord.SelectOption(label="Staff Management Channel", description="Select Staff Management Channel", emoji="📝")
+            discord.SelectOption(label="Staff Management Channel", description="Select Staff Management Channel", emoji="📝"),
+            discord.SelectOption(label="Message Quota", description="Set Message Quota", emoji="📝")
         ]
         super().__init__(placeholder="Setup Cyni", options=options, min_values=1, max_values=1)
 
@@ -78,11 +79,10 @@ class SetupBot(discord.ui.Select):
             await interaction.response.send_message(embed=embed,view=AntiPingView(),ephemeral=True)
         elif self.values[0] == "Server Config":
             await display_server_config(interaction)
-        elif self.values[0] == "Support Server":
-            embed = discord.Embed(title="Cyni Support", description="Need any help with Cyni?\nJoin support server.", color=0xFF00)
-            await interaction.response.send_message(embed=embed, view=SupportBtn(), ephemeral=True)
         elif self.values[0] == "Staff Management Channel":
             await interaction.response.send_message(view=SelectChannelsView(),ephemeral=True)
+        elif self.values[0] == "Message Quota":
+            await interaction.response.send_modal(MessageQuota())
 
 class SetupView(discord.ui.View):
     def __init__ (self):
@@ -352,7 +352,8 @@ class SelectChannels(discord.ui.Select):
             discord.SelectOption(label="LOA Request Channel", description="Select Staff Management Channel", emoji="📝"),
             discord.SelectOption(label="Infraction Channel", description="Select Infraction Channel", emoji="📝"),
             discord.SelectOption(label="Promotion Channel", description="Select Promotion Channel", emoji="📝"),
-            discord.SelectOption(label="Log Channel", description="Select Mod Log Channel", emoji="📝")
+            discord.SelectOption(label="Log Channel", description="Select Mod Log Channel", emoji="📝"),
+            discord.SelectOption(label="Application Channel", description="Select Application Channel", emoji="📝")
         ]
         super().__init__(placeholder="Select Category", options=options, min_values=1, max_values=1)
 
@@ -367,6 +368,8 @@ class SelectChannels(discord.ui.Select):
                 await interaction.channel.send(view=PromotionChannelView())
             elif self.values[0] == "Log Channel":
                 await interaction.channel.send(view=ModLogView())
+            elif self.values[0] == "Application Channel":
+                await interaction.channel.send(view=ApplicationChannelView())
         except TimeoutError:
             await interaction.channel.send("Timed out. Please try again.")
             return
@@ -411,6 +414,29 @@ class PromotionChannel(discord.ui.ChannelSelect):
             save_promotion_channel(guild_id, response)
 
             embed = discord.Embed(description="Promotion Channel saved.", color=0x00FF00)
+            await interaction.channel.send(embed=embed)
+            self.view.stop()
+        except TimeoutError:
+            await interaction.channel.send(f"{interaction.user.mention} Timed out. Please try again.")
+            return
+        
+class ApplicationChannelView(discord.ui.View):
+    def __init__ (self):
+        super().__init__()
+        self.add_item(ApplicationChannel())
+
+class ApplicationChannel(discord.ui.ChannelSelect):
+    def __init__(self):
+        super().__init__(placeholder="Select Application Channel")
+
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer()
+            response = self.values[0].id if self.values else None
+            guild_id = interaction.guild.id
+            save_application_channel(guild_id, response)
+
+            embed = discord.Embed(description="Application Channel saved.", color=0x00FF00)
             await interaction.channel.send(embed=embed)
             self.view.stop()
         except TimeoutError:

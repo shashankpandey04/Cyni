@@ -26,8 +26,7 @@ cyni_support_role_id = 800203880515633163
 
 BOT_USER_ID = 1136945734399295538
 dev = ['1201129677457215558','707064490826530888']
-racial_slurs = []
-
+racial_slurs = ["nigger", "nigga",'nsfw','hentai','nude','naked']
 @bot.event
 async def on_message(message):
     await bot.process_commands(message)
@@ -41,7 +40,10 @@ async def on_message(message):
         if message.author.id in dev:
             await message.channel.send("<@800203880515633163> Get to work!")
             return
-    #await check_for_racial_slurs(message)
+    if any(slur in message.content.lower() for slur in racial_slurs):
+        await message.delete()
+        await message.channel.send(f"{message.author.mention}, your message contained inappropriate content and was removed.")
+        return
     try:
         guild_id = message.guild.id
         user_id = message.author.id
@@ -50,7 +52,7 @@ async def on_message(message):
         server_config = cursor.fetchone()
         cursor.close()
         if server_config:
-            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel,infraction_channel,promotion_channel,prefix = server_config
+            guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel,infraction_channel,promotion_channel,prefix,application_channel,message_quota = server_config
             if anti_ping == 1:
                 anti_ping_roles = anti_ping_roles or [] 
                 bypass_anti_ping_roles = bypass_anti_ping_roles or [] 
@@ -103,7 +105,7 @@ async def on_ready():
     for guild in bot.guilds:
         create_or_get_server_config(guild.id)
     cleanup_guild_data(bot)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="v6 | /help"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Patch 6.2"))
     await bot.load_extension("jishaku")
 
 @bot.hybrid_group()
@@ -112,21 +114,24 @@ async def activity(ctx):
 
 @activity.command()
 async def leaderboard(ctx):
-    '''Get activity leaderboard for the server.'''
+    '''Get activity leaderboard for the server, sorted by messages sent (high to low) with quota check.'''
     try:
+        quota = get_message_quota(ctx.guild.id)  # Get guild's message quota
+        quota = int(quota) if quota else 100  # Default quota is 100
         mycur = mycon.cursor()
         mycur.execute("SELECT user_id, SUM(messages_sent) AS total_messages FROM activity_logs WHERE guild_id = %s GROUP BY user_id", (ctx.guild.id,))
         activity_data = mycur.fetchall()
+        # Sort leaderboard data by total messages (descending order)
+        sorted_data = sorted(activity_data, key=lambda x: x[1], reverse=True)
         leaderboard_embed = discord.Embed(title="Activity Leaderboard", color=0x2F3136)
-        for user_id, total_messages in activity_data:
+        for user_id, total_messages in sorted_data:
             member = ctx.guild.get_member(user_id)
             if member:
-                leaderboard_embed.add_field(name=member.display_name, value=f"Total Messages: {total_messages}", inline=False)
+                quota_status = "✅" if total_messages >= quota else "❌"
+                leaderboard_embed.add_field(name=f"{member.display_name}", value=f"Total Messages: {total_messages} {quota_status}", inline=False)
         await ctx.send(embed=leaderboard_embed)
     except Exception as e:
         await ctx.send(f"An error occurred: {e}")
-    finally:
-        mycur.close()
 
 @activity.command()
 async def stats(ctx, member: discord.Member):
@@ -270,13 +275,21 @@ async def passed(ctx, member: discord.Member,*,feedback: str):
   '''Post Passed Application Result'''
   try:
       if await check_permissions_management(ctx, ctx.author):
-        embed = discord.Embed(
-        title=f"{ctx.guild.name} | Application Result.", color=0x2F3136)
-        embed.add_field(name="Staff Name", value=member.mention)
-        embed.add_field(name="Feedback", value=feedback)
-        embed.set_thumbnail(url=member.avatar.url)
-        embed.add_field(name="Signed By", value=ctx.author.mention)
-        await ctx.send(member.mention, embed=embed)
+        channel = get_application_channel(ctx.guild.id)
+        channel = int(channel)
+        app_channel = discord.utils.get(ctx.guild.channels, id=channel)
+        if channel is None:
+          await ctx.send("❌ Application channel not found.")
+          return
+        else:
+            embed = discord.Embed(
+            title=f"{ctx.guild.name} | Application Result.", color=0x2F3136)
+            embed.add_field(name="Staff Name", value=member.mention)
+            embed.add_field(name="Feedback", value=feedback)
+            embed.set_thumbnail(url=member.avatar.url)
+            embed.add_field(name="Signed By", value=ctx.author.mention)
+            await ctx.send("Result Posted")
+            await app_channel.send(member.mention, embed=embed)
       else:
         await ctx.sed("❌ You don't have permission to use this command.")
   except Exception as error:
@@ -287,14 +300,20 @@ async def failed(ctx, member: discord.Member, *,feedback: str):
   '''Post Failed Application result.'''
   try:
       if await check_permissions_management(ctx, ctx.author):
-          embed = discord.Embed(
-            title=f"{ctx.guild.name} | Application Result.", 
-            color=0x2F3136)
-          embed.add_field(name="Staff Name", value=member.mention)
-          embed.add_field(name="Feedback", value=feedback)
-          embed.add_field(name="Signed By", value=ctx.author.mention)
-          embed.set_thumbnail(url=member.avatar.url)
-          await ctx.send("Result Posted")
+            channel = get_application_channel(ctx.guild.id)
+            channel = int(channel)
+            app_channel = discord.utils.get(ctx.guild.channels, id=channel)
+            if channel is None:
+              await ctx.send("❌ Application channel not found.")
+            embed = discord.Embed(
+                title=f"{ctx.guild.name} | Application Result.", 
+                color=0x2F3136)
+            embed.add_field(name="Staff Name", value=member.mention)
+            embed.add_field(name="Feedback", value=feedback)
+            embed.add_field(name="Signed By", value=ctx.author.mention)
+            embed.set_thumbnail(url=member.avatar.url)
+            await ctx.send("Result Posted")
+            await app_channel.send(member.mention, embed=embed)
       else:
           await ctx.send("❌ You don't have permission to use this command.")
   except Exception as error:
