@@ -37,19 +37,19 @@ async def display_server_config(interaction):
             embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=True)
             embed.add_field(name="Premium", value="Enabled" if premium else "Disabled", inline=True)
             embed.add_field(name="Report Channel", value=f"<#{report_channel}>" if report_channel else "Not set", inline=True)
-            embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=True)
+            #embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=True)
             embed.add_field(name="Anti Ping", value="Enabled" if anti_ping else "Disabled", inline=True)
             embed.add_field(name="Anti Ping Roles", value=anti_ping_roles if anti_ping_roles else "Not set", inline=True)
             embed.add_field(name="Bypass Anti Ping Roles", value=bypass_anti_ping_roles if bypass_anti_ping_roles else "Not set", inline=True)
-            embed.add_field(name="Loa Role", value=loa_role if loa_role else "Not set", inline=True)
-            embed.add_field(name="Staff Management Channel", value=f"<#{staff_management_channel}>" if staff_management_channel else "Not set", inline=True)
+            #embed.add_field(name="Loa Role", value=loa_role if loa_role else "Not set", inline=True)
+            #embed.add_field(name="Staff Management Channel", value=f"<#{staff_management_channel}>" if staff_management_channel else "Not set", inline=True)
             embed.add_field(name="Infraction Channel", value=f"<#{infraction_channel}>" if infraction_channel else "Not set", inline=True)
             embed.add_field(name="Promotion Channel", value=f"<#{promotion_channel}>" if promotion_channel else "Not set", inline=True)
             embed.add_field(name="Prefix", value=prefix if prefix else "?", inline=True)
             embed.add_field(name="Application Channel", value=f"<#{application_channel}>" if application_channel else "Not set", inline=True)
             embed.add_field(name="Message Quota", value=message_quota if message_quota else "Not set", inline=True)
 
-            await interaction.response.send_message(view = ChangeConfigView(), embed=embed, ephemeral=True)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
             await interaction.response.send_message("Server config not found.", ephemeral=True)
     except Exception as e:
@@ -88,31 +88,6 @@ class SetupView(discord.ui.View):
     def __init__ (self):
       super().__init__()
       self.add_item(SetupBot())
-
-class ChangeCofig(discord.ui.Select):
-    def __init__ (self):
-      options = [
-         discord.SelectOption(label="Discord Staff Roles",description="Change Staff Roles",emoji="👮"),
-         discord.SelectOption(label="Management Roles",description="Change Management Roles",emoji="🚨"),
-         discord.SelectOption(label="Loa Role",description="Change Loa Role",emoji="🏝️"),
-        ]
-      super().__init__(placeholder="Change Server Config",options=options,min_values=1,max_values=1)
-    async def callback(self,interaction: discord.Interaction):
-      try:
-        if self.values[0] == "Discord Staff Roles":
-          await interaction.response.send_message(view=DiscordStaffRoles(),ephemeral=True)
-        elif self.values[0] == "Management Roles":
-          await interaction.response.send_message(view=ManagementRoleView(),ephemeral=True)
-        elif self.values[0] == "Loa Role":
-          await interaction.response.send_message(view=LoaRoleView() ,ephemeral=True)
-      except TimeoutError:
-        await interaction.response.send_message("Timed out. Please try again.")
-        return
-      
-class ChangeConfigView(discord.ui.View):
-    def __init__ (self):
-      super().__init__()
-      self.add_item(ChangeCofig())
 
 class DiscordStaffRoleSelect(discord.ui.RoleSelect):
     def __init__(self):
@@ -349,7 +324,6 @@ class SelectChannelsView(discord.ui.View):
 class SelectChannels(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="LOA Request Channel", description="Select Staff Management Channel", emoji="📝"),
             discord.SelectOption(label="Infraction Channel", description="Select Infraction Channel", emoji="📝"),
             discord.SelectOption(label="Promotion Channel", description="Select Promotion Channel", emoji="📝"),
             discord.SelectOption(label="Log Channel", description="Select Mod Log Channel", emoji="📝"),
@@ -360,9 +334,7 @@ class SelectChannels(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         try:
             await interaction.response.defer(ephemeral=True)  # Make the response ephemeral
-            if self.values[0] == "LOA Request Channel":
-                await interaction.channel.send(view=StaffManagementChannelView())
-            elif self.values[0] == "Infraction Channel":
+            if self.values[0] == "Infraction Channel":
                 await interaction.channel.send(view=InfractionChannelView())
             elif self.values[0] == "Promotion Channel":
                 await interaction.channel.send(view=PromotionChannelView())

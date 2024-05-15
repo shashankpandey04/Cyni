@@ -26,7 +26,20 @@ cyni_support_role_id = 800203880515633163
 
 BOT_USER_ID = 1136945734399295538
 dev = ['1201129677457215558','707064490826530888']
-racial_slurs = ["nigger", "nigga",'nsfw','hentai','nude','naked']
+racial_slurs = []
+def load_racial_slurs():
+    try:
+        cursor = mycon.cursor()
+        query = "SELECT word FROM block_word"
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        for row in rows:
+            racial_slurs.append(row[0])
+    except Exception as e:
+        print(f"An error occurred while loading racial slurs: {e}")
+
+load_racial_slurs()
+
 @bot.event
 async def on_message(message):
     await bot.process_commands(message)
@@ -41,8 +54,12 @@ async def on_message(message):
             await message.channel.send("<@800203880515633163> Get to work!")
             return
     if any(slur in message.content.lower() for slur in racial_slurs):
+        if message.author.guild_permissions.administrator:
+            #print("Admin Bypass")
+            return
         await message.delete()
         await message.channel.send(f"{message.author.mention}, your message contained inappropriate content and was removed.")
+        #print(f"{message} removed")
         return
     try:
         guild_id = message.guild.id
@@ -71,22 +88,11 @@ async def on_message(message):
         user_roles = [role.id for role in message.author.roles]
         if any(role_id in user_roles for role_id in staff_or_management_roles):
             cursor = mycon.cursor()
-            cursor.execute("INSERT INTO activity_logs (user_id, guild_id, messages_sent) VALUES (%s, %s, 1) ON DUPLICATE KEY UPDATE messages_sent = messages_sent + 1", (user_id, guild_id))
+            cursor.execute("INSERT INTO activity_logs (user_id, guild_id, messages_sent) VALUES (%s, %s, 1) ON DUPLICATE KEY UPDATE messages_sent = messages_sent + 1",(user_id, guild_id))
             mycon.commit()
             cursor.close()
     except Exception as e:
         print(f"An error occurred while processing message: {e}")
-    
-
-async def check_for_racial_slurs(message):
-    clean_message = message.content.lower().strip()
-    for slur in racial_slurs:
-        slur_variations = generate_variations(slur)
-        for variation in slur_variations:
-            if variation in clean_message:
-                await message.delete()
-                await message.channel.send("Please refrain from using racial slurs.")
-                return
 
 async def load():
     for directory in ["Cogs", "Roblox", "ImagesCommand", "Staff_Commands", "Moderation"]:
@@ -102,9 +108,6 @@ async def on_ready():
     await load()
     await bot.tree.sync()
     bot.start_time = time.time()
-    for guild in bot.guilds:
-        create_or_get_server_config(guild.id)
-    cleanup_guild_data(bot)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/help | Cyni"))
     await bot.load_extension("jishaku")
 
@@ -124,10 +127,14 @@ async def leaderboard(ctx):
         # Sort leaderboard data by total messages (descending order)
         sorted_data = sorted(activity_data, key=lambda x: x[1], reverse=True)
         leaderboard_embed = discord.Embed(title="Activity Leaderboard", color=0x2F3136)
+        emoji_server_id = 1228305781938720779
+        emoji_server = bot.get_guild(emoji_server_id)
+        tick = discord.utils.get(emoji_server.emojis, id=1240174811024461844)
+        cross = discord.utils.get(emoji_server.emojis, id=1240175023050719314)
         for user_id, total_messages in sorted_data:
             member = ctx.guild.get_member(user_id)
             if member:
-                quota_status = "✅" if total_messages >= quota else "❌"
+                quota_status = f"{tick}" if total_messages >= quota else f"{cross}"
                 leaderboard_embed.add_field(name=f"{member.display_name}", value=f"Total Messages: {total_messages} {quota_status}", inline=False)
         await ctx.send(embed=leaderboard_embed)
     except Exception as e:
@@ -663,4 +670,7 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
 
 TOKEN = cyni_token()
 def cyni():
-    bot.run(TOKEN)
+    bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GXjwyt.sx8IY0p9qt3y03gQDvbD4xCyFGjdmn23FeJ1iQ")
+
+if __name__ == "__main__":
+    cyni()

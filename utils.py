@@ -29,9 +29,18 @@ def create_or_get_server_config(guild_id):
     return config
 
 def modlogchannel(guild_id):
-  """Get moderation log channel for a specific guild."""
-  config = load_config()
-  return config.get(str(guild_id), {}).get("mod_log_channel")
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT mod_log_channel FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting mod log channel: {e}")
+    finally:
+        cursor.close()
 
 def save_custom_command(config):
     try:
