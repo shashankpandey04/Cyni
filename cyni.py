@@ -213,7 +213,10 @@ async def on_guild_join(guild):
     support_server = bot.get_guild(support_server_id)
     support_channel = support_server.get_channel(support_channel_id)
     embed = discord.Embed(title="New Server Joined", color=0x2F3136)
-    embed.set_thumbnail(url=guild.icon.url)
+    try:
+        embed.set_thumbnail(url=guild.icon.url)
+    except:
+        pass
     embed.add_field(name="Server Name", value=guild.name, inline=False)
     embed.add_field(name="Server ID", value=guild.id, inline=False)
     embed.add_field(name="Owner", value=guild.owner, inline=False)
@@ -283,6 +286,9 @@ async def passed(ctx, member: discord.Member,*,feedback: str):
   try:
       if await check_permissions_management(ctx, ctx.author):
         channel = get_application_channel(ctx.guild.id)
+        if channel is not None:
+            await ctx.send("❌ Application channel not found.")
+            return
         channel = int(channel)
         app_channel = discord.utils.get(ctx.guild.channels, id=channel)
         if channel is None:
@@ -298,7 +304,7 @@ async def passed(ctx, member: discord.Member,*,feedback: str):
             await ctx.send("Result Posted")
             await app_channel.send(member.mention, embed=embed)
       else:
-        await ctx.sed("❌ You don't have permission to use this command.")
+        await ctx.send("❌ You don't have permission to use this command.")
   except Exception as error:
           await on_command_error(ctx, error)
 
@@ -308,6 +314,9 @@ async def failed(ctx, member: discord.Member, *,feedback: str):
   try:
       if await check_permissions_management(ctx, ctx.author):
             channel = get_application_channel(ctx.guild.id)
+            if channel is not None:
+                await ctx.send("❌ Application channel not found.")
+                return
             channel = int(channel)
             app_channel = discord.utils.get(ctx.guild.channels, id=channel)
             if channel is None:
@@ -368,6 +377,9 @@ async def promote(ctx, member: discord.Member, *, rank: discord.Role, approval: 
         if await check_permissions_management(ctx, ctx.author):
             channel_id = get_promo_channel(ctx.guild.id)  # Get the channel ID
             #converting channel_id into integer
+            if channel_id is None:
+                await ctx.send("❌ Promo channel not found.")
+                return
             channel_id = int(channel_id)
             print(channel_id)
             promo_channel = discord.utils.get(ctx.guild.channels, id=channel_id)  # Get the channel object
