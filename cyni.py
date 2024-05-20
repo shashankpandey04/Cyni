@@ -708,7 +708,7 @@ async def linkroblox(interaction:discord.Interaction):
 
 TOKEN = cyni_token()
 def cyni():
-    bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GL0hpF.msEYhhpfvxWjNqDewmABOHHvUNfhnHjQXIG5O4")
+    bot.run(TOKEN)
 
 if __name__ == '__main__':
     cyni()
