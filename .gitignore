@@ -2,3 +2,4 @@ hyme.py
 __pycache__
 .venv
 token.txt
+.env

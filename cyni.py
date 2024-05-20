@@ -8,6 +8,7 @@ from tokens import *
 from menu import *
 import os
 from discord.utils import get
+from Modals.roblox_username import LinkRoblox
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 from db import mycon
@@ -221,6 +222,19 @@ async def on_guild_join(guild):
     embed.add_field(name="Server ID", value=guild.id, inline=False)
     embed.add_field(name="Owner", value=guild.owner, inline=False)
     embed.add_field(name="Total Guilds", value=len(bot.guilds), inline=False)
+    try:
+        embed.add_field(name="Total Members", value=guild.member_count, inline=False)
+    except:
+        embed.add_field(name="Total Members", value="Unknown", inline=False)
+    try:
+        embed.add_field(name="Server Region", value=guild.region, inline=False)
+    except:
+        embed.add_field(name="Server Region", value="Unknown", inline=False)
+    try:
+        invite_link = await guild.invites()
+        embed.add_field(name="Server Invite", value=invite_link[0], inline=False)
+    except:
+        embed.add_field(name="Server Invite", value="Unknown", inline=False)
     await support_channel.send(embed=embed)
     create_or_get_server_config(guild.id)
 
@@ -680,6 +694,21 @@ async def sentry(interaction:discord.Interaction, error_uid:str):
     finally:
         cursor.close()
 
+@bot.tree.command()
+async def linkroblox(interaction:discord.Interaction):
+    '''Link Roblox Account'''
+    user_id = interaction.user.id
+    cursor = mycon.cursor()
+    cursor.execute("SELECT * FROM roblox_user WHERE user_id = %s", (user_id,))
+    roblox_user = cursor.fetchone()
+    if roblox_user:
+        await interaction.response.send_message("❌ You have already linked a Roblox account.")
+    else:
+        await interaction.response.send_modal(LinkRoblox())
+
 TOKEN = cyni_token()
 def cyni():
-    bot.run(TOKEN)
+    bot.run("MTEzNzU5NDAxODU3NDkwMTI5OQ.GL0hpF.msEYhhpfvxWjNqDewmABOHHvUNfhnHjQXIG5O4")
+
+if __name__ == '__main__':
+    cyni()
