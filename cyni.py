@@ -12,6 +12,8 @@ from Modals.roblox_username import LinkRoblox
 from dotenv import load_dotenv
 import os
 
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 from db import mycon
@@ -486,8 +488,8 @@ async def manage(ctx, action:str, name:str):
 async def load_custom_command(ctx):
     try:
         guild_id = str(ctx.guild.id)
-        if db.is_connected():
-            cursor = db.cursor(dictionary=True)
+        if mycon.is_connected():
+            cursor = mycon.cursor(dictionary=True)
             cursor.execute("SELECT * FROM custom_commands where guild_id = %s", (guild_id,))
             rows = cursor.fetchall()
             config = {}
