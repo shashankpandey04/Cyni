@@ -9,6 +9,9 @@ from menu import *
 import os
 from discord.utils import get
 from Modals.roblox_username import LinkRoblox
+from dotenv import load_dotenv
+import os
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 from db import mycon
@@ -19,8 +22,20 @@ def dbstatus():
     else:
         return "Disconnected"
 
+
+def get_prefix(bot, message):
+    cursor = mycon.cursor()
+    query = "SELECT prefix FROM server_config WHERE guild_id = %s"
+    cursor.execute(query, (message.guild.id,))
+    prefix = cursor.fetchone()
+    cursor.close()
+    if prefix:
+        return prefix[0]
+    else:
+        return "?"
+    
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='?', intents=intents)
+bot = commands.Bot(command_prefix = get_prefix, intents=intents)
 bot.remove_command('help')
 
 cyni_support_role_id = 800203880515633163
@@ -45,10 +60,6 @@ load_racial_slurs()
 async def on_message(message):
     await bot.process_commands(message)
     if message.author.bot:
-        return
-    if message.content.startswith("??"):
-        return
-    if message.content.startswith("?ssu" or "?ssd" or "?ssup"):
         return
     if message.content.startswith("?jsk shutdown"):
         if message.author.id in dev:
@@ -111,6 +122,25 @@ async def on_ready():
     bot.start_time = time.time()
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/help | Cyni"))
     await bot.load_extension("jishaku")
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return
+    error_uid = generate_error_uid()
+    sentry = discord.Embed(
+        title="❌ An error occurred.",
+        description=f"Error ID: `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
+        color=0xFF0000
+    )
+    try:
+        if ctx.interaction is not None:
+            await ctx.interaction.response.send_message(embed=sentry)
+        else:
+            await ctx.send(embed=sentry)
+        log_error(error, error_uid)
+    except:
+        log_error(error, error_uid)
 
 @bot.hybrid_group()
 async def activity(ctx):
@@ -187,25 +217,6 @@ async def reset(ctx):
         await ctx.send(f"An error occurred: {e}")
     finally:
         mycur.close()
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        return
-    error_uid = generate_error_uid()
-    sentry = discord.Embed(
-        title="❌ An error occurred.",
-        description=f"Error ID: `{error_uid}`\nThis can be solved by joining our support server.\n[Join Cyni Support](https://discord.gg/2D29TSfNW6)",
-        color=0xFF0000
-    )
-    try:
-        if ctx.interaction is not None:
-            await ctx.interaction.response.send_message(embed=sentry)
-        else:
-            await ctx.send(embed=sentry)
-        log_error(error, error_uid)
-    except:
-        log_error(error, error_uid)
 
 @bot.event
 async def on_guild_join(guild):
@@ -677,18 +688,21 @@ cyni_support_role_id = 1158043149424398406
 @bot.tree.command()
 async def sentry(interaction:discord.Interaction, error_uid:str):
     try:
-        cursor = mycon.cursor()
-        cursor.execute("SELECT * FROM error_logs WHERE uid = %s", (error_uid,))
-        error_log = cursor.fetchone()
-        if error_log:
-            uid, message, traceback, created_at = error_log[1:]
-            embed = discord.Embed(title="Error Log",description=f"Error UID: `{uid}`",color=0x2F3136)
-            embed.add_field(name="Message", value=message, inline=False)
-            embed.add_field(name="Traceback", value=traceback, inline=False)
-            embed.add_field(name="Created At", value=created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
-            await interaction.response.send_message(embed=embed)
+        if interaction.user.roles == cyni_support_role_id:
+            cursor = mycon.cursor()
+            cursor.execute("SELECT * FROM error_logs WHERE uid = %s", (error_uid,))
+            error_log = cursor.fetchone()
+            if error_log:
+                uid, message, traceback, created_at = error_log[1:]
+                embed = discord.Embed(title="Error Log",description=f"Error UID: `{uid}`",color=0x2F3136)
+                embed.add_field(name="Message", value=message, inline=False)
+                embed.add_field(name="Traceback", value=traceback, inline=False)
+                embed.add_field(name="Created At", value=created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
+                await interaction.response.send_message(embed=embed)
+            else:
+                await interaction.response.send_message(f"No error log found for UID `{error_uid}`.")
         else:
-            await interaction.response.send_message(f"No error log found for UID `{error_uid}`.")
+            await interaction.response.send_message("❌ You don't have permission to use this command.")
     except Exception as e:
         await interaction.response.send_message(f"An error occurred while fetching the error log: {e}")
     finally:
@@ -705,8 +719,31 @@ async def linkroblox(interaction:discord.Interaction):
         await interaction.response.send_message("❌ You have already linked a Roblox account.")
     else:
         await interaction.response.send_modal(LinkRoblox())
+        
+@bot.tree.command()
+async def prefix(interaction:discord.Interaction,prefix:str):
+    '''Change Prefix'''
+    if await check_permissions(interaction, interaction.user):
+        guild_id = interaction.guild.id
+        cursor = mycon.cursor()
+        cursor.execute("UPDATE server_config SET prefix = %s WHERE guild_id = %s", (prefix, guild_id))
+        mycon.commit()
+        cursor.close()
+        await interaction.response.send_message(f"Prefix changed to `{prefix}`.")
+    else:
+        await interaction.response.send_message("❌ You don't have permission to use this command.")
 
-TOKEN = cyni_token()
+TOKEN = os.getenv('PRODUCTION_TOKEN')
+if TOKEN:
+    logging.info("Using Production Token.")
+else:
+    TOKEN = os.getenv("DEVELOPMENT_TOKEN")
+    if TOKEN:
+        logging.info("Using Development Token.")
+    else:
+        logging.error("No token found.")
+        exit()
+
 def cyni():
     bot.run(TOKEN)
 

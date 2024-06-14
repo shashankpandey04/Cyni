@@ -23,7 +23,12 @@ def create_or_get_server_config(guild_id):
             "anti_ping_roles":[],
             "bypass_anti_ping_roles":[],
             "loa_role": "null",
-            "staff_management_channel": "null"
+            "staff_management_channel": "null",
+            "infraction_channel": "null",
+            "promotion_channel": "null",
+            "prefix": "?",
+            "application_channel": "null",
+            "message_quota": 0
         }
         update_server_config(guild_id, config)
     return config
@@ -336,7 +341,12 @@ def get_server_config(guild_id):
                 "anti_ping_roles": json.loads(row[8] or "[]"),
                 "bypass_anti_ping_roles": json.loads(row[9] or "[]"),
                 "loa_role": json.loads(row[10] or "[]"),
-                "staff_management_channel": row[11]
+                "staff_management_channel": row[11],
+                "infraction_channel": row[12],
+                "promotion_channel": row[13],
+                "prefix": row[14],
+                "application_channel": row[15],
+                "message_quota": row[16]
             }
             return config
         else:

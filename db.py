@@ -11,17 +11,17 @@ try:
         passwd=os.getenv('MACHINE_PASSWD'),
         database=os.getenv('MACHINE_DB')
     )
-    print("Connected to 'Machine Host' successfully.")
+    #print("Connected to 'Machine Host' successfully.")
 except mysql.Error as e:
-    print(f"Connection error to 'Machine Host': {e}")
+    #print(f"Connection error to 'Machine Host': {e}")
     try:
-        print("Attempting fallback connection to 'Remote Host'...")
+        #print("Attempting fallback connection to 'Remote Host'...")
         mycon = mysql.connect(
             host=os.getenv('REMOTE_HOST'),
             user=os.getenv('REMOTE_USER'),
             passwd=os.getenv('REMOTE_PASSWD'),
             database=os.getenv('REMOTE_DB')
         )
-        print("Connected to 'Remote Host' successfully.")
+        #print("Connected to 'Remote Host' successfully.")
     except mysql.Error as e:
         print(f"Connection error to 'Remote Host' as well: {e}")
