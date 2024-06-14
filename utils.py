@@ -6,7 +6,7 @@ import string
 import random
 import json
 from datetime import datetime
-from db import mycon as db
+from db import mycon
 
 def create_or_get_server_config(guild_id):
     """Create or get server configuration for a specific guild."""
@@ -35,7 +35,7 @@ def create_or_get_server_config(guild_id):
 
 def modlogchannel(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT mod_log_channel FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
@@ -49,8 +49,8 @@ def modlogchannel(guild_id):
 
 def save_custom_command(config):
     try:
-        if db.is_connected():
-            cursor = db.cursor()
+        if mycon.is_connected():
+            cursor = mycon.cursor()
             for guild_id, commands in config.items():
                 for command_name, details in commands.items():
                     title = details.get('title', '')
@@ -58,13 +58,13 @@ def save_custom_command(config):
                     color = details.get('colour', '')
                     image_url = details.get('image_url', '')
                     cursor.execute("INSERT INTO custom_commands (guild_id, command_name, title, description, color, image_url) VALUES (%s, %s, %s, %s, %s, %s)", (guild_id, command_name, title, description, color, image_url))
-            db.commit()
+            mycon.commit()
     except Exception as e:
         print("Error while connecting to MySQL", e)
     finally:
-        if 'connection' in locals() and db.is_connected():
+        if 'connection' in locals() and mycon.is_connected():
             cursor.close()
-            db.close()
+            mycon.close()
 
 def list_custom_commands_embeds(interaction):
     config = load_custom_command()
@@ -135,8 +135,8 @@ def truncate_to_nearest_sentence(data, max_length):
 '''
 def load_custom_command():
     try:
-        if db.is_connected():
-            cursor = db.cursor(dictionary=True)
+        if mycon.is_connected():
+            cursor = mycon.cursor(dictionary=True)
             cursor.execute("SELECT * FROM custom_commands where guild_id = %s", (guild_id))
             rows = cursor.fetchall()
             config = {}
@@ -160,7 +160,7 @@ def load_custom_command():
     except Exception as e:
         print("Error while connecting to MySQL", e)
     finally:
-        if 'connection' in locals() and db.is_connected():
+        if 'connection' in locals() and mycon.is_connected():
             cursor.close()
     return {}
 
@@ -173,12 +173,12 @@ def generate_error_uid():
 def log_error(error, error_uid):
     cursor = None  # Initialize cursor variable outside the try block
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         traceback.print_exception(type(error), error, error.__traceback__)
         insert_query = "INSERT INTO error_logs (uid, message, traceback) VALUES (%s, %s, %s)"
         values = (error_uid, str(error), traceback.format_exc())
         cursor.execute(insert_query, values)
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print("Failed to log error:", e)
     finally:
@@ -209,7 +209,7 @@ def fetch_random_joke():
 
 def get_staff_roles(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT staff_roles FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
@@ -224,7 +224,7 @@ def get_staff_roles(guild_id):
 
 def get_management_roles(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT management_roles FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
@@ -239,7 +239,7 @@ def get_management_roles(guild_id):
 
 def get_staff_or_management_roles(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT staff_roles, management_roles FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
@@ -255,11 +255,11 @@ def get_staff_or_management_roles(guild_id):
     
 def save_management_roles(guild_id, management_roles):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         serialized_management_roles = json.dumps(management_roles)
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, management_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE management_roles = VALUES(management_roles)", (guild_id, serialized_management_roles))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving management roles: {e}")
     finally:
@@ -267,10 +267,10 @@ def save_management_roles(guild_id, management_roles):
 
 def save_staff_roles(guild_id, staff_roles):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         serialized_staff_roles = json.dumps(staff_roles)
         cursor.execute("INSERT INTO server_config (guild_id, staff_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE staff_roles = VALUES(staff_roles)", (guild_id, serialized_staff_roles))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving staff roles: {e}")
     finally:
@@ -278,7 +278,7 @@ def save_staff_roles(guild_id, staff_roles):
 
 def cleanup_guild_data(bot):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT guild_id FROM server_config")
         stored_guild_ids = [row[0] for row in cursor.fetchall()]
         bot_guild_ids = {guild.id for guild in bot.guilds}
@@ -286,7 +286,7 @@ def cleanup_guild_data(bot):
             if guild_id not in bot_guild_ids:
                 print(f"Bot is not a member of the guild {guild_id}. Removing data from server_config table.")
                 cursor.execute("DELETE FROM server_config WHERE guild_id = %s", (guild_id,))
-                db.commit()
+                mycon.commit()
     except Exception as e:
         print(f"An error occurred while cleaning up guild data: {e}")
     finally:
@@ -296,7 +296,7 @@ def load_config():
     """Load server configuration from server_config table in the MySQL database."""
     config = {}
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT * FROM server_config")
         rows = cursor.fetchall()
         for row in rows:
@@ -312,11 +312,11 @@ def load_config():
 def save_config(config):
     """Save server configuration to server_config table in the MySQL database."""
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         for guild_id, data in config.items():
             serialized_data = json.dumps(data)
             cursor.execute("INSERT INTO server_config (guild_id, staff_roles, management_roles) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE staff_roles = VALUES(staff_roles), management_roles = VALUES(management_roles)", (guild_id, serialized_data['staff_roles'], serialized_data['management_roles']))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving server configuration: {e}")
     finally:
@@ -325,7 +325,7 @@ def save_config(config):
 def get_server_config(guild_id):
     """Get server configuration for a specific guild."""
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT * FROM server_config WHERE guild_id = %s", (guild_id,))
         row = cursor.fetchone()
         if row:
@@ -359,11 +359,11 @@ def get_server_config(guild_id):
 def update_server_config(guild_id, data):
     """Update server configuration for a specific guild."""
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         serialized_data = json.dumps(data)
         try:
             cursor.execute("INSERT INTO server_config (guild_id, config_data) VALUES (%s, %s) ON DUPLICATE KEY UPDATE config_data = VALUES(config_data)", (guild_id, serialized_data))
-            db.commit()
+            mycon.commit()
         except Exception as e:
             pass
     except Exception as e:
@@ -373,9 +373,9 @@ def update_server_config(guild_id, data):
 
 def save_mod_log_channel(guild_id, mod_log_channel_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, mod_log_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE mod_log_channel = VALUES(mod_log_channel)", (guild_id, mod_log_channel_id))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving mod log channel: {e}")
     finally:
@@ -383,9 +383,9 @@ def save_mod_log_channel(guild_id, mod_log_channel_id):
 
 def set_anti_ping_option(guild_id, enable):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, anti_ping) VALUES (%s, %s) ON DUPLICATE KEY UPDATE anti_ping = VALUES(anti_ping)", (guild_id, enable))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while setting anti-ping option: {e}")
     finally:
@@ -393,9 +393,9 @@ def set_anti_ping_option(guild_id, enable):
     
 def save_anti_ping_roles(guild_id, anti_ping_roles):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, anti_ping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE anti_ping_roles = VALUES(anti_ping_roles)", (guild_id, json.dumps(anti_ping_roles)))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving anti-ping roles: {e}")
     finally:
@@ -403,9 +403,9 @@ def save_anti_ping_roles(guild_id, anti_ping_roles):
 
 def save_anti_ping_bypass_roles(guild_id, anti_ping_bypass_roles):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, bypass_anti_ping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE bypass_anti_ping_roles = VALUES(bypass_anti_ping_roles)", (guild_id, json.dumps(anti_ping_bypass_roles)))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving anti-ping bypass roles: {e}")
     finally:
@@ -413,9 +413,9 @@ def save_anti_ping_bypass_roles(guild_id, anti_ping_bypass_roles):
 
 def save_loa_roles(guild_id, loa_roles):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, loa_role) VALUES (%s, %s) ON DUPLICATE KEY UPDATE loa_role = VALUES(loa_role)", (guild_id, json.dumps(loa_roles)))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving LOA roles: {e}")
     finally:
@@ -423,9 +423,9 @@ def save_loa_roles(guild_id, loa_roles):
 
 def save_staff_management_channel(guild_id, staff_management_channel_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, staff_management_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE staff_management_channel = VALUES(staff_management_channel)", (guild_id, staff_management_channel_id))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving staff management channel: {e}")
     finally:
@@ -449,7 +449,7 @@ def robloxusername(userid):
     embed.add_field(name="Description",value=data["description"],inline=True)
     embed.set_thumbnail(url=thumbnail_url)
     embed.add_field(name="Is Banned", value=data["isBanned"], inline=True)
-    embed.add_field(name="Has Verified Badge",value=data["hasVerifiedBadge"],inline=True)
+    embed.add_field(name="Has Verified Badge",value=data["hasVerifiemyconadge"],inline=True)
     embed.add_field(name="Created", value=created_str, inline=True)
     return embed
 
@@ -474,9 +474,9 @@ def generate_variations(word):
             
 def save_promotion_channel(guild_id,channel_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, promotion_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE promotion_channel = VALUES(promotion_channel)", (guild_id, channel_id))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving LOA roles: {e}")
     finally:
@@ -484,9 +484,9 @@ def save_promotion_channel(guild_id,channel_id):
 
 def save_infraction_channel(guild_id,channel_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, infraction_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE infraction_channel = VALUES(infraction_channel)", (guild_id, channel_id))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving LOA roles: {e}")
     finally:
@@ -494,7 +494,7 @@ def save_infraction_channel(guild_id,channel_id):
 
 def get_promo_channel(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT promotion_channel FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
@@ -508,7 +508,7 @@ def get_promo_channel(guild_id):
 
 def get_infraction_channel(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT infraction_channel FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
@@ -522,9 +522,9 @@ def get_infraction_channel(guild_id):
 
 def save_application_channel(guild_id,channel_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("INSERT INTO server_config (guild_id, application_channel) VALUES (%s, %s) ON DUPLICATE KEY UPDATE application_channel = VALUES(application_channel)", (guild_id, channel_id))
-        db.commit()
+        mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving LOA roles: {e}")
     finally:
@@ -532,7 +532,7 @@ def save_application_channel(guild_id,channel_id):
 
 def get_application_channel(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT application_channel FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
@@ -547,14 +547,14 @@ def get_application_channel(guild_id):
 def save_message_quota(guild_id, quota):
     try:
         # Insert or update message quota
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         query = """
         INSERT INTO server_config (guild_id, message_quota)
         VALUES (%s, %s)
         ON DUPLICATE KEY UPDATE message_quota = VALUES(message_quota)
         """
         cursor.execute(query, (guild_id, quota))
-        db.commit() 
+        mycon.commit() 
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
@@ -562,7 +562,7 @@ def save_message_quota(guild_id, quota):
 
 def get_message_quota(guild_id):
     try:
-        cursor = db.cursor()
+        cursor = mycon.cursor()
         cursor.execute("SELECT message_quota FROM server_config WHERE guild_id = %s", (guild_id,))
         result = cursor.fetchone()
         if result:
