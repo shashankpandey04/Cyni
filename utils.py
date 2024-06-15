@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import json
 import requests
 import traceback
@@ -5,7 +6,10 @@ import discord
 import string
 import random
 import json
-from datetime import datetime
+
+from datetime import datetime,timezone
+from dateutil import parser
+
 from db import mycon
 
 def create_or_get_server_config(guild_id):
@@ -573,3 +577,106 @@ def get_message_quota(guild_id):
         print(f"An error occurred while getting message quota: {e}")
     finally:
         cursor.close()
+
+async def submit_ban_appeal(bot, interaction, date, reason, how, guild_id):
+    try:
+        guild = bot.get_guild(guild_id)
+        if guild is None:
+            guild = await bot.fetch_guild(guild_id)
+        if guild is None:
+            await interaction.response.send_message("The guild does not exist.")
+            return
+
+        banned_users = []
+        async for entry in guild.bans():
+            banned_users.append(entry.user.id)
+        
+        if interaction.user.id not in banned_users:
+            await interaction.response.send_message("You are not banned from this server.")
+            return
+        if interaction.user.id == guild.owner_id:
+            await interaction.response.send_message("The server owner cannot submit a ban appeal.")
+            return
+        # Fetch the application channel using the guild ID
+        application_channel_id = get_application_channel(guild_id)
+        
+        if application_channel_id:
+            application_channel_id = int(application_channel_id)
+
+            # Fetch the channel using the bot's API, since interaction.guild is not used
+            channel = bot.get_channel(application_channel_id)
+            if channel is None:
+                channel = await bot.fetch_channel(application_channel_id)
+
+            cursor = mycon.cursor()
+            cursor.execute("SELECT * FROM ban_appeals WHERE user_id = %s AND guild_id = %s AND status = 'pending'", (interaction.user.id, guild_id))
+            result = cursor.fetchone()
+            if result:
+                await interaction.response.send_message("You already have a pending ban appeal.")
+                return
+            cursor.execute("INSERT INTO ban_appeals (user_id, guild_id, date, reason, how, status) VALUES (%s, %s, %s, %s, %s, %s)", (interaction.user.id, guild_id, date, reason, how, 'pending'))
+            mycon.commit()
+            cursor.close()
+
+            if channel:
+                embed = discord.Embed(title="Ban Appeal", color=0x2F3136)
+                embed.add_field(name="Date Of Ban", value=date, inline=False)
+                embed.add_field(name="Reason For Ban", value=reason, inline=False)
+                embed.add_field(name="How You Will Change", value=how, inline=False)
+                embed.add_field(name="User", value=interaction.user.mention, inline=True)
+                embed.add_field(name="User ID", value=interaction.user.id, inline=True)
+                await channel.send(embed=embed)
+                await interaction.response.send_message("Your Ban Appeal has been submitted.")
+            else:
+                await interaction.response.send_message("The application channel is not set up. The server owner has been notified.")
+                owner = await bot.fetch_user(guild_id)
+                await owner.send("The application channel is not set up. Please set it up to receive ban appeals.")
+        else:
+            await interaction.response.send_message("The application channel is not set up.")
+    except Exception as e:
+        print(f"An error occurred while submitting the ban appeal: {e}")
+        await interaction.response.send_message("An error occurred while submitting the ban appeal.")
+
+def check_support_role(bot, member):
+    support_server = bot.get_guild(1152949579407442050)
+    support_role = support_server.get_role(1152949579407442050)
+    return support_role in member.roles
+
+def discord_timestamp(dt):
+    """
+    Converts a datetime object to Discord timestamp format.
+
+    Parameters:
+    dt (datetime): The datetime object to convert.
+
+    Returns:
+    str: Discord timestamp format string.
+    """
+    # Convert datetime to UTC and format as ISO 8601
+    discord_timestamp = dt.replace(tzinfo=timezone.utc).isoformat()
+
+    return f"<t:{int(dt.timestamp())}:F>"
+
+def roblox_discord_timestamp(iso_str):
+    """
+    Converts an ISO 8601 date-time string to Discord timestamp format.
+
+    Parameters:
+    iso_str (str): The ISO 8601 date-time string to convert.
+
+    Returns:
+    str: Discord timestamp format string.
+    """
+    # Parse the ISO 8601 date-time string
+    dt = parser.isoparse(iso_str)
+    
+    # Ensure the datetime is in UTC
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+
+    # Convert datetime to UNIX timestamp and format as Discord timestamp
+    unix_timestamp = int(dt.timestamp())
+
+    return f"<t:{unix_timestamp}:F>"

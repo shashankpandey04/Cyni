@@ -26,17 +26,44 @@ async def display_server_config(interaction):
         server_config = cursor.fetchone()
         if server_config:
             guild_id, staff_roles, management_roles, mod_log_channel, premium, report_channel, blocked_search, anti_ping, anti_ping_roles, bypass_anti_ping_roles, loa_role, staff_management_channel,infraction_channel,promotion_channel,prefix,application_channel,message_quota = server_config
-            print(message_quota)
+            
+            def convert_roles(role_list):
+                if not role_list:
+                    return None
+                
+                roles = [int(role.strip()) for role in role_list.strip('][').split(',') if role.strip().isdigit()]
+                valid_roles = [role for role in roles if interaction.guild.get_role(role)]
+                
+                return valid_roles
+            
+            staff_roles = convert_roles(staff_roles)
+            management_roles = convert_roles(management_roles)
+
             embed = discord.Embed(
                 title="Server Config",
                 description=f"**Server Name:** {interaction.guild.name}\n**Server ID:** {guild_id}",
-                color=0x00FF00
+                color=0x2F3136
+            ).add_field(
+                name="Discord Staff Roles", 
+                value=", ".join([f"<@&{role}>" for role in staff_roles]) if staff_roles else "Not set",
+                inline=True
+            ).add_field(
+                name="Management Roles", 
+                value=", ".join([f"<@&{role}>" for role in management_roles]) if management_roles else "Not set",
+                inline=True
+            ).add_field(
+                name="Mod Log Channel", 
+                value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", 
+                inline=True
+            ).add_field(
+                name="Premium", 
+                value="Enabled" if premium else "Disabled", 
+                inline=True
+            ).add_field(
+                name="Report Channel", 
+                value=f"<#{report_channel}>" if report_channel else "Not set", 
+                inline=True
             )
-            embed.add_field(name="Staff Roles", value=staff_roles if staff_roles else "Not set", inline=True)
-            embed.add_field(name="Management Roles", value=management_roles if management_roles else "Not set", inline=True)
-            embed.add_field(name="Mod Log Channel", value=f"<#{mod_log_channel}>" if mod_log_channel else "Not set", inline=True)
-            embed.add_field(name="Premium", value="Enabled" if premium else "Disabled", inline=True)
-            embed.add_field(name="Report Channel", value=f"<#{report_channel}>" if report_channel else "Not set", inline=True)
             #embed.add_field(name="Blocked Search", value=blocked_search if blocked_search else "Not set", inline=True)
             embed.add_field(name="Anti Ping", value="Enabled" if anti_ping else "Disabled", inline=True)
             embed.add_field(name="Anti Ping Roles", value=anti_ping_roles if anti_ping_roles else "Not set", inline=True)
@@ -46,12 +73,17 @@ async def display_server_config(interaction):
             embed.add_field(name="Infraction Channel", value=f"<#{infraction_channel}>" if infraction_channel else "Not set", inline=True)
             embed.add_field(name="Promotion Channel", value=f"<#{promotion_channel}>" if promotion_channel else "Not set", inline=True)
             embed.add_field(name="Prefix", value=prefix if prefix else "?", inline=True)
-            embed.add_field(name="Application Channel", value=f"<#{application_channel}>" if application_channel else "Not set", inline=True)
+            embed.add_field(name="Ban Appeal Channel", value=f"<#{application_channel}>" if application_channel else "Not set", inline=True)
             embed.add_field(name="Message Quota", value=message_quota if message_quota else "Not set", inline=True)
-
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            try:
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            except:
+                await interaction.send(embed=embed)
         else:
-            await interaction.response.send_message("Server config not found.", ephemeral=True)
+            try:
+                await interaction.response.send_message("Server config not found.", ephemeral=True)
+            except:
+                await interaction.send("Server config not found.")
     except Exception as e:
         print(f"An error occurred while fetching server config: {e}")
     finally:
@@ -60,26 +92,33 @@ async def display_server_config(interaction):
 class SetupBot(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Staff Management", description="Manage Staff to work with Cyni", emoji="👮"),
-            discord.SelectOption(label="Server Config", description="View/Edit Server Config", emoji="📜"),
-            discord.SelectOption(label="Anti Ping", description="Setup Anti Ping Roles", emoji="🔕"),
-            discord.SelectOption(label="Staff Management Channel", description="Select Staff Management Channel", emoji="📝"),
+            discord.SelectOption(label="Basic Setting", description="Manage Staff & Management Roles", emoji="👮"),
+            discord.SelectOption(label="Anti Ping Module", description="Setup Anti Ping Roles", emoji="🔕"),
+            discord.SelectOption(label="Management Channels", description=" Setup your channels for Infraction Logs, Promotion Logs, Mod Logs & Recive Ban Appeals.", emoji="📝"),
             discord.SelectOption(label="Message Quota", description="Set Message Quota", emoji="📝")
         ]
-        super().__init__(placeholder="Setup Cyni", options=options, min_values=1, max_values=1)
+        super().__init__(placeholder="Manage Server Settings", options=options, min_values=1, max_values=1)
 
     async def callback(self,interaction: discord.Interaction):
-        if self.values[0] == "Staff Management":
-            embed = discord.Embed(title="Staff Roles",description="Setup Staff Roles to work with Cyni",color=0xFF00)
+        if self.values[0] == "Basic Setting":
+            embed = discord.Embed(
+                title="Basic Setting",
+                description="Manage Staff & Management Roles",
+                color=0x2F3136
+            ).add_field(
+                name="Staff Roles",
+                value="These roles grant permission to use Cyni's moderation commands.",
+                inline=False
+            ).add_field(
+                name="Management Roles",
+                value="Users with these roles can utilize Cyni's management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel.",
+                inline=False
+            )
             await interaction.response.send_message(embed=embed,view=SelectStaffRoleView(),ephemeral=True)
-        elif self.values[0] == "Mod Log Channel":
-            await interaction.response.send_message("Select a channel where all the logs like warning,role addition,etc. will be logged.", view=ModLogView(),ephemeral=True)
-        elif self.values[0] == "Anti Ping":
+        elif self.values[0] == "Anti Ping Module":
             embed = discord.Embed(title="Anti Ping Roles",description="Setup Anti Ping Roles to work with Cyni",color=0xFF00)
             await interaction.response.send_message(embed=embed,view=AntiPingView(),ephemeral=True)
-        elif self.values[0] == "Server Config":
-            await display_server_config(interaction)
-        elif self.values[0] == "Staff Management Channel":
+        elif self.values[0] == "Management Channels":
             await interaction.response.send_message(view=SelectChannelsView(),ephemeral=True)
         elif self.values[0] == "Message Quota":
             await interaction.response.send_modal(MessageQuota())
@@ -100,7 +139,7 @@ class DiscordStaffRoleSelect(discord.ui.RoleSelect):
             guild_id = interaction.guild.id
             save_staff_roles(guild_id, response)
 
-            embed = discord.Embed(description="Discord Staff Roles saved.", color=0x00FF00)
+            embed = discord.Embed(description="Discord Staff Roles saved.", color=0x2F3136)
             await interaction.channel.send(embed=embed)
             self.view.stop()
         except TimeoutError:
@@ -326,14 +365,14 @@ class SelectChannels(discord.ui.Select):
         options = [
             discord.SelectOption(label="Infraction Channel", description="Select Infraction Channel", emoji="📝"),
             discord.SelectOption(label="Promotion Channel", description="Select Promotion Channel", emoji="📝"),
-            discord.SelectOption(label="Log Channel", description="Select Mod Log Channel", emoji="📝"),
+            discord.SelectOption(label="Mod Log Channel", description="Select Mod Log Channel", emoji="📝"),
             discord.SelectOption(label="Application Channel", description="Select Application Channel", emoji="📝")
         ]
         super().__init__(placeholder="Select Category", options=options, min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
         try:
-            await interaction.response.defer(ephemeral=True)  # Make the response ephemeral
+            await interaction.response.defer(ephemeral=True)
             if self.values[0] == "Infraction Channel":
                 await interaction.channel.send(view=InfractionChannelView())
             elif self.values[0] == "Promotion Channel":

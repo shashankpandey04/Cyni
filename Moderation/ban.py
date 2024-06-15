@@ -45,7 +45,7 @@ class Ban(commands.Cog):
             embed.add_field(name=f"{arrow} Guild Invite Link", value=f"{ctx.guild.text_channels[0].create_invite()}", inline=False)
             embed.add_field(name=f"{arrow} Guild ID", value=ctx.guild.id, inline=False)
             try:
-                await user.send(embed=embed)
+                await user.send(f"{caution} You have been banned from {ctx.guild} `{ctx.guild.id}` for {reason}. You can appeal your ban by using `/banappeal` command in Bot DMs.")
             except:
                 logging.error(f"Couldn't send a DM to {user} for warning.")
         except Exception as error:

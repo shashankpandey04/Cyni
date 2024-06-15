@@ -16,13 +16,29 @@ class Ping(commands.Cog):
         database_emoji = discord.utils.get(support_server.emojis, id=1215565017718587422)
         uptime_seconds = time.time() - self.bot.start_time
         uptime_string = time.strftime('%Hh %Mm %Ss', time.gmtime(uptime_seconds))
-        embed = discord.Embed(title='Bot Ping', color=0x00FF00)
-        embed.add_field(name=f'🟢 Pong!', value=f"{latency}ms", inline=True)
-        embed.add_field(name=f'Uptime', value=uptime_string, inline=True)
-        embed.add_field(name=f"{database_emoji} Database Status", value=db, inline=True)
-        embed.add_field(name=f"Bot Version", value="6.2.0", inline=True)
-        embed.set_thumbnail(url=self.bot.user.avatar.url)
-        await ctx.channel.send(embed=embed)
+        embed = discord.Embed(
+            title='Bot Ping', 
+            color=0x2F3136
+        ).add_field(
+            name=f'🟢 Pong!', 
+            value=f"{latency}ms", 
+            inline=True
+        ).add_field(
+            name=f'Uptime', 
+            value=uptime_string, 
+            inline=True
+        ).add_field(
+            name=f"{database_emoji} Database Status", 
+            value=db, 
+            inline=True
+        ).add_field(
+            name=f"Bot Version", 
+            value="6.4", 
+            inline=True
+        ).set_thumbnail(
+            url=self.bot.user.avatar.url
+        )
+        await ctx.send(embed=embed)
 
 async def setup(bot):
    await bot.add_cog(Ping(bot))
