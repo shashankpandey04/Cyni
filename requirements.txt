@@ -4,3 +4,4 @@ jishaku
 mysql-connector-python
 asyncio
 python-dotenv
+python-dateutil
