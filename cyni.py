@@ -65,15 +65,16 @@ async def load():
             if filename.endswith('.py'):
                 try:
                     await bot.load_extension(f"{directory}.{filename[:-3]}")
+                    logging.info(f"Loaded extension '{filename}'")
                 except Exception as e:
-                    print(f"Failed to load extension '{filename}': {e}")
+                    logging.error(f"Failed to load extension '{filename}': {e}")
 
 @bot.event
 async def on_ready():
     await load()
     await bot.tree.sync()
     bot.start_time = time.time()
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Patch 6.5"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="/support | Cyni"))
     await bot.load_extension("jishaku")
 
 @bot.event
@@ -435,6 +436,11 @@ async def prefix(ctx,prefix:str):
     else:
         await ctx.send("❌ You don't have permission to use this command.")
 
+@bot.tree.command()
+async def banappeal(interaction: discord.Interaction):
+    '''Appeal a Ban'''
+    await interaction.response.send_modal(BanAppealModal(bot))
+
 TOKEN = os.getenv('PRODUCTION_TOKEN')
 if TOKEN:
     logging.info("Using Production Token.")
@@ -445,11 +451,6 @@ else:
     else:
         logging.error("No token found.")
         exit()
-
-@bot.tree.command()
-async def banappeal(interaction: discord.Interaction):
-    '''Appeal a Ban'''
-    await interaction.response.send_modal(BanAppealModal(bot))
 
 def cyni():
     bot.run(TOKEN)

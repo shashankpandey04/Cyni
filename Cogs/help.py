@@ -12,7 +12,7 @@ class Help(commands.Cog):
         embed.add_field(name="Cyni Docs",value="[Cyni Docs](https://qupr-digital.gitbook.io/cyni-docs/)",inline=False)
         embed.add_field(name="Support Server",value="[Join Cyni Support Server for help.](https://discord.gg/J96XEbGNDm)",inline=False)
         embed.add_field(name="Status Page", value="[CyberWorks Status](https://cyberworks.statuspage.io/)", inline=False)
-        await ctx.channel.send(embed=embed,view = SupportBtn())
+        await ctx.send(embed=embed,view = SupportBtn())
 
 async def setup(bot):
     await bot.add_cog(Help(bot))

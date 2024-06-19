@@ -6,6 +6,7 @@ import discord
 import string
 import random
 import json
+import aiohttp
 
 from datetime import datetime,timezone
 from dateutil import parser
@@ -201,14 +202,14 @@ async def check_permissions_management(ctx, user):
     is_management = any(role.id in management_roles for role in user.roles)
     return is_management
 
-def fetch_random_joke():
+async def fetch_random_joke():
     url = 'https://official-joke-api.appspot.com/jokes/random'
-    response = requests.get(url)
-    data = response.json()
-    joke_setup = data['setup']
-    joke_punchline = data['punchline']
-    return f"{joke_setup}\n{joke_punchline}"
-
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            data = await response.json()
+            joke_setup = data['setup']
+            joke_punchline = data['punchline']
+            return f"{joke_setup}\n{joke_punchline}"
 #MYSQL
 
 def get_staff_roles(guild_id):
@@ -408,7 +409,11 @@ def save_anti_ping_roles(guild_id, anti_ping_roles):
 def save_anti_ping_bypass_roles(guild_id, anti_ping_bypass_roles):
     try:
         cursor = mycon.cursor()
-        cursor.execute("INSERT INTO server_config (guild_id, bypass_anti_ping_roles) VALUES (%s, %s) ON DUPLICATE KEY UPDATE bypass_anti_ping_roles = VALUES(bypass_anti_ping_roles)", (guild_id, json.dumps(anti_ping_bypass_roles)))
+        cursor.execute("""
+            INSERT INTO server_config (guild_id, bypass_anti_ping_roles)
+            VALUES (%s, %s)
+            ON DUPLICATE KEY UPDATE bypass_anti_ping_roles = VALUES(bypass_anti_ping_roles)
+        """, (guild_id, json.dumps(anti_ping_bypass_roles)))
         mycon.commit()
     except Exception as e:
         print(f"An error occurred while saving anti-ping bypass roles: {e}")
@@ -680,3 +685,100 @@ def roblox_discord_timestamp(iso_str):
     unix_timestamp = int(dt.timestamp())
 
     return f"<t:{unix_timestamp}:F>"
+
+def get_anti_ping_option(guild_id):
+    try:
+        cursor = mycon.cursor()
+        cursor.execute("SELECT anti_ping FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting anti-ping option: {e}")
+    finally:
+        cursor.close()
+
+def get_anti_ping_roles(guild_id):
+    try:
+        cursor = mycon.cursor()
+        cursor.execute("SELECT anti_ping_roles FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            anti_ping_roles = json.loads(result[0]) if result[0] else []
+            return anti_ping_roles
+        else:
+            return []
+    except Exception as e:
+        print(f"An error occurred while getting anti-ping roles: {e}")
+    finally:
+        cursor.close()
+
+def get_anti_ping_bypass_roles(guild_id):
+    try:
+        cursor = mycon.cursor()
+        cursor.execute("SELECT bypass_anti_ping_roles FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            bypass_anti_ping_roles = json.loads(result[0]) if result[0] else []
+            return bypass_anti_ping_roles
+        else:
+            return []
+    except Exception as e:
+        print(f"An error occurred while getting bypass anti-ping roles: {e}")
+    finally:
+        cursor.close()
+
+
+def get_promotion_channel(guild_id):
+    try:
+        cursor = mycon.cursor()
+        cursor.execute("SELECT promotion_channel FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting promotion channel: {e}")
+    finally:
+        cursor.close()
+
+def get_mod_log_channel(guild_id):
+    try:
+        cursor = mycon.cursor()
+        cursor.execute("SELECT mod_log_channel FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        print(f"An error occurred while getting mod log channel: {e}")
+    finally:
+        cursor.close()
+
+def save_prefix(guild_id, prefix):
+    try:
+        cursor = mycon.cursor()
+        cursor.execute("INSERT INTO server_config (guild_id, prefix) VALUES (%s, %s) ON DUPLICATE KEY UPDATE prefix = VALUES(prefix)", (guild_id, prefix))
+        mycon.commit()
+    except Exception as e:
+        print(f"An error occurred while saving prefix: {e}")
+    finally:
+        cursor.close()
+
+def get_prefix(guild_id):
+    try:
+        cursor = mycon.cursor()
+        cursor.execute("SELECT prefix FROM server_config WHERE guild_id = %s", (guild_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return "?"
+    except Exception as e:
+        print(f"An error occurred while getting prefix: {e}")
+    finally:
+        cursor.close()
