@@ -37,19 +37,9 @@ class Activity(commands.Cog):
         if not staff_activity:
             embed.description = "No activity data."
             return await ctx.send(embed=embed)
-        
-        """{
-                                    "_id": message.guild.id,
-                                    "staff": [
-                                        {
-                                            "_id": message.author.id,
-                                            "messages": member["messages"] + 1
-                                        }
-                                    ]
-                                }"""
-        
+
         staff_activity["staff"] = sorted(staff_activity["staff"], key=lambda x: x["messages"], reverse=True)
-        #send 25 members in each embed, if more than 25 members then send multiple embeds
+        
         for i in range(0, len(staff_activity["staff"]), 25):
             embed.description = ""
             for member in staff_activity["staff"][i:i+25]:
