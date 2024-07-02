@@ -21,6 +21,32 @@ class Document:
         self.db = connection[document_name]
         self.logger = logging.getLogger(__name__)
 
+    async def find(self, query):
+        """
+        Find documents in the database that match the query.
+        :param query (dict): The query to match documents.
+        :return (list): A list of documents that match the query.
+        """
+        return await self.db.find(query).to_list(None)
+    
+    async def find_one(self, query):
+        """
+        Find a document in the database that matches the query.
+        :param query (dict): The query to match a document.
+        :return (dict): The document that matches the query.
+        """
+        return await self.db.find_one(query)
+
+    async def insert_one(self, document):
+        """
+        Insert a document into the database.
+        :param document (dict): The document to insert.
+        """
+        if not isinstance(document, collections.abc.Mapping):
+            raise TypeError('document must be a mapping')
+        
+        await self.db.insert_one(document)
+
     async def update(self, query, update):
         """
         Update a document in the database.
@@ -29,7 +55,8 @@ class Document:
         """
         if not isinstance(query, collections.abc.Mapping):
             raise TypeError('query must be a dictionary')
-        
+        if not await self.db.find_one(query):
+            await self.db.insert_one(query)
         await self.db.update_one(query, {'$set': update})
     
     async def find_by_id(self, id):

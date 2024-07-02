@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-
+import logging
 
 from discord.ui import Button, View, Modal, TextInput
 
@@ -51,9 +51,17 @@ class BasicConfiguration(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "basic_settings": {}}
-        
-        settings["basic_settings"]["staff_roles"] = [role.id for role in self.staff_role_select.values]
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        try:
+            settings["basic_settings"]["staff_roles"] = [role.id for role in self.staff_role_select.values]
+            logging.info(settings)
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [role.id for role in self.staff_role_select.values]}}
+            logging.info(settings)
+        try:
+            await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+            logging.info(f"Updated {interaction.guild.id} with {settings}")
+        except Exception as e:
+            logging.error(e)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
             0,
@@ -71,8 +79,10 @@ class BasicConfiguration(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "basic_settings": {}}
-        
-        settings["basic_settings"]["management_roles"] = [role.id for role in self.management_role_select.values]
+        try:
+            settings["basic_settings"]["management_roles"] = [role.id for role in self.management_role_select.values]
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "basic_settings": {"management_roles": [role.id for role in self.management_role_select.values]}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -249,6 +259,13 @@ class Configuration(discord.ui.View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id, "basic_settings": {}}
+        try:
+            current_staff_roles = settings.get("basic_settings", {}).get("staff_roles", [])
+            current_management_roles = settings.get("basic_settings", {}).get("management_roles", [])
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [], "management_roles": []}}
         embed = discord.Embed(
             title="Basic Setting",
             description=" ",
@@ -257,14 +274,14 @@ class Configuration(discord.ui.View):
             name="Staff Roles",
             value=f"""
             > These roles grant permission to use Cyni moderation commands.\n
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("basic_settings", {}).get("staff_roles", [])]) + ">"}
+            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in current_staff_roles]) + ">" if current_staff_roles else "No Staff Roles Set"}
             """,
             inline=False
         ).add_field(
             name="Management Roles",
             value=f"""
             > Users with these roles can utilize Cyni management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("basic_settings", {}).get("management_roles", [])]) + ">"}
+            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in current_management_roles]) + ">" if current_management_roles else "No Management Roles Set"}
             """,
             inline=False
         )
