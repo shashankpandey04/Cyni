@@ -2,3 +2,4 @@ discord
 aiohttp
 python-dotenv
 motor
+sentry-sdk
