@@ -53,15 +53,11 @@ class BasicConfiguration(View):
             settings = {"_id": interaction.guild.id, "basic_settings": {}}
         try:
             settings["basic_settings"]["staff_roles"] = [role.id for role in self.staff_role_select.values]
-            logging.info(settings)
+            #logging.info(settings)
         except KeyError:
             settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [role.id for role in self.staff_role_select.values]}}
-            logging.info(settings)
-        try:
-            await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-            logging.info(f"Updated {interaction.guild.id} with {settings}")
-        except Exception as e:
-            logging.error(e)
+            #logging.info(settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
             0,
