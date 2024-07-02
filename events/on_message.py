@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import logging
 
 class OnMessage(commands.Cog):
     def __init__(self, bot):
@@ -7,20 +8,25 @@ class OnMessage(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.author == self.bot.user:
+            return
+        
         if message.author.bot:
             return
-
+        
         if message.content == "ping":
             await message.channel.send("🟢 Pong!")
 
         settings = await self.bot.settings.get(message.guild.id)
         if not settings:
             return
+
         try:
             anti_ping_module = settings["anti_ping_module"]
         except KeyError:
-            pass
-        if anti_ping_module["enabled"]:
+            anti_ping_module = None
+        
+        if anti_ping_module and anti_ping_module["enabled"]:
             if message.mentions:
                 for role in message.mentions[0].roles:
                     if role.id in anti_ping_module["affected_roles"]:
@@ -38,10 +44,7 @@ class OnMessage(commands.Cog):
                             delete_after=15
                         )
         
-        if settings["basic_settings"]["staff_roles"] is None:
-            return
-        
-        if settings["basic_settings"]["management_roles"] is None:
+        if not settings["basic_settings"]["staff_roles"] or not settings["basic_settings"]["management_roles"]:
             return
         
         staff_roles = settings["basic_settings"]["staff_roles"]
@@ -76,6 +79,6 @@ class OnMessage(commands.Cog):
                                 }
                             )
                 return
-            
+
 async def setup(bot):
     await bot.add_cog(OnMessage(bot))
