@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 
-from discord.ui import Button, View
+from discord.ui import Button, View, Modal, TextInput
 
 from utils.utils import main_config_embed
 
@@ -42,7 +42,7 @@ class BasicConfiguration(View):
     async def main_page_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
-        await interaction.message.edit(embed=main_config_embed,view=SetupBot(self.bot, interaction.user.id))
+        await interaction.message.edit(embed=main_config_embed,view=Configuration(self.bot, interaction.user.id))
         await interaction.response.send_message("Main Page",ephemeral=True)
 
     async def staff_roles(self, interaction: discord.Interaction):
@@ -137,7 +137,7 @@ class StaffInfraction(View):
     async def main_page_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
-        await interaction.message.edit(embed=main_config_embed,view=SetupBot(self.bot, interaction.user.id))
+        await interaction.message.edit(embed=main_config_embed,view=Configuration(self.bot, interaction.user.id))
         await interaction.response.send_message("Main Page",ephemeral=True)
 
     async def enable_disable_callback(self, interaction: discord.Interaction):
@@ -199,7 +199,7 @@ class StaffInfraction(View):
         await interaction.message.edit(embed=embed)
         await interaction.response.send_message("Infraction Channel Updated!",ephemeral=True)
 
-class SetupBot(discord.ui.View):
+class Configuration(discord.ui.View):
     def __init__(self, bot, user_id: int):
         super().__init__()
         self.bot = bot
@@ -330,8 +330,9 @@ class SetupBot(discord.ui.View):
 
     async def logging_channels_callback(self, interaction: discord.Interaction):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        moderation_log_channel = settings.get("moderation_module", {}).get("mod_log_channel", 0)
-        staff_management_enabled = settings.get("staff_management", {}).get("application_channel", 0)
+        moderation_log_channel = settings.get("logging_channels", {}).get("mod_log_channel", 0)
+        staff_management_channel = settings.get("logging_channels", {}).get("application_channel", 0)
+        ban_appeal_channel = settings.get("logging_channels", {}).get("ban_appeal_channel", 0)
         embed = discord.Embed(
             title="Logging Channels",
             description=" ",
@@ -342,27 +343,34 @@ class SetupBot(discord.ui.View):
             inline=False
         ).add_field(
             name="Application Log Channel",
-            value=f"> Set the channel where you want to log applications.,\n Current Channel: <#{staff_management_enabled}>",
+            value=f"> Set the channel where you want to log applications.,\n Current Channel: <#{staff_management_channel}>",
             inline=False
+        ).add_field(
+            name="Ban Appeal Log Channel",
+            value=f"> Set the channel where you want to log ban appeals.,\n Current Channel: <#{ban_appeal_channel}>",
         )
-        await interaction.message.edit(embed=embed, view=LoggingChannels(self.bot, interaction.user.id,moderation_log_channel,staff_management_enabled))
+        await interaction.message.edit(embed=embed, view=LoggingChannels(self.bot, interaction.user.id,moderation_log_channel,staff_management_channel,ban_appeal_channel))
         await interaction.response.send_message("Logging Channels",ephemeral=True)
         
     async def other_configurations_callback(self, interaction: discord.Interaction):
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        prefix = settings.get("customization", {}).get("prefix", "?")
+        message_quota = settings.get("basic_settings", {}).get("message_quota", 0)
         embed = discord.Embed(
             title="Other Configurations",
             description=" ",
             color=0x2F3136
         ).add_field(
             name="Message Quota",
-            value="> Set the message quota for your server.",
+            value=f"> Set the message quota for your server.\nCurrent Message Quota: {message_quota}",
             inline=False
         ).add_field(
             name="Prefix",
-            value="> Set the prefix for your server.",
+            value=f"> Set the prefix for your server.\nCurrent Prefix: {prefix}",
             inline=False
         )
-        await interaction.message.edit(embed=embed)
+        await interaction.message.edit(embed=embed, view=OtherConfig(self.bot, interaction.user.id,prefix=prefix,message_quota=message_quota))
+        await interaction.response.send_message("Other Configurations",ephemeral=True)
 
             
 class AntiPingView(View):
@@ -406,7 +414,7 @@ class AntiPingView(View):
         self.add_item(self.bypass_roles_button)
 
     async def main_page_callback(self,interaction:discord.Interaction):
-        await interaction.message.edit(embed=main_config_embed, view=SetupBot(self.bot, interaction.user.id))
+        await interaction.message.edit(embed=main_config_embed, view=Configuration(self.bot, interaction.user.id))
         await interaction.response.send_message("Main Page",ephemeral=True)
 
     async def enable_disable_callback(self,interaction:discord.Interaction):
@@ -491,13 +499,40 @@ class AntiPingView(View):
         )
         await interaction.response.send_message("Bypass Roles Updated!",ephemeral=True)
 
+class BanAppealChannel(View):
+    def __init__(self,bot,channel_id:int):
+        super().__init__()
+        self.bot = bot
+
+        self.ban_appeal_channel = discord.ui.ChannelSelect(
+            placeholder="Ban Appeal Log Channel",
+            row=0,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=channel_id)]
+        )
+        self.ban_appeal_channel.callback = self.ban_appeal_channel_callback
+        self.add_item(self.ban_appeal_channel)
+
+    async def ban_appeal_channel_callback(self,interaction:discord.Interaction):
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id, "logging_channels": {}}
+        try:
+            settings["logging_channels"]["ban_appeal_channel"] = self.ban_appeal_channel.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "logging_channels": {"ban_appeal_channel": self.ban_appeal_channel.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Ban Appeal Log Channel Updated!",ephemeral=True)
+
 class LoggingChannels(View):
-    def __init__(self,bot,user_id:int,moderation_log_channel:int,staff_management_enabled:int):
+    def __init__(self,bot,user_id:int,moderation_log_channel:int,staff_management_channel:int,ban_appeal_channel:int):
         super().__init__()
         self.bot = bot
         self.user_id = user_id
         self.moderation_log_channel = moderation_log_channel
-        self.staff_management_enabled = staff_management_enabled
+        self.staff_management_channel = staff_management_channel
+        self.ban_appeal_channel = ban_appeal_channel
 
         self.moderation_log_channel_select = discord.ui.ChannelSelect(
             placeholder="Moderation Log Channel",
@@ -514,10 +549,18 @@ class LoggingChannels(View):
             row=1,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=self.staff_management_enabled)]
+            default_values=[discord.Object(id=self.staff_management_channel)]
         )
         self.staff_management_log_channel_select.callback = self.staff_management_log_channel_callback
         self.add_item(self.staff_management_log_channel_select)
+
+        self.ban_appeal_channel = discord.ui.Button(
+            style=discord.ButtonStyle.primary,
+            label="Ban Appeal Log Channel",
+            row=4
+        )
+        self.ban_appeal_channel.callback = self.ban_appeal_channel_callback
+        self.add_item(self.ban_appeal_channel)
 
         self.main_page = discord.ui.Button(
             style=discord.ButtonStyle.primary,
@@ -527,8 +570,29 @@ class LoggingChannels(View):
         self.main_page.callback = self.main_page_callback
         self.add_item(self.main_page)
 
+    async def ban_appeal_channel_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        # Get the actual channel ID here
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            channel_id = settings.get("logging_channels", {}).get("ban_appeal_channel", 0)
+        except KeyError:
+            channel_id = 0
+        view = BanAppealChannel(self.bot, channel_id)
+        await interaction.response.send_message(
+            "Select the channel where you want to log ban appeals.",
+            ephemeral=True,
+            view=view
+        )
+
     async def main_page_callback(self,interaction:discord.Interaction):
-        await interaction.message.edit(embed=main_config_embed, view=SetupBot(self.bot, interaction.user.id))
+        await interaction.message.edit(embed=main_config_embed, view=Configuration(self.bot, interaction.user.id))
         await interaction.response.send_message("Main Page",ephemeral=True)
 
     async def moderation_log_channel_callback(self,interaction:discord.Interaction):
@@ -540,8 +604,10 @@ class LoggingChannels(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id}
-        
-        settings["moderation_module"]["mod_log_channel"] = self.moderation_log_channel_select.values[0].id
+        try:
+            settings["logging_channels"]["mod_log_channel"] = self.moderation_log_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "logging_channels": {"mod_log_channel": self.moderation_log_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -562,8 +628,10 @@ class LoggingChannels(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id}
-        
-        settings["staff_management"]["application_channel"] = self.staff_management_log_channel_select.values[0].id
+        try:
+            settings["logging_channels"]["application_channel"] = self.staff_management_log_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "logging_channels": {"application_channel": self.staff_management_log_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -575,5 +643,126 @@ class LoggingChannels(View):
         await interaction.message.edit(embed=embed)
         await interaction.response.send_message("Staff Management Log Channel Updated!",ephemeral=True)
 
-
+class PrefixModal(Modal):
+    def __init__(self):
+        super().__init__(title="Change Prefix", timeout=60)
         
+        self.prefix_input = TextInput(
+            placeholder="Enter your prefix",
+            min_length=1,
+            max_length=5,
+            label="Prefix"
+        )
+        self.add_item(self.prefix_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        settings = await interaction.client.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        if "customization" not in settings:
+            settings["customization"] = {}
+        
+        settings["customization"]["prefix"] = self.prefix_input.value
+        await interaction.client.settings.update({"_id": interaction.guild.id}, settings)
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(
+            1,
+            name="Prefix",
+            value=f"> Set the prefix for your server.\nCurrent Prefix: {self.prefix_input.value}"
+        )
+
+        await interaction.message.edit(embed=embed)
+        await interaction.response.send_message(f"Your prefix is now {self.prefix_input.value}", ephemeral=True)
+        self.stop()
+
+class MessageQuotaModal(Modal):
+    def __init__(self):
+        super().__init__(title="Change Message Quota", timeout=60)
+        
+        self.message_quota_input = TextInput(
+            placeholder="Enter your message quota",
+            min_length=1,
+            max_length=5,
+            label="Message Quota"
+        )
+        self.add_item(self.message_quota_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        settings = await interaction.client.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        if "basic_settings" not in settings:
+            settings["basic_settings"] = {}
+        
+        settings["basic_settings"]["message_quota"] = self.message_quota_input.value
+        await interaction.client.settings.update({"_id": interaction.guild.id}, settings)
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(
+            0,
+            name="Message Quota",
+            value=f"> Set the message quota for your server.\nCurrent Message Quota: {self.message_quota_input.value}"
+        )
+
+        await interaction.message.edit(embed=embed)
+        await interaction.response.send_message(f"Your message quota is now {self.message_quota_input.value}", ephemeral=True)
+        self.stop()
+
+class OtherConfig(View):
+    def __init__(self, bot, user_id: int, prefix: str, message_quota: int):
+        super().__init__()
+        self.bot = bot
+        self.user_id = user_id
+        self.prefix = prefix
+        self.message_quota = message_quota
+
+        self.prefix_input = Button(
+            style=discord.ButtonStyle.primary,
+            label="Prefix",
+            row=0
+        )
+        self.prefix_input.callback = self.prefix_callback
+        self.add_item(self.prefix_input)
+
+        self.message_quota_input = Button(
+            style=discord.ButtonStyle.primary,
+            label="Message Quota",
+            row=0
+        )
+        self.message_quota_input.callback = self.message_quota_callback
+        self.add_item(self.message_quota_input)
+
+        self.main_page = Button(
+            style=discord.ButtonStyle.primary,
+            label="Main Page",
+            row=0
+        )
+        self.main_page.callback = self.main_page_callback
+        self.add_item(self.main_page)
+    
+    async def main_page_callback(self, interaction: discord.Interaction):
+        await interaction.message.edit(embed=main_config_embed, view=Configuration(self.bot, interaction.user.id))
+        await interaction.response.send_message("Main Page", ephemeral=True)
+
+    async def prefix_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        await interaction.response.send_modal(PrefixModal())
+
+    async def message_quota_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        await interaction.response.send_modal(MessageQuotaModal())

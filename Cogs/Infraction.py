@@ -190,7 +190,7 @@ class Infraction(commands.Cog):
                 )
             )
 
-    @staff.command(
+'''    @staff.command(
         name="warn",
         extras={
             "category": "Infraction"
@@ -255,6 +255,6 @@ class Infraction(commands.Cog):
                 member.mention,
                 embed = embed
             )
-
+'''
 async def setup(bot):
     await bot.add_cog(Infraction(bot))

@@ -16,7 +16,6 @@ server_settings = {
     },
     "moderation_module" : {
         "enabled" : False,
-        "mod_log_channel" : None,
     },
     "anti_ping_module" : {
         "enabled" : False,
@@ -32,10 +31,15 @@ server_settings = {
         "enabled" : False,
         "promotion_channel" : 0,
         "demotion_channel" : 0,
-        "application_channel" : 0
     },
     "customization": {
         "prefix": "?"
+    },
+    "logging_channels": {
+        "audit_log": 0,
+        "mod_log_channel": 0,
+        "application_channel": 0,
+        "ban_appeal_channel": 0
     }
 }
 

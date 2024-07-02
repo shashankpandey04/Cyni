@@ -11,6 +11,7 @@ import os
 from dotenv import load_dotenv
 import motor.motor_asyncio
 from utils.utils import get_prefix
+from Modals.ban_appeal import BanAppealModal
 
 
 from Datamodels.Settings import Settings
@@ -20,12 +21,12 @@ from Datamodels.StaffActivity import StaffActivity
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
-
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.voice_states = True
+
+discord.utils.setup_logging(level=logging.DEBUG)
 
 class Bot(commands.Bot):
     
@@ -47,7 +48,7 @@ class Bot(commands.Bot):
             self.analytics_document = Document(self.db, 'analytics')
             self.warnings_document = Document(self.db, 'warnings')
             self.actvity_document = Document(self.db, 'staff_activity')
-
+            self.appeals_document = Document(self.db, 'ban_appeals')
 
     async def setup_hook(self) -> None:
 
@@ -55,6 +56,7 @@ class Bot(commands.Bot):
         self.analytics = Analytics(self.db, 'analytics')
         self.warnings = Warnings(self.db, 'warnings')
         self.staff_activity = StaffActivity(self.db, 'staff_activity')
+        self.ban_appeals = Document(self.db, 'ban_appeals')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
@@ -114,6 +116,12 @@ async def AutoDefer(ctx: commands.Context):
 async def loggingCommand(ctx: commands.Context):
     logging.info(f"{ctx.author} used {ctx.command} in {ctx.guild}.")
 
+@bot.tree.command()
+async def banappeal(interaction: discord.Interaction):
+    '''
+    Appeal a ban.
+    '''
+    await interaction.response.send_modal(BanAppealModal(bot))
 
 async def staff_check(bot,guild,member):
     guild_settings = await bot.settings.get(guild.id)

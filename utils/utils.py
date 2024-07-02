@@ -17,7 +17,7 @@ async def get_prefix(bot, message):
     
     try:
         settings = await bot.settings.get(message.guild.id)
-        return settings["customisation"]["prefix"]
+        return settings["customization"]["prefix"]
     except KeyError:
         return commands.when_mentioned_or("?")(bot, message)
     
