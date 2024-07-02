@@ -12,9 +12,6 @@ async def get_prefix(bot, message):
     :param message (discord.Message): The message.
     :return (str): The prefix.
     """
-    if not message.guild:
-        return commands.when_mentioned_or("?")(bot, message)
-    
     try:
         settings = await bot.settings.get(message.guild.id)
         return settings["customization"]["prefix"]
