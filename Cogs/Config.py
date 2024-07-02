@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from menu import SetupBot
+from menu import Configuration
 
 from cyni import is_management
 
@@ -40,7 +40,7 @@ class Config(commands.Cog):
                 inline=False
             ).add_field(
                 name="Log Channels",
-                value="Set channels to log moderation actions and applications.",
+                value="Set channels to log moderation actions and applications and Ban Appeals.",
                 inline=False
             ).add_field(
                 name="Other Configurations",
@@ -50,7 +50,7 @@ class Config(commands.Cog):
 
             await ctx.send(
                 embed=embed, 
-                view=SetupBot(bot=self.bot, user_id=ctx.author.id)
+                view=Configuration(bot=self.bot, user_id=ctx.author.id)
             )
 
         except discord.HTTPException:

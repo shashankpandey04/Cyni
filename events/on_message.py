@@ -14,7 +14,12 @@ class OnMessage(commands.Cog):
             await message.channel.send("🟢 Pong!")
 
         settings = await self.bot.settings.get(message.guild.id)
-        anti_ping_module = settings["anti_ping_module"]
+        if not settings:
+            return
+        try:
+            anti_ping_module = settings["anti_ping_module"]
+        except KeyError:
+            pass
         if anti_ping_module["enabled"]:
             if message.mentions:
                 for role in message.mentions[0].roles:

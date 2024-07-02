@@ -18,7 +18,9 @@ class OnCommandError(commands.Cog):
 
     @commands.Cog.listener("on_command_error")
     async def on_command_error(self, ctx, error):
-        error_id = gen_error_uid()
+        
+        if hasattr(ctx.command, "on_error"):
+            return
         
         if isinstance(error, commands.CommandNotFound):
             return
@@ -68,6 +70,33 @@ class OnCommandError(commands.Cog):
                 )
             )
         
+        if isinstance(error, commands.CommandInvokeError):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="An error occurred.",
+                    color=discord.Color.red()
+                )
+            )
+        
+        if isinstance(error, commands.MaxConcurrencyReached):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="This command is already running.",
+                    color=discord.Color.red()
+                )
+            )
+        
+        if isinstance(error, commands.CommandError):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="An error occurred.",
+                    color=discord.Color.red()
+                )
+            )
+
         if isinstance(error, commands.BadArgument):
             return await ctx.send(
                 embed=discord.Embed(
@@ -94,16 +123,6 @@ class OnCommandError(commands.Cog):
                     color=discord.Color.red()
                 )
             )
-        
-        # Capture the exception
-        
-        await ctx.send(
-            embed=discord.Embed(
-                title="Error",
-                description="An error occurred.",
-                color=discord.Color.red()
-            )
-        )
 
 async def setup(bot):
     await bot.add_cog(OnCommandError(bot))

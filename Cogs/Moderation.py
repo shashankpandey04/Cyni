@@ -62,7 +62,14 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-        log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        await member.send(
+            embed = discord.Embed(
+                title = f"You have been warned in {ctx.guild.name}",
+                description = f"Reason: {reason}\n",
+                color = discord.Color.red()
+            )
+        )
+        log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if log_channel:
             await log_channel.send(
                 embed = discord.Embed(
@@ -168,7 +175,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -234,7 +241,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -280,7 +287,7 @@ class Moderation(commands.Cog):
             f"{member.mention} has been kicked ✅."
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -330,7 +337,18 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            await member.send(
+                embed = discord.Embed(
+                    title = f"You have been banned in {ctx.guild.name}",
+                    description = f"**Moderator:** {ctx.author.mention}\n**Reason:** {reason}\n**Guild ID:** {ctx.guild.id}",
+                    color = discord.Color.red()
+                )
+            )
+        except discord.Forbidden:
+            pass
+
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -350,7 +368,7 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
-    async def unban(self, ctx, member: discord.User, *, reason: str):
+    async def unban(self, ctx, userid:str, *, reason: str):
         """
         Unban a user.
         """
@@ -371,7 +389,8 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        
+        userid = int(userid)
+        member = discord.Object(id=userid)
         await ctx.guild.unban(member, reason=reason)
         await ctx.send(
             embed = discord.Embed(
@@ -380,7 +399,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -435,7 +454,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -492,7 +511,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -545,7 +564,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -598,7 +617,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -653,7 +672,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -706,7 +725,7 @@ class Moderation(commands.Cog):
                 f"Slowmode has been set to {seconds} seconds in {ctx.channel.mention}."
             )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -754,7 +773,7 @@ class Moderation(commands.Cog):
             f"{member.mention}'s nickname has been changed to `{nickname}`."
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -789,51 +808,58 @@ class Moderation(commands.Cog):
         """
         Add a role to a user.
         """
-
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if not settings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
-                )
-            )
-        module_enabled = settings["moderation_module"]["enabled"]
-        if not module_enabled:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
-                    color = discord.Color.red()
-                )
-            )
         try:
-            await member.add_roles(role)
-        except discord.Forbidden:
-            return await ctx.send(
+            settings = await self.bot.settings.find_by_id(ctx.guild.id)
+            if not settings:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "No settings found.\nPlease set up the bot using the `config` command.",
+                        color = discord.Color.red()
+                    )
+                )
+            module_enabled = settings["moderation_module"]["enabled"]
+            if not module_enabled:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "Moderation module is not enabled.",
+                        color = discord.Color.red()
+                    )
+                )
+            try:
+                await member.add_roles(role)
+            except discord.Forbidden:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "I do not have the required permissions to add this role.",
+                        color = discord.Color.red()
+                    )
+                )
+            await ctx.send(
                 embed = discord.Embed(
-                    description = "I do not have the required permissions to add this role.",
-                    color = discord.Color.red()
+                    description = f"{role.mention} has been added to {member.mention}.",
+                    color = discord.Color.green()
                 )
             )
-        await ctx.send(
-            embed = discord.Embed(
-                description = f"{role.mention} has been added to {member.mention}.",
-                color = discord.Color.green()
-            )
-        )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        if mod_log_channel:
-            await mod_log_channel.send(
+            mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+            if mod_log_channel:
+                await mod_log_channel.send(
+                    embed = discord.Embed(
+                        title = "Role Added",
+                        description = f"**User ID:** {member.mention}\n**Role:** {role.mention}\n**Moderator:** {ctx.author.mention}",
+                        color = discord.Color.red()
+                    )
+                )
+            else:
+                await ctx.channel.send(
+                    "Moderation log channel not found. Please set up the bot using the `config` command."
+                )
+        except Exception as e:
+            await ctx.send(
                 embed = discord.Embed(
-                    title = "Role Added",
-                    description = f"**User ID:** {member.mention}\n**Role:** {role.mention}\n**Moderator:** {ctx.author.mention}",
+                    description = f"An error occurred: {e}",
                     color = discord.Color.red()
                 )
-            )
-        else:
-            await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
             )
 
     @role.command(
@@ -844,163 +870,61 @@ class Moderation(commands.Cog):
         """
         Remove a role from a user.
         """
-
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if not settings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
-                )
-            )
-        
-        module_enabled = settings["moderation_module"]["enabled"]
-        if not module_enabled:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
-                    color = discord.Color.red()
-                )
-            )
         try:
-            await member.remove_roles(role)
-        except discord.Forbidden:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "I do not have the required permissions to remove this role.",
-                    color = discord.Color.red()
+            settings = await self.bot.settings.find_by_id(ctx.guild.id)
+            if not settings:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "No settings found.\nPlease set up the bot using the `config` command.",
+                        color = discord.Color.red()
+                    )
                 )
-            )
-        
-        await ctx.send(
-            embed = discord.Embed(
-                description = f"{role.mention} has been removed from {member.mention}.",
-                color = discord.Color.green()
-            )
-        )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        if mod_log_channel:
-            await mod_log_channel.send(
-                embed = discord.Embed(
-                    title = "Role Removed",
-                    description = f"**User ID:** {member.mention}\n**Role:** {role.mention}\n**Moderator:** {ctx.author.mention}",
-                    color = discord.Color.green()
-                )
-            )
-        else:
-            await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
-            )
             
-    @commands.hybrid_command(
-        name="lockdown",
-        extras={"category": "Moderation"}
-    )
-    @commands.guild_only()
-    @is_management()
-    async def lockdown(self, ctx):
-        """
-        Lockdown the server.
-        """
-
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if not settings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
+            module_enabled = settings["moderation_module"]["enabled"]
+            if not module_enabled:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "Moderation module is not enabled.",
+                        color = discord.Color.red()
+                    )
                 )
-            )
-        
-        module_enabled = settings["moderation_module"]["enabled"]
-        if not module_enabled:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
-                    color = discord.Color.red()
+            try:
+                await member.remove_roles(role)
+            except discord.Forbidden:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "I do not have the required permissions to remove this role.",
+                        color = discord.Color.red()
+                    )
                 )
-            )
-        
-        for channel in ctx.guild.channels:
-            for role in ctx.guild.roles:
-                if channel.permissions_for(role).send_messages:
-                    await channel.set_permissions(role, send_messages=False)
-        await ctx.send(
-            embed = discord.Embed(
-                description = "The server has been locked.",
-                color = discord.Color.green()
-            )
-        )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        if mod_log_channel:
-            await mod_log_channel.send(
+            
+            await ctx.send(
                 embed = discord.Embed(
-                    title = "Server Locked",
-                    description = f"**Moderator:** {ctx.author.mention}",
-                    color = discord.Color.red()
-                )
-            )
-        else:
-            await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
-            )
-
-    @commands.hybrid_command(
-        name="unlockdown",
-        extras={"category": "Moderation"}
-    )
-    @commands.guild_only()
-    @is_management()
-    async def unlockdown(self, ctx):
-        """
-        Unlock the server.
-        """
-
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if not settings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
-                )
-            )
-        
-        module_enabled = settings["moderation_module"]["enabled"]
-        if not module_enabled:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
-                    color = discord.Color.red()
-                )
-            )
-        
-        for channel in ctx.guild.channels:
-            for role in ctx.guild.roles:
-                if not channel.permissions_for(role).send_messages:
-                    await channel.set_permissions(role, send_messages=True)
-        await ctx.send(
-            embed = discord.Embed(
-                description = "The server has been unlocked.",
-                color = discord.Color.green()
-            )
-        )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        if mod_log_channel:
-            await mod_log_channel.send(
-                embed = discord.Embed(
-                    title = "Server Unlocked",
-                    description = f"**Moderator:** {ctx.author.mention}",
+                    description = f"{role.mention} has been removed from {member.mention}.",
                     color = discord.Color.green()
                 )
             )
-        else:
-            await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
-            )
 
+            mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+            if mod_log_channel:
+                await mod_log_channel.send(
+                    embed = discord.Embed(
+                        title = "Role Removed",
+                        description = f"**User ID:** {member.mention}\n**Role:** {role.mention}\n**Moderator:** {ctx.author.mention}",
+                        color = discord.Color.green()
+                    )
+                )
+            else:
+                await ctx.channel.send(
+                    "Moderation log channel not found. Please set up the bot using the `config` command."
+                )
+        except Exception as e:
+            await ctx.send(
+                embed = discord.Embed(
+                    description = f"An error occurred: {e}",
+                    color = discord.Color.red()
+                )
+            )
 
     @commands.hybrid_command(
         name="softban",
@@ -1047,7 +971,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -1061,6 +985,132 @@ class Moderation(commands.Cog):
                 "Moderation log channel not found. Please set up the bot using the `config` command."
             )
 
+    @commands.hybrid_group(
+        name="appeal",
+        extras={"category": "Moderation"}
+    )
+    async def appeal(self, ctx):
+        """
+        Appeal a moderation action.
+        """
+        pass
+
+    @appeal.command(
+        name="approve",
+        extras={"category": "Moderation"}
+    )
+    @commands.has_permissions(manage_guild=True)
+    async def appeal_approve(self, ctx, user_id: str):
+        """
+        Approve a ban appeal.
+        """
+        user_id = int(user_id)
+        uid_guild_id = f"{user_id}-{ctx.guild.id}"
         
+        try:
+            ban_appeal = await self.bot.ban_appeals.find_by_id(uid_guild_id)
+
+            if not ban_appeal:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        description="No appeals found.",
+                        color=discord.Color.red()
+                    )
+                )
+            
+            await ctx.guild.unban(discord.Object(id=user_id))
+            await self.bot.ban_appeals.delete_by_id(uid_guild_id)
+            await ctx.send(
+                embed=discord.Embed(
+                    description="Appeal approved.\nUser has been unbanned.",
+                    color=discord.Color.green()
+                ).add_field(
+                    name="User Mention",
+                    value=f"<@{user_id}>"
+                )
+            )
+            #Get user by user_id and send them a message
+            user = self.bot.get_user(user_id)
+            guild_invite_link = await ctx.guild.text_channels[0].create_invite()
+            if user:
+                try:
+                    await user.send(
+                        embed=discord.Embed(
+                            description=f"Your appeal has been approved.\nYou have been unbanned in the {ctx.guild.name} ",
+                            color=discord.Color.green()
+                        ).add_field(
+                            name="Invite Link",
+                            value=guild_invite_link
+                        )
+                    )
+                except discord.Forbidden:
+                    pass
+            else:
+                pass
+
+        except Exception as e:
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"An error occurred: {e}",
+                    color=discord.Color.red()
+                )
+            )
+
+    @appeal.command(
+        name="deny",
+        extras={"category": "Moderation"}
+    )
+    @commands.has_permissions(manage_guild=True)
+    async def appeal_deny(self, ctx, user_id: str):
+        """
+        Deny a ban appeal.
+        """
+        user_id = int(user_id)
+        uid_guild_id = f"{user_id}-{ctx.guild.id}"
+
+        try:
+            ban_appeal = await self.bot.ban_appeals.find_by_id(uid_guild_id)
+            
+            if not ban_appeal:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        description="No appeals found.",
+                        color=discord.Color.red()
+                    )
+                )
+            
+            await self.bot.ban_appeals.delete_by_id(uid_guild_id)
+            await ctx.send(
+                embed=discord.Embed(
+                    description="Appeal denied.",
+                    color=discord.Color.green()
+                ).add_field(
+                    name="User Mention",
+                    value=f"<@{user_id}>"
+                )
+            )
+            #Get user by user_id and send them a message
+            user = self.bot.get_user(user_id)
+            if user:
+                try:
+                    await user.send(
+                        embed=discord.Embed(
+                            description=f"Your appeal has been denied in the {ctx.guild.name}.",
+                            color=discord.Color.red()
+                        )
+                    )
+                except discord.Forbidden:
+                    pass
+            else:
+                pass
+
+        except Exception as e:
+            await ctx.send(
+                embed=discord.Embed(
+                    description=f"An error occurred: {e}",
+                    color=discord.Color.red()
+                )
+            )
+
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
