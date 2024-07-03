@@ -7,6 +7,7 @@ from utils.mongo import Document
 from pkgutil import iter_modules
 import logging
 import os
+import time
 
 from dotenv import load_dotenv
 import motor.motor_asyncio
@@ -77,6 +78,8 @@ class Bot(commands.Bot):
     
         logging.info("Connected to MongoDB")
 
+        change_status.start()
+
         logging.info(f"Logged in as {bot.user}")
 
         await bot.tree.sync()
@@ -122,6 +125,17 @@ async def banappeal(interaction: discord.Interaction):
     Appeal a ban.
     '''
     await interaction.response.send_modal(BanAppealModal(bot))
+
+@tasks.loop(hours=1)
+async def change_status():
+    await bot.wait_until_ready()
+    logging.info("Changing status")
+    status = "⚡️ /about | Cyni v7"
+    await bot.change_presence(
+        activity=discord.CustomActivity(name=status)
+)
+
+up_time = time.time()
 
 async def staff_check(bot,guild,member):
     guild_settings = await bot.settings.get(guild.id)
