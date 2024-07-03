@@ -202,7 +202,7 @@ bot.cyni_team = {
 }
 
 if os.getenv("PRODUCTION"):
-    bot_token = os.getenv("PRODUCTION_TOKEN")
+    bot_token = os.getenv("PRODUCTION")
     logging.info("Production Token")
 else:
     bot_token = os.getenv("DEV_TOKEN")
