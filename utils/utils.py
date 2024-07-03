@@ -12,13 +12,13 @@ async def get_prefix(bot, message):
     :param message (discord.Message): The message.
     :return (str): The prefix.
     """
-    try:
-        settings = await bot.settings.get(message.guild.id)
+    settings = await bot.settings.get(message.guild.id)
+    if settings is not None:
         try:
-            return settings["customization"]["prefix"]
-        except KeyError:
+            return settings.get("customization", {}).get("prefix", commands.when_mentioned_or("?")(bot, message))
+        except Exception:
             return commands.when_mentioned_or("?")(bot, message)
-    except KeyError:
+    else:
         return commands.when_mentioned_or("?")(bot, message)
     
 main_config_embed = discord.Embed(
