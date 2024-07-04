@@ -152,10 +152,14 @@ class StaffInfraction(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id}
-
-        staff_infraction_module = settings.get("staff_management", {})
-        
-        staff_infraction_module["enabled"] = not staff_infraction_module.get("enabled", False)
+        try:
+            staff_infraction_module = settings.get("staff_management", {})
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "staff_management": {}}
+        try:
+            staff_infraction_module["enabled"] = not staff_infraction_module.get("enabled", False)
+        except KeyError:
+            staff_infraction_module = {"enabled": True}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         embed = interaction.message.embeds[0]
@@ -175,8 +179,10 @@ class StaffInfraction(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "staff_management": {}}
-        
-        settings["staff_management"]["promotion_channel"] = self.promotion_channel_select.values[0].id
+        try:
+            settings["staff_management"]["promotion_channel"] = self.promotion_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "staff_management": {"promotion_channel": self.promotion_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -193,8 +199,10 @@ class StaffInfraction(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "staff_management": {}}
-        
-        settings["staff_management"]["demotion_channel"] = self.infraction_channel_select.values[0].id
+        try:
+            settings["staff_management"]["demotion_channel"] = self.infraction_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "staff_management": {"demotion_channel": self.infraction_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -440,8 +448,10 @@ class AntiPingView(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "anti_ping_module": {}}
-        
-        settings["anti_ping_module"]["enabled"] = not settings["anti_ping_module"].get("enabled",False)
+        try:
+            settings["anti_ping_module"]["enabled"] = not settings["anti_ping_module"].get("enabled",False)
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "anti_ping_module": {"enabled": True}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         embed = interaction.message.embeds[0]
@@ -469,8 +479,10 @@ class AntiPingView(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "anti_ping_module": {}}
-        
-        settings["anti_ping_module"]["affected_roles"] = [role.id for role in self.affected_roles_button.values]
+        try:
+            settings["anti_ping_module"]["affected_roles"] = [role.id for role in self.affected_roles_button.values]
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "anti_ping_module": {"affected_roles": [role.id for role in self.affected_roles_button.values]}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -495,8 +507,10 @@ class AntiPingView(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "anti_ping_module": {}}
-        
-        settings["anti_ping_module"]["exempt_roles"] = [role.id for role in self.bypass_roles_button.values]
+        try:
+            settings["anti_ping_module"]["exempt_roles"] = [role.id for role in self.bypass_roles_button.values]
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "anti_ping_module": {"exempt_roles": [role.id for role in self.bypass_roles_button.values]}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -674,8 +688,10 @@ class PrefixModal(Modal):
             settings = {"_id": interaction.guild.id}
         if "customization" not in settings:
             settings["customization"] = {}
-        
-        settings["customization"]["prefix"] = self.prefix_input.value
+        try:
+            settings["customization"]["prefix"] = self.prefix_input.value
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "customization": {"prefix": self.prefix_input.value}}
         await interaction.client.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
@@ -706,8 +722,10 @@ class MessageQuotaModal(Modal):
             settings = {"_id": interaction.guild.id}
         if "basic_settings" not in settings:
             settings["basic_settings"] = {}
-        
-        settings["basic_settings"]["message_quota"] = self.message_quota_input.value
+        try:
+            settings["basic_settings"]["message_quota"] = self.message_quota_input.value
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "basic_settings": {"message_quota": self.message_quota_input.value}}
         await interaction.client.settings.update({"_id": interaction.guild.id}, settings)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
