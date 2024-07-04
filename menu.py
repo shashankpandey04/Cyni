@@ -156,6 +156,7 @@ class StaffInfraction(View):
             staff_infraction_module = settings.get("staff_management", {})
         except KeyError:
             settings = {"_id": interaction.guild.id, "staff_management": {}}
+            staff_infraction_module = {}
         try:
             staff_infraction_module["enabled"] = not staff_infraction_module.get("enabled", False)
         except KeyError:

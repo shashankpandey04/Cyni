@@ -66,7 +66,7 @@ class Infraction(commands.Cog):
         ).set_author(
             name=ctx.author,
             icon_url=ctx.author.avatar.url
-        ).set_image(
+        ).set_thumbnail(
             url=member.avatar.url
         ).set_footer(
             text=f"ID: {member.id}"
