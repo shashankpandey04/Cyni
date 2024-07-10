@@ -260,6 +260,14 @@ class Configuration(discord.ui.View):
         self.other_configurations_button.callback = self.other_configurations_callback
         self.add_item(self.other_configurations_button)
 
+        self.enable_moderation_module = discord.ui.Button(
+            style=discord.ButtonStyle.primary,
+            label="Enable/Disable Moderation Module",
+            row=1
+        )
+        self.enable_moderation_module.callback = self.enable_moderation_module_callback
+        self.add_item(self.enable_moderation_module)
+
     async def basic_settings_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
@@ -394,7 +402,20 @@ class Configuration(discord.ui.View):
         await interaction.message.edit(embed=embed, view=OtherConfig(self.bot, interaction.user.id,prefix=prefix,message_quota=message_quota))
         await interaction.response.send_message("Other Configurations",ephemeral=True)
 
-            
+    async def enable_moderation_module_callback(self, interaction: discord.Interaction):
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "moderation_module": {"enabled": False}}
+            module_enabled = False
+        settings["moderation_module"]["enabled"] = not module_enabled
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        await interaction.response.send_message(f"Moderation Module {'Enabled' if settings.get('moderation_module', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
+
 class AntiPingView(View):
     def __init__(self,bot,user_id:int):
         super().__init__()

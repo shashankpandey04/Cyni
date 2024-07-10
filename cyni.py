@@ -25,6 +25,8 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.presences = True
+intents.members = True
 intents.voice_states = True
 
 discord.utils.setup_logging(level=logging.DEBUG)
@@ -44,7 +46,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
-            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION") == True else self.mongo["dev"]
+            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") == True else self.mongo["dev"]
             self.settings_document = Document(self.db, 'settings')
             self.analytics_document = Document(self.db, 'analytics')
             self.warnings_document = Document(self.db, 'warnings')
@@ -95,6 +97,8 @@ bot = Bot(
 
 bot.debug_server = [1152949579407442050]
 
+afk_users = {}
+
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
     analytics = await bot.analytics.find_by_id(
@@ -130,7 +134,7 @@ async def banappeal(interaction: discord.Interaction):
 async def change_status():
     await bot.wait_until_ready()
     logging.info("Changing status")
-    status = "⚡️ /about | Cyni v7"
+    status = "✨ /about | Cyni v7"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
 )

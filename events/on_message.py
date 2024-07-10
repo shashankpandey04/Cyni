@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import logging
+from cyni import afk_users
 
 class OnMessage(commands.Cog):
     def __init__(self, bot):
@@ -16,6 +17,21 @@ class OnMessage(commands.Cog):
         
         if message.content == "ping":
             await message.channel.send("🟢 Pong!")
+
+        if message.author.id in afk_users:
+            del afk_users[message.author.id]
+            await message.channel.send(
+                f"Welcome back {message.author.mention}! I removed your AFK status.",
+                delete_after=15
+                )
+
+        for mentions in message.mentions:
+            if mentions.id in afk_users:
+                pressence = mentions.status.value
+                await message.channel.send(
+                    f"{mentions.mention} is currently AFK and {pressence}. Reason: {afk_users[mentions.id]}",
+                    delete_after=15
+                    )
 
         settings = await self.bot.settings.get(message.guild.id)
         if not settings:

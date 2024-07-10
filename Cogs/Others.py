@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from cyni import afk_users
+
 OWNER = 1201129677457215558
 LOGGING_CHANNEL = 1257705346525560885
 
@@ -57,6 +59,22 @@ class Others(commands.Cog):
         embed.set_footer(text="Cyni v7", icon_url=ctx.guild.icon)
         await ctx.send(embed=embed, view=view)
 
+    @commands.hybrid_command(
+        name="afk",
+        extras={
+            "category": "General"
+        }
+    )
+    async def afk(self, ctx, *, reason: str = "No reason provided."):
+        """
+        Set your status as AFK.
+        """
+        await ctx.send(f"{ctx.author.mention} is now AFK. Reason: {reason}")
+        try:
+            await ctx.author.edit(nick=f"[AFK] {ctx.author.display_name}")
+        except discord.Forbidden:
+            pass
+        afk_users[ctx.author.id] = reason
 
 async def setup(bot):
     await bot.add_cog(Others(bot=bot))
