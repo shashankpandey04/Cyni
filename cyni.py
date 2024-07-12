@@ -201,8 +201,7 @@ def is_staff_or_management():
 
 
 bot.cyni_team = {
-    "coding.nerd {Creator}" : 1201129677457215558,
-    "imlimiteds {Developer}" : 707064490826530888
+    "coding.nerd {Creator}" : 1201129677457215558
 }
 
 if os.getenv("PRODUCTION"):

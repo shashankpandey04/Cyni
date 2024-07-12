@@ -108,6 +108,7 @@ class Applications(commands.Cog):
                 )
             try:
                 application_channel = settings["logging_channels"]["application_channel"]
+                application_channel = ctx.guild.get_channel(application_channel)
             except KeyError:
                 return await ctx.send(
                     embed = discord.Embed(
