@@ -49,8 +49,8 @@ class Applications(commands.Cog):
                     )
                 )
             embed = discord.Embed(
-                title=f"Reviewd by {ctx.author}",
-                description="**✅ Application accepted.**",
+                title=f"Reviewed by {ctx.author}",
+                description="**<:tick:1154046573509099580> Application accepted.**",
                 color=discord.Color.brand_green()
             ).add_field(
                 name="Applicant",
@@ -118,8 +118,8 @@ class Applications(commands.Cog):
                     )
                 )
             embed = discord.Embed(
-                title=f"Reviewd by {ctx.author}",
-                description="**❌ Application rejected.**",
+                title=f"Reviewed by {ctx.author}",
+                description="**<:cancel:1154046530601353407> Application rejected.**",
                 color=discord.Color.brand_red()
             ).add_field(
                 name="Applicant",
