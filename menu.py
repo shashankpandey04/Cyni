@@ -558,6 +558,30 @@ class ServerManagement(discord.ui.View):
         self.user_id = user_id
 
         try:
+            enabled = self.sett["server_management"]["enabled"]
+        except KeyError:
+            enabled = False
+
+        self.enable_disable_select = discord.ui.Select(
+            placeholder="Enable/Disable Server Management Module",
+            row=0,
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(
+                    label="Enable",
+                    value="enable"
+                ),
+                discord.SelectOption(
+                    label="Disable",
+                    value="disable"
+                )
+            ]
+        )
+        self.enable_disable_select.callback = self.enable_disable_callback
+        self.add_item(self.enable_disable_select)
+
+        try:
             app_channel = self.sett["server_management"]["application_channel"]
         except KeyError:
             app_channel = 0
@@ -584,6 +608,30 @@ class ServerManagement(discord.ui.View):
         )
         self.cyni_log_channel_select.callback = self.cyni_log_channel_callback
         self.add_item(self.cyni_log_channel_select)
+
+    async def enable_disable_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["server_management"]["enabled"] = not settings["server_management"].get("enabled",False)
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "server_management": {"enabled": True}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(
+            0,
+            name="Enable/Disable Server Management Module",
+            value=f"{'Enabled' if settings.get('server_management', {}).get('enabled', False) else 'Disabled'}"
+        )
+        await interaction.message.edit(embed=embed)
+        await interaction.response.send_message(f"Server Management Module {'Enabled' if settings.get('server_management', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
     async def application_channel_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:

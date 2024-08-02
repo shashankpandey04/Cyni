@@ -283,6 +283,17 @@ class Utility(commands.Cog):
         """
         await ctx.send("Join the support server for help: https://discord.gg/J96XEbGNDm")
 
+    @commands.hybrid_command(
+        name="dashboard",
+        extras={
+            "category": "General"
+        }
+    )
+    async def dashboard(self, ctx):
+        """
+        Get the bot's dashboard link.
+        """
+        await ctx.send("Cyni Dashboard is under development!\n[Dashboard](https://cyni.easypanel.host/)")
     
 async def setup(bot):
     await bot.add_cog(Utility(bot=bot))

@@ -34,7 +34,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -74,7 +77,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.red()
             )
         )
-        log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            log_channel = None
         if log_channel:
             await log_channel.send(
                 embed = discord.Embed(
@@ -99,8 +105,6 @@ class Moderation(commands.Cog):
         """
         Get the warnings for a user.
         """
-        if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Get warnings for {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -158,7 +162,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -181,8 +188,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -217,7 +226,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -248,8 +260,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -283,7 +297,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -295,8 +312,10 @@ class Moderation(commands.Cog):
         await ctx.send(
             f"{member.mention} has been kicked ✅."
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -330,7 +349,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -357,8 +379,10 @@ class Moderation(commands.Cog):
             )
         except discord.Forbidden:
             pass
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -392,7 +416,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -409,8 +436,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -463,7 +492,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -480,8 +512,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -515,7 +549,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -530,8 +567,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -566,7 +605,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -584,8 +626,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -620,7 +664,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -638,8 +685,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -673,7 +722,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -694,8 +746,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -730,7 +784,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -748,8 +805,10 @@ class Moderation(commands.Cog):
             await ctx.send(
                 f"Slowmode has been set to {seconds} seconds in {ctx.channel.mention}."
             )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -784,7 +843,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -797,8 +859,10 @@ class Moderation(commands.Cog):
         await ctx.send(
             f"{member.mention}'s nickname has been changed to `{nickname}`."
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -842,7 +906,10 @@ class Moderation(commands.Cog):
                         color = discord.Color.red()
                     )
                 )
-            module_enabled = settings["moderation_module"]["enabled"]
+            try:
+                module_enabled = settings["moderation_module"]["enabled"]
+            except KeyError:
+                module_enabled = False
             if not module_enabled:
                 return await ctx.send(
                     embed = discord.Embed(
@@ -865,8 +932,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.green()
                 )
             )
-
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+            try:
+                mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+            except KeyError:
+                mod_log_channel = None
             if mod_log_channel:
                 await mod_log_channel.send(
                     embed = discord.Embed(
@@ -904,8 +973,10 @@ class Moderation(commands.Cog):
                         color = discord.Color.red()
                     )
                 )
-            
-            module_enabled = settings["moderation_module"]["enabled"]
+            try:
+                module_enabled = settings["moderation_module"]["enabled"]
+            except KeyError:
+                module_enabled = False
             if not module_enabled:
                 return await ctx.send(
                     embed = discord.Embed(
@@ -929,8 +1000,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.green()
                 )
             )
-
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+            try:
+                mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+            except KeyError:
+                mod_log_channel = None
             if mod_log_channel:
                 await mod_log_channel.send(
                     embed = discord.Embed(
@@ -971,8 +1044,10 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        
-        module_enabled = settings["moderation_module"]["enabled"]
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -996,8 +1071,10 @@ class Moderation(commands.Cog):
                 color = discord.Color.green()
             )
         )
-
-        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
