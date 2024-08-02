@@ -10,3 +10,4 @@ python-dotenv
 pytz
 sentry-sdk
 waitress
+requests
