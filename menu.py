@@ -548,9 +548,9 @@ class ModerationModule(discord.ui.View):
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "moderation_module": {}}
         try:
-            settings["moderation_module"]["audit_log"] = self.ban_appeal_channel.values[0].id
+            settings["moderation_module"]["audit_log"] = self.audit_channel_select.values[0].id
         except KeyError:
-            settings = {"_id": interaction.guild.id, "moderation_module": {"audit_log": self.ban_appeal_channel.values[0].id}}
+            settings = {"_id": interaction.guild.id, "moderation_module": {"audit_log": self.audit_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Audit Log Channel Updated!",ephemeral=True)
     
