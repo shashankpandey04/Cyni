@@ -4,3 +4,4 @@ python-dotenv
 motor
 sentry-sdk
 jishaku
+pytz
