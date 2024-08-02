@@ -28,7 +28,8 @@ class OnGuildJoin(commands.Cog):
                 > **Bot Count:** {len([member for member in guild.members if member.bot])}
                 > **User Count:** {len([member for member in guild.members if not member.bot])}
                 > **Created At:** {created_at}
-                > **Verification Level:** {guild.verification_level}
+                > **Verification Level:** {guild.verification_level}\n\n
+                > **Total Guilds:** {len(self.bot.guilds)}
                 """,
                 color=BLANK_COLOR
             )

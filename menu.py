@@ -81,9 +81,11 @@ class BasicConfig(discord.ui.View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "customization": {}}
-        
-        settings.setdefault("customization", {})["prefix"] = self.prefix_button.values[0]
-
+        try:
+            settings["customization"]["prefix"] = self.prefix_button.values[0]
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "customization": {"prefix": self.prefix_button.values[0]}}
+        logging.info(f"Updated Prefix: {settings['customization']['prefix']} for {interaction.guild.id}")
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Prefix Updated!", ephemeral=True)
 
@@ -102,10 +104,11 @@ class BasicConfig(discord.ui.View):
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "basic_settings": {}}
         
-        settings.setdefault("basic_settings", {})["staff_roles"] = [
-            role.id for role in self.staff_role_select.values
-        ]
-
+        try:
+            settings['basic_settings']['staff_roles'] = [role.id for role in self.staff_role_select.values]
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [role.id for role in self.staff_role_select.values]}}
+        logging.info(f"Updated Staff Roles: {settings['basic_settings']['staff_roles']} for {interaction.guild.id}")
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Staff Roles Updated!", ephemeral=True)
 
@@ -124,10 +127,11 @@ class BasicConfig(discord.ui.View):
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "basic_settings": {}}
         
-        settings.setdefault("basic_settings", {})["management_roles"] = [
-            role.id for role in self.management_role_select.values
-        ]
-
+        try:
+            settings['basic_settings']['management_roles'] = [role.id for role in self.management_role_select.values]
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "basic_settings": {"management_roles": [role.id for role in self.management_role_select.values]}}
+        logging.info(f"Updated Management Roles: {settings['basic_settings']['management_roles']} for {interaction.guild.id}")
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Management Roles Updated!", ephemeral=True)
 class StaffInfraction(View):
