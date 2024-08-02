@@ -73,7 +73,7 @@ class Config(commands.Cog):
                 color=BLANK_COLOR
             ).add_field(
                 name="Enable/Disable Anti-Ping Module",
-                value=f"{"Enabled" if anti_ping_enabled else "Disabled"}"
+                value = f"{{{'Enabled' if anti_ping_enabled else 'Disabled'}}}"
             )
             embed3 = discord.Embed(
                 title="Moderation Module",
