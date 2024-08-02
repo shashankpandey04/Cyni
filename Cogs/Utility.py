@@ -209,7 +209,7 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
-    async def serverinfo(self, ctx):
+    async def serverinfo(self, ctx: commands.Context):
         """
         Get information about the server.
         """
@@ -218,13 +218,12 @@ class Utility(commands.Cog):
             title=f"{guild.name}",
             color=BLANK_COLOR
         ).set_thumbnail(
-            url=guild.icon.url
+            url=guild.icon.url if guild.icon else None
         ).add_field(
             name="Server Information",
             value=f'''
                 **ID:** {guild.id}
                 **Owner:** {guild.owner.mention}
-                **Region:** {guild.region}
                 **Verification Level:** {guild.verification_level}
                 **Boost Tier:** {guild.premium_tier}
                 **Boost Count:** {guild.premium_subscription_count}
@@ -233,7 +232,11 @@ class Utility(commands.Cog):
                 **Emoji Count:** {len(guild.emojis)}
                 **Channel Count:** {len(guild.channels)}'''
         )
-        await ctx.send(embed=embed)
+
+        if ctx.interaction:
+            await ctx.interaction.response.send_message(embed=embed)
+        else:
+            await ctx.send(embed=embed)
 
     @commands.hybrid_command(
         name="invite",

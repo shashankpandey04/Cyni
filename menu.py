@@ -587,7 +587,7 @@ class ServerManagement(discord.ui.View):
             app_channel = 0
         self.application_channel_select = discord.ui.ChannelSelect(
             placeholder="Application Results Channel",
-            row=0,
+            row=1,
             min_values=1,
             max_values=1,
             default_values=[discord.Object(id=app_channel)]
@@ -601,7 +601,7 @@ class ServerManagement(discord.ui.View):
             cyni_log_channel = 0
         self.cyni_log_channel_select = discord.ui.ChannelSelect(
             placeholder="Cyni Logging Channel",
-            row=1,
+            row=2,
             min_values=1,
             max_values=1,
             default_values=[discord.Object(id=cyni_log_channel)]

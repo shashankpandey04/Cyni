@@ -52,7 +52,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
-            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") == True else self.mongo["dev"]
+            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN")  else self.mongo["dev"]
             self.settings_document = Document(self.db, 'settings')
             self.analytics_document = Document(self.db, 'analytics')
             self.warnings_document = Document(self.db, 'warnings')
