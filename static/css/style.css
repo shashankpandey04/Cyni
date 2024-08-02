@@ -1,0 +1,68 @@
+body {
+      background-color: #2c2f33;
+      color: #ffffff;
+      scroll-behavior: smooth;
+      transition: all 0.25s linear; 
+    }
+    .navbar{
+        background-color: #000000;
+    }
+    .navbar-logo {
+        height: 30px;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+      
+    .footer{
+        background-color: #292f84;
+        text-align: center;
+        padding: 10px;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+    }
+    .hero {
+      background-image: url(https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSaDTl8kFXubtSpUO35g1V0qyLAvfvuC-Cnsg&s);
+      background-size: cover;
+      color: white;
+      padding: 100px 0;
+      text-align: center;
+    }
+    .feature {
+      padding: 40px 0;
+    }
+    .card {
+      background-color: #3d3d3d;
+      color: #ffffff;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 5px 8px 16px rgb(144, 255, 249);
+    }
+    .card-border {
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: calc(100% + 4px);
+      height: calc(100% + 4px);
+      border: #7289da solid 2px;
+      border-radius: 5px;
+      background-size: 200% 200%;
+      animation: borderAnim 2s linear infinite;
+    }
+    .card-content {
+      position: relative;
+      z-index: 1;
+    }
+    .card-image {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto;
+    }
+    @keyframes borderAnim {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }

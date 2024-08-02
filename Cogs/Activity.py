@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from utils.utils import log_command_usage
 
 
 class Activity(commands.Cog):
@@ -59,6 +60,8 @@ class Activity(commands.Cog):
         """
         Reset the activity leaderboard.
         """
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,"Activity Reset")
         guild_id = ctx.guild.id
         staff_activity = await self.bot.staff_activity.find_by_id(guild_id)
         if not staff_activity:

@@ -160,3 +160,20 @@ class Document:
         """
         return await self.db.find({})
     
+    async def find_by_query(self, query):
+        """
+        Find all documents in the collection that match the query.
+        :param query (dict): The query to match documents.
+        :return (list): A list of documents that match the query.
+        """
+        return await self.db.find(query).to_list(None)
+    
+    async def count_all(self, guild_id):
+        """
+        Count all infractions in the specified guild.
+        :param guild_id (int): The ID of the guild.
+        :return (int): The count of infractions.
+        """
+        query = {"guild_id": guild_id}
+        count = await self.db.count_documents(query)
+        return count

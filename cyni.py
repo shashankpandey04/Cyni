@@ -3,6 +3,7 @@ from discord.abc import User
 from discord.ext import commands
 from discord.ext import tasks
 from utils.mongo import Document
+import sentry_sdk
 
 from pkgutil import iter_modules
 import logging
@@ -19,6 +20,11 @@ from Datamodels.Settings import Settings
 from Datamodels.Analytics import Analytics
 from Datamodels.Warning import Warnings
 from Datamodels.StaffActivity import StaffActivity
+from Datamodels.Errors import Errors
+from Datamodels.Sessions import Sessions
+from Datamodels.Infraction_log import Infraction_log
+from Datamodels.Infraction_types import Infraction_type
+from Datamodels.Giveaway import Giveaway
 
 load_dotenv()
 
@@ -52,6 +58,11 @@ class Bot(commands.Bot):
             self.warnings_document = Document(self.db, 'warnings')
             self.actvity_document = Document(self.db, 'staff_activity')
             self.appeals_document = Document(self.db, 'ban_appeals')
+            self.errors_document = Document(self.db, 'errors')
+            self.sessions_document = Document(self.db, 'sessions')
+            self.infraction_log_document = Document(self.db, 'infraction_log')
+            self.infraction_types_document = Document(self.db, 'infraction_types')
+            self.giveaway_document = Document(self.db, 'giveaways')
 
     async def setup_hook(self) -> None:
 
@@ -60,6 +71,11 @@ class Bot(commands.Bot):
         self.warnings = Warnings(self.db, 'warnings')
         self.staff_activity = StaffActivity(self.db, 'staff_activity')
         self.ban_appeals = Document(self.db, 'ban_appeals')
+        self.errors = Errors(self.db, 'errors')
+        self.sessions = Sessions(self.db, 'sessions')
+        self.infraction_log = Infraction_log(self.db, 'infraction_log')
+        self.infraction_types = Infraction_type(self.db, 'infraction_types')
+        self.giveaways = Giveaway(self.db, 'giveaways')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
@@ -134,7 +150,7 @@ async def banappeal(interaction: discord.Interaction):
 async def change_status():
     await bot.wait_until_ready()
     logging.info("Changing status")
-    status = "✨ /about | Cyni v7"
+    status = "✨ /about | Cyni v7.1"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
 )
@@ -142,6 +158,8 @@ async def change_status():
 up_time = time.time()
 
 async def staff_check(bot,guild,member):
+    if member.guild_permissions.administrator:
+        return True
     guild_settings = await bot.settings.get(guild.id)
     if guild_settings:
         if "staff_roles" in guild_settings["basic_settings"].keys():
@@ -158,6 +176,8 @@ async def staff_check(bot,guild,member):
     return False
 
 async def management_check(bot,guild,member):
+    if member.guild_permissions.administrator:
+        return True
     guild_settings = await bot.settings.get(guild.id)
     if guild_settings:
         if "management_roles" in guild_settings["basic_settings"].keys():
@@ -174,6 +194,8 @@ async def management_check(bot,guild,member):
     return False
 
 async def staff_or_management_check(bot,guild,member):
+    if member.guild_permissions.administrator:
+        return True
     if await staff_check(bot,guild,member) or await management_check(bot,guild,member):
         return True
     return False
@@ -204,8 +226,8 @@ bot.cyni_team = {
     "coding.nerd {Creator}" : 1201129677457215558
 }
 
-if os.getenv("PRODUCTION"):
-    bot_token = os.getenv("PRODUCTION")
+if os.getenv("PRODUCTION_TOKEN"):
+    bot_token = os.getenv("PRODUCTION_TOKEN")
     logging.info("Production Token")
 else:
     bot_token = os.getenv("DEV_TOKEN")

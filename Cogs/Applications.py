@@ -1,7 +1,11 @@
 import discord
 from discord.ext import commands
 
+from discord import app_commands
 from cyni import is_management
+from utils.autocompletes import application_autocomplete
+from utils.constants import RED_COLOR, BLANK_COLOR, GREEN_COLOR
+from utils.utils import log_command_usage
 
 class Applications(commands.Cog):
     def __init__(self, bot):
@@ -18,132 +22,77 @@ class Applications(commands.Cog):
         pass
 
     @application.command(
-        name="accept",
+        name="result",
         extras={
             "category": "Applications"
         }
     )
     @is_management()
-    async def accept(self, ctx, applicant: discord.Member,*,feedback: str = None,role_add:discord.Role = None,role_remove:discord.Role = None):
-        """
-        Accept an application.
-        """
-        try:
-            settings = await self.bot.settings.find_by_id(ctx.guild.id)
-            if settings is None:
-                return await ctx.send(
-                    embed = discord.Embed(
-                        title="Error",
-                        description="No settings found for this server. Please use `/config` command."
-                    )
-                )
-            try:
-                application_channel_id = settings["logging_channels"]["application_channel"]
-                application_channel = ctx.guild.get_channel(application_channel_id)
-            except KeyError:
-                return await ctx.send(
-                    embed = discord.Embed(
-                        title="Error",
-                        description="No application channel found. Please use `/config` command.",
-                        color=0x2F3136
-                    )
-                )
-            embed = discord.Embed(
-                title=f"Reviewed by {ctx.author}",
-                description="**<:tick:1154046573509099580> Application accepted.**",
-                color=discord.Color.brand_green()
-            ).add_field(
-                name="Applicant",
-                value=applicant.mention,
-                inline=False
-            ).add_field(
-                name="Feedback",
-                value=feedback,
-                inline=False
-            ).set_thumbnail(
-                url=applicant.avatar.url
-            )
-            try:
-                role_add = ctx.guild.get_role(role_add)
-                role_remove = ctx.guild.get_role(role_remove)
-                await applicant.add_roles(role_add)
-                await applicant.remove_roles(role_remove)
-            except:
-                pass
-            await application_channel.send(
-                applicant.mention,
-                embed=embed
-            )
-            await ctx.send(
-                f"Application accepted for {applicant.mention}."
-            )
-        except Exception as e:
-            await ctx.send(
-                embed = discord.Embed(
-                    title="Error",
-                    description=f"An error occured: {e}",
-                    color=0x2F3136
-                )
-            )
-
-    @application.command(
-        name="reject",
-        extras={
-            "category": "Applications"
-        }
+    @app_commands.autocomplete(
+        status = application_autocomplete
     )
-    @is_management()
-    async def reject(self, ctx, applicant: discord.Member,*,feedback: str = None):
+    async def resut(self, ctx, applicant: discord.Member,status:str,*,feedback: str = None,role_add:discord.Role = None,role_remove:discord.Role = None):
         """
-        Reject an application.
+        Send the result of an application.
         """
-        try:
-            settings = await self.bot.settings.find_by_id(ctx.guild.id)
-            if settings is None:
-                return await ctx.send(
-                    embed = discord.Embed(
-                        title="Error",
-                        description="No settings found for this server. Please use `/config` command."
-                    )
-                )
-            try:
-                application_channel = settings["logging_channels"]["application_channel"]
-                application_channel = ctx.guild.get_channel(application_channel)
-            except KeyError:
-                return await ctx.send(
-                    embed = discord.Embed(
-                        title="Error",
-                        description="No application channel found. Please use `/config` command.",
-                        color=0x2F3136
-                    )
-                )
-            embed = discord.Embed(
-                title=f"Reviewed by {ctx.author}",
-                description="**<:cancel:1154046530601353407> Application rejected.**",
-                color=discord.Color.brand_red()
-            ).add_field(
-                name="Applicant",
-                value=applicant.mention,
-                inline=False
-            ).add_field(
-                name="Feedback",
-                value=feedback,
-                inline=False
-            ).set_thumbnail(
-                url=applicant.avatar.url
-            )
-            await application_channel.send(applicant.mention,embed=embed)
-            await ctx.send(
-                f"Application rejected for {applicant.mention}."
-            )
-        except Exception as e:
-            await ctx.send(
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Application Result for {applicant}")
+        settings = await self.bot.settings.find_by_id(ctx.guild.id)
+        if settings is None:
+            return await ctx.send(
                 embed = discord.Embed(
                     title="Error",
-                    description=f"An error occured: {e}",
+                    description="No settings found for this server. Please use `/config` command."
+                )
+            )
+        try:
+            application_channel_id = settings["server_management"]["application_channel"]
+            application_channel = ctx.guild.get_channel(application_channel_id)
+        except KeyError:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Error",
+                    description="No application channel found. Please use `/config` command.",
                     color=0x2F3136
                 )
             )
+        if status == "accepted":
+            embed = discord.Embed(
+                title=f"Reviewed by {ctx.author}",
+                description="**<:checked:1268849964063391788> Application accepted.**",
+                color=GREEN_COLOR
+            )
+        else:
+            embed = discord.Embed(
+                title=f"Reviewed by {ctx.author}",
+                description="**<:declined:1268849944455024671> Application declined.**",
+                color=RED_COLOR
+            )
+        embed.add_field(
+            name="Applicant",
+            value=applicant.mention,
+            inline=False
+        ).add_field(
+            name="Feedback",
+            value=feedback,
+            inline=False
+        ).set_thumbnail(
+            url=applicant.avatar.url
+        )
+        try:
+            role_add = ctx.guild.get_role(role_add)
+            role_remove = ctx.guild.get_role(role_remove)
+            await applicant.add_roles(role_add)
+            await applicant.remove_roles(role_remove)
+        except:
+            pass
+        await application_channel.send(
+            applicant.mention,
+            embed=embed
+        )
+        await ctx.send(
+            f"Application result sent for {applicant.mention}"
+        )
 
 async def setup(bot):
     await bot.add_cog(Applications(bot))

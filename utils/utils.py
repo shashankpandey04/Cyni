@@ -1,9 +1,12 @@
 import discord
 from discord.ext import commands
 
-import asyncio
+from datetime import  timedelta
 import datetime
+import re
+import pytz
 import uuid
+from utils.constants import BLANK_COLOR
 
 async def get_prefix(bot, message):
     """
@@ -26,32 +29,6 @@ async def get_prefix(bot, message):
         return prefix
     except KeyError:
         return commands.when_mentioned_or("?")(bot,message)
-    
-main_config_embed = discord.Embed(
-                title="Configuration",
-                description="Configure your server settings.",
-                color=discord.Color.blurple()
-            ).add_field(
-                name="Basic Configuration",
-                value="Setup your Staff & Management Roles to use Cyni.",
-                inline=False
-            ).add_field(
-                name="Anti-Ping",
-                value="What is Anti-Ping? Anti-Ping prevents users from pinging specific roles.",
-                inline=False
-            ).add_field(
-                name="Staff Infractions Module",
-                value="Setup the Staff Infractions module to log staff infractions.",
-                inline=False
-            ).add_field(
-                name="Log Channels",
-                value="Set channels to log moderation actions and applications.",
-                inline=False
-            ).add_field(
-                name="Other Configurations",
-                value="Setup Prefix and Message Quota.",
-                inline=False
-            )
 
 def gen_error_uid():
     """
@@ -59,3 +36,83 @@ def gen_error_uid():
     :return (str): The unique error ID.
     """
     return str(uuid.uuid4().hex[:6])
+
+def discord_time(dt):
+    """
+    Convert a datetime object to a Discord timestamp.
+    :param dt (datetime): The datetime object.
+    :return (str): The Discord timestamp.
+    """
+    # Convert datetime to a Unix timestamp
+    unix_timestamp = int(dt.timestamp())
+    # Return the Discord formatted timestamp
+    return f"<t:{unix_timestamp}:R>"
+
+def parse_duration(duration):
+    """
+    Parse a duration string and return the total duration in seconds.
+    Supports days (d), weeks (w), hours (h), minutes (m), and seconds (s).
+    """
+    regex = r"(?:(\d+)\s*d(?:ays?)?)?\s*(?:(\d+)\s*w(?:eeks?)?)?\s*(?:(\d+)\s*h(?:ours?)?)?\s*(?:(\d+)\s*m(?:inutes?)?)?\s*(?:(\d+)\s*s(?:econds?)?)?"
+    matches = re.match(regex, duration)
+    if not matches:
+        return None
+
+    days = int(matches.group(1)) if matches.group(1) else 0
+    weeks = int(matches.group(2)) if matches.group(2) else 0
+    hours = int(matches.group(3)) if matches.group(3) else 0
+    minutes = int(matches.group(4)) if matches.group(4) else 0
+    seconds = int(matches.group(5)) if matches.group(5) else 0
+
+    total_seconds = timedelta(days=days, weeks=weeks, hours=hours, minutes=minutes, seconds=seconds).total_seconds()
+    return int(total_seconds)
+
+async def log_command_usage(bot, guild, member, command_name):
+    settings = await bot.settings.find_by_id(guild.id)
+    if not settings:
+        return
+    if not settings.get('server_management', {}).get('cyni_log_channel'):
+        return
+    try:
+        log_channel_id = settings.get('server_management', {}).get('cyni_log_channel')
+    except (ValueError, TypeError):
+        return
+    log_channel = guild.get_channel(log_channel_id)
+    if log_channel is None:
+        return
+    if not log_channel.permissions_for(guild.me).send_messages:
+        return
+    embed = discord.Embed(
+        title="Cyni Command Log",
+        description=f"Command `{command_name}` used by {member.mention}",
+        color=BLANK_COLOR
+    )
+    embed.set_footer(text=f"User ID: {member.id}")
+    embed.set_author(name=member.name, icon_url=member.display_avatar.url)
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+    await log_channel.send(embed=embed)
+
+async def config_change_log(bot,guild,member,data):
+    setting = await bot.settings.find_by_id(guild.id)
+    if not setting:
+        return
+    if not setting.get('server_management', {}).get('cyni_log_channel'):
+        return
+    try:
+        log_channel_id = setting.get('server_management', {}).get('cyni_log_channel')
+    except (ValueError,TypeError) as e:
+        return
+    log_channel = guild.get_channel(log_channel_id)
+    if log_channel is None:
+        return
+    if not log_channel.permissions_for(guild.me).send_messages:
+        return
+    embed = discord.Embed(
+        title="Cyni Config Change Log",
+        description=f"Configuration change made by {member.mention}",
+        color=BLANK_COLOR
+    ).add_field(name="Configuration Change",value=data)
+    embed.set_footer(text=f"User ID: {member.id}")
+    embed.set_author(name=member.name, icon_url=member.display_avatar.url)
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+    await log_channel.send(embed=embed)

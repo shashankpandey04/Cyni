@@ -4,6 +4,9 @@ from discord.ext import commands
 from Datamodels.Warning import Warnings
 from cyni import is_staff_or_management,is_management
 from utils.Schema import warning
+from utils.utils import log_command_usage
+from datetime import timedelta, datetime
+import re
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
@@ -21,6 +24,8 @@ class Moderation(commands.Cog):
         """
         Warn a user.
         """
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Warn {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -33,14 +38,14 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
+                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
                     color = discord.Color.red()
                 )
             )
         if member == ctx.author:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "You cannot warn yourself.",
+                    description = "<:moderation:1268850116798844969> You cannot warn yourself.",
                     color = discord.Color.red()
                 )
             )
@@ -58,7 +63,7 @@ class Moderation(commands.Cog):
         await self.warnings.update_by_id(user_warnings)
         await ctx.send(
             embed = discord.Embed(
-                description = f"{member.mention} has been warned for `{reason}`.\nCase ID: {len(user_warnings['warnings'])}",
+                description = f"<:moderation:1268850116798844969> {member.mention} has been warned for `{reason}`.\nCase ID: {len(user_warnings['warnings'])}",
                 color = discord.Color.green()
             )
         )
@@ -69,7 +74,7 @@ class Moderation(commands.Cog):
                 color = discord.Color.red()
             )
         )
-        log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if log_channel:
             await log_channel.send(
                 embed = discord.Embed(
@@ -80,7 +85,7 @@ class Moderation(commands.Cog):
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command."
             )
 
     @commands.hybrid_command(
@@ -94,7 +99,8 @@ class Moderation(commands.Cog):
         """
         Get the warnings for a user.
         """
-        
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Get warnings for {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -107,7 +113,7 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
+                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
                     color = discord.Color.red()
                 )
             )
@@ -115,7 +121,7 @@ class Moderation(commands.Cog):
         if not user_warnings:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = f"{member.mention} has no warnings.",
+                    description = f"<:moderation:1268850116798844969> {member.mention} has no warnings.",
                     color = discord.Color.green()
                 )
             )
@@ -142,7 +148,8 @@ class Moderation(commands.Cog):
         """
         Clear the warnings for a user.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Clear warnings for {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -155,7 +162,7 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
+                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
                     color = discord.Color.red()
                 )
             )
@@ -163,19 +170,19 @@ class Moderation(commands.Cog):
         if not user_warnings:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = f"{member.mention} has no warnings.",
+                    description = f"<:moderation:1268850116798844969> {member.mention} has no warnings.",
                     color = discord.Color.green()
                 )
             )
         await self.warnings.delete_by_id(f"{ctx.guild.id}-{member.id}")
         await ctx.send(
             embed = discord.Embed(
-                description = f"{member.mention}'s warnings have been cleared.",
+                description = f"<:moderation:1268850116798844969> {member.mention}'s warnings have been cleared.",
                 color = discord.Color.green()
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -186,7 +193,7 @@ class Moderation(commands.Cog):
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command."
             )
 
     @commands.hybrid_command(
@@ -200,7 +207,8 @@ class Moderation(commands.Cog):
         """
         Delete a warning for a user.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Delete warning {case} for {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -213,7 +221,7 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
+                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
                     color = discord.Color.red()
                 )
             )
@@ -228,7 +236,7 @@ class Moderation(commands.Cog):
         if case > len(user_warnings["warnings"]):
             return await ctx.send(
                 embed = discord.Embed(
-                    description = f"{member.mention} has no warning with case ID {case}.",
+                    description = f"<:moderation:1268850116798844969> {member.mention} has no warning with case ID {case}.",
                     color = discord.Color.red()
                 )
             )
@@ -241,7 +249,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -252,7 +260,7 @@ class Moderation(commands.Cog):
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command."
             )
 
     @commands.hybrid_command(
@@ -265,7 +273,8 @@ class Moderation(commands.Cog):
         """
         Kick a user.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Kick {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -287,7 +296,7 @@ class Moderation(commands.Cog):
             f"{member.mention} has been kicked ✅."
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -311,7 +320,8 @@ class Moderation(commands.Cog):
         """
         Ban a user.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Ban {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -348,7 +358,7 @@ class Moderation(commands.Cog):
         except discord.Forbidden:
             pass
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -372,7 +382,8 @@ class Moderation(commands.Cog):
         """
         Unban a user.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Unban {userid}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -399,7 +410,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -419,11 +430,31 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
-    async def mute(self, ctx, member: discord.Member, *, reason: str):
+    async def mute(self, ctx, member: discord.Member, time:str, reason: str):
         """
         Mute a user.
         """
+        def parse_duration(self, duration):
+            """
+            Parse a duration string and return the total duration in seconds.
+            Supports days (d), weeks (w), hours (h), minutes (m), and seconds (s).
+            """
+            regex = r"(?:(\d+)\s*d(?:ays?)?)?\s*(?:(\d+)\s*w(?:eeks?)?)?\s*(?:(\d+)\s*h(?:ours?)?)?\s*(?:(\d+)\s*m(?:inutes?)?)?\s*(?:(\d+)\s*s(?:econds?)?)?"
+            matches = re.match(regex, duration)
+            if not matches:
+                return None
 
+            days = int(matches.group(1)) if matches.group(1) else 0
+            weeks = int(matches.group(2)) if matches.group(2) else 0
+            hours = int(matches.group(3)) if matches.group(3) else 0
+            minutes = int(matches.group(4)) if matches.group(4) else 0
+            seconds = int(matches.group(5)) if matches.group(5) else 0
+
+            total_seconds = timedelta(days=days, weeks=weeks, hours=hours, minutes=minutes, seconds=seconds).total_seconds()
+            return int(total_seconds)
+        
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Mute {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -440,13 +471,9 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        
-        role = discord.utils.get(ctx.guild.roles, name="Muted")
-        if not role:
-            role = await ctx.guild.create_role(name="Muted")
-            for channel in ctx.guild.channels:
-                await channel.set_permissions(role, send_messages=False)
-        await member.add_roles(role, reason=reason)
+        time = parse_duration(self,time)
+        member.timed_out_until = datetime.datetime.now() + datetime.timedelta(seconds=time)
+
         await ctx.send(
             embed = discord.Embed(
                 description = f"{member.mention} has been muted for `{reason}`.",
@@ -454,7 +481,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -478,7 +505,8 @@ class Moderation(commands.Cog):
         """
         Unmute a user.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Unmute {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -495,15 +523,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        role = discord.utils.get(ctx.guild.roles, name="Muted")
-        if not role:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "There is no Muted role.",
-                    color = discord.Color.red()
-                )
-            )
-        await member.remove_roles(role, reason=reason)
+        member.timed_out_until = None
         await ctx.send(
             embed = discord.Embed(
                 description = f"{member.mention} has been unmuted for `{reason}`.",
@@ -511,7 +531,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -536,7 +556,8 @@ class Moderation(commands.Cog):
         """
         Lock a channel.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Lock {channel}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -564,7 +585,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -589,7 +610,8 @@ class Moderation(commands.Cog):
         """
         Unlock a channel.
         """
-        
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Unlock {channel}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -617,7 +639,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -641,7 +663,8 @@ class Moderation(commands.Cog):
         """
         Purge messages in a channel.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Purge {amount} messages")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -672,7 +695,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -697,7 +720,8 @@ class Moderation(commands.Cog):
         """
         Set the slowmode for a channel.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Slowmode {seconds} seconds")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -725,7 +749,7 @@ class Moderation(commands.Cog):
                 f"Slowmode has been set to {seconds} seconds in {ctx.channel.mention}."
             )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -750,7 +774,8 @@ class Moderation(commands.Cog):
         """
         Change a user's nickname.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Nick {member} {nickname}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -773,7 +798,7 @@ class Moderation(commands.Cog):
             f"{member.mention}'s nickname has been changed to `{nickname}`."
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(
@@ -841,7 +866,7 @@ class Moderation(commands.Cog):
                 )
             )
 
-            mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
             if mod_log_channel:
                 await mod_log_channel.send(
                     embed = discord.Embed(
@@ -905,7 +930,7 @@ class Moderation(commands.Cog):
                 )
             )
 
-            mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
             if mod_log_channel:
                 await mod_log_channel.send(
                     embed = discord.Embed(
@@ -936,7 +961,8 @@ class Moderation(commands.Cog):
         """
         Softban a user.
         """
-
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Softban {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -971,7 +997,7 @@ class Moderation(commands.Cog):
             )
         )
 
-        mod_log_channel = ctx.guild.get_channel(settings["logging_channels"]["mod_log_channel"])
+        mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
         if mod_log_channel:
             await mod_log_channel.send(
                 embed = discord.Embed(

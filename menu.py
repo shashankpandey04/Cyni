@@ -1,150 +1,205 @@
 import discord
 from discord.ext import commands
 import logging
-
+from utils.constants import BLANK_COLOR
 from discord.ui import Button, View, Modal, TextInput
 
-from utils.utils import main_config_embed
-
-class BasicConfiguration(View):
-    def __init__(self, bot: commands.Bot,user_id:int):
+class BasicConfig(discord.ui.View):
+    def __init__(self, bot, sett, user_id: int):
         super().__init__()
-
         self.bot = bot
+        self.sett = sett or {}
         self.user_id = user_id
+        
+        try:
+            staff_roles = self.sett['basic_settings']['staff_roles'] if 'staff_roles' in self.sett['basic_settings'] else []
+            management_roles = self.sett['basic_settings']['management_roles'] if 'management_roles' in self.sett['basic_settings'] else []
+        except KeyError:
+            staff_roles = []
+            management_roles = []
+        try:
+            prefix = self.sett['customization']['prefix']
+        except KeyError:
+            prefix = "?"
+
+        self.prefix_button = discord.ui.Select(
+            placeholder="Select Prefix",
+            options=[
+                discord.SelectOption(
+                    label="?",
+                    value="?"
+                ),
+                discord.SelectOption(
+                    label="!",
+                    value="!"
+                ),
+                discord.SelectOption(
+                    label=">",
+                    value=">"
+                ),
+                discord.SelectOption(
+                    label=":",
+                    value=":"
+                )
+            ],
+            row=0
+        )
+        self.prefix_button.callback = self.prefix_callback
+        self.add_item(self.prefix_button)
 
         self.staff_role_select = discord.ui.RoleSelect(
-            placeholder="Staff Roles",
-            row=0,
+            placeholder="Select Staff Roles",
+            row=1,
             min_values=1,
             max_values=10,
+            default_values=[discord.Object(id=role_id) for role_id in staff_roles]
         )
-        self.staff_role_select.callback = self.staff_roles
+        self.staff_role_select.callback = self.staff_roles_callback
         self.add_item(self.staff_role_select)
 
         self.management_role_select = discord.ui.RoleSelect(
-            placeholder="Management Roles",
-            row=1,
+            placeholder="Select Management Roles",
+            row=2,
             min_values=1,
             max_values=10,
+            default_values=[discord.Object(id=role_id) for role_id in management_roles]
         )
-        self.management_role_select.callback = self.management_roles
+        self.management_role_select.callback = self.management_roles_callback
         self.add_item(self.management_role_select)
 
-        self.main_page = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Main Page",
-            row=4
-        )
-        self.main_page.callback = self.main_page_callback
-        self.add_item(self.main_page)
-
-    async def main_page_callback(self, interaction: discord.Interaction):
+    async def prefix_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
-        await interaction.message.edit(embed=main_config_embed,view=Configuration(self.bot, interaction.user.id))
-        await interaction.response.send_message("Main Page",ephemeral=True)
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="You are not allowed to use this menu.",
+                    color=0xFF0000
+                ),
+                ephemeral=True
+            )
 
-    async def staff_roles(self, interaction: discord.Interaction):
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id, "customization": {}}
+        
+        settings.setdefault("customization", {})["prefix"] = self.prefix_button.values[0]
+
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Prefix Updated!", ephemeral=True)
+
+    async def staff_roles_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="You are not allowed to use this menu.",
+                    color=0xFF0000
+                ),
+                ephemeral=True
+            )
+
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "basic_settings": {}}
-        try:
-            settings["basic_settings"]["staff_roles"] = [role.id for role in self.staff_role_select.values]
-            #logging.info(settings)
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [role.id for role in self.staff_role_select.values]}}
-            #logging.info(settings)
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            0,
-            name="Staff Roles",
-            value=f"""
-            > These roles grant permission to use Cyni moderation commands.\n
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("basic_settings", {}).get("staff_roles", [])]) + ">"}
-            """,
-            inline=False
-        )
-        await interaction.message.edit(embed=embed)
-        await interaction.response.send_message("Staff Roles Updated!",ephemeral=True)
+        
+        settings.setdefault("basic_settings", {})["staff_roles"] = [
+            role.id for role in self.staff_role_select.values
+        ]
 
-    async def management_roles(self, interaction: discord.Interaction):
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Staff Roles Updated!", ephemeral=True)
+
+    async def management_roles_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="You are not allowed to use this menu.",
+                    color=0xFF0000
+                ),
+                ephemeral=True
+            )
+
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "basic_settings": {}}
-        try:
-            settings["basic_settings"]["management_roles"] = [role.id for role in self.management_role_select.values]
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "basic_settings": {"management_roles": [role.id for role in self.management_role_select.values]}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            1,
-            name="Management Roles",
-            value=f"""
-            > Users with these roles can utilize Cyni management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("basic_settings", {}).get("management_roles", [])]) + ">"}
-            """,
-            inline=False
-        )
-        await interaction.message.edit(embed=embed)
-        await interaction.response.send_message("Management Roles Updated!",ephemeral=True)
+        
+        settings.setdefault("basic_settings", {})["management_roles"] = [
+            role.id for role in self.management_role_select.values
+        ]
 
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Management Roles Updated!", ephemeral=True)
 class StaffInfraction(View):
-    def __init__(self, bot: commands.Bot, user_id: int,promo_channel:int,demotion_channel:int,enalbed:bool):
+    def __init__(self, bot,setting, user_id: int):
         super().__init__()
 
         self.bot = bot
         self.user_id = user_id
-        self.promo_channel = promo_channel
-        self.demotion_channel = demotion_channel
-        self.enalbed = enalbed
+        self.sett = setting or {}
 
-        self.enable_disable_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Enable/Disable Staff Infraction Module",
-            row=0
-        )
-        self.enable_disable_button.callback = self.enable_disable_callback
-        self.add_item(self.enable_disable_button)
+        try:
+            promo_channel = self.sett.get("staff_management", {}).get("promotion_channel", 0)
+        except KeyError:
+            promo_channel = 0
+        try:
+            demotion_channel = self.sett.get("staff_management", {}).get("demotion_channel", 0)
+        except KeyError:
+            demotion_channel = 0
+        try:
+            warning_channel = self.sett.get("staff_management", {}).get("warning_channel", 0)
+        except KeyError:
+            warning_channel = 0
 
-        self.promotion_channel_select = discord.ui.ChannelSelect(
-            placeholder="Promotion Channel",
-            row=1,
+        self.enable_disable_select = discord.ui.Select(
+            placeholder="Enable/Disable Staff Infraction Module",
+            row=0,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=self.promo_channel)]
+            options=[
+                discord.SelectOption(
+                    label="Enable",
+                    value="enable"
+                ),
+                discord.SelectOption(
+                    label="Disable",
+                    value="disable"
+                )
+            ]
+        )
+        self.enable_disable_select.callback = self.enable_disable_callback
+        self.add_item(self.enable_disable_select)
+
+        self.promotion_channel_select = discord.ui.ChannelSelect(
+            placeholder="Staff Promotion Log Channel",
+            row=1,
+            min_values=0,
+            max_values=1,
+            default_values=[discord.Object(id=promo_channel)]
         )
 
         self.promotion_channel_select.callback = self.promotion_channel
         self.add_item(self.promotion_channel_select)
 
         self.infraction_channel_select = discord.ui.ChannelSelect(
-            placeholder="Demotion Channel",
+            placeholder="Staff Demotion Log Channel",
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=self.demotion_channel)]
+            default_values=[discord.Object(id=demotion_channel)]
         )
         self.infraction_channel_select.callback = self.infraction_channel
         self.add_item(self.infraction_channel_select)
 
-        self.main_page = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Main Page",
-            row=4
+        self.warning_channel_select = discord.ui.ChannelSelect(
+            placeholder="Staff Warning Log Channel",
+            row=3,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=warning_channel)]
         )
-        self.main_page.callback = self.main_page_callback
-        self.add_item(self.main_page)
-
-    async def main_page_callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
-        await interaction.message.edit(embed=main_config_embed,view=Configuration(self.bot, interaction.user.id))
-        await interaction.response.send_message("Main Page",ephemeral=True)
+        self.warning_channel_select.callback = self.warning_channel
+        self.add_item(self.warning_channel_select)
 
     async def enable_disable_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
@@ -153,23 +208,24 @@ class StaffInfraction(View):
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id}
         try:
-            staff_infraction_module = settings.get("staff_management", {})
+            staff_infraction_module = settings['staff_management']
         except KeyError:
-            settings = {"_id": interaction.guild.id, "staff_management": {}}
-            staff_infraction_module = {}
+            settings = {
+                '_id': interaction.guild.id,
+                'staff_management': {'enabled': False}
+            }
         try:
-            staff_infraction_module["enabled"] = not staff_infraction_module.get("enabled", False)
+            settings["staff_management"]["enabled"] = not settings["staff_management"].get("enabled",False)
         except KeyError:
-            staff_infraction_module = {"enabled": True}
+            settings = {"_id": interaction.guild.id, "staff_management": {"enabled": True}}
+
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         embed = interaction.message.embeds[0]
         embed.set_field_at(
             0,
             name="Enable/Disable Staff Infraction Module",
-            value=f"""
-            > Enable or Disable the Staff Infraction Module.\n Current Status: {'Enabled' if settings.get('staff_management', {}).get('enabled', False) else 'Disabled'}
-            """
+            value=f"{'Enabled' if settings.get('staff_management', {}).get('enabled', False) else 'Disabled'}"
         )
         await interaction.message.edit(embed=embed)
         await interaction.response.send_message(f"Staff Infraction Module {'Enabled' if settings.get('staff_management', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
@@ -185,13 +241,6 @@ class StaffInfraction(View):
         except KeyError:
             settings = {"_id": interaction.guild.id, "staff_management": {"promotion_channel": self.promotion_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            1,
-            name="Promotion Channel",
-            value=f"> Set the channel where you want to log promotions\n Current Channel: <#{self.promotion_channel_select.values[0].id}>"
-        )
-        await interaction.message.edit(embed=embed)
         await interaction.response.send_message("Promotion Channel Updated!",ephemeral=True)
 
     async def infraction_channel(self, interaction: discord.Interaction):
@@ -205,244 +254,60 @@ class StaffInfraction(View):
         except KeyError:
             settings = {"_id": interaction.guild.id, "staff_management": {"demotion_channel": self.infraction_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            2,
-            name="Infraction Channel",
-            value=f"> Set the channel where you want to log infractions.\n Current Channel: <#{self.infraction_channel_select.values[0].id}>"
-        )
-        await interaction.message.edit(embed=embed)
         await interaction.response.send_message("Infraction Channel Updated!",ephemeral=True)
 
-class Configuration(discord.ui.View):
-    def __init__(self, bot, user_id: int):
-        super().__init__()
-        self.bot = bot
-        self.user_id = user_id
-
-        self.basic_settings_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Basic Setting",
-            row=0
-        )
-        self.basic_settings_button.callback = self.basic_settings_callback
-        self.add_item(self.basic_settings_button)
-
-        self.anti_ping_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Anti Ping Module",
-            row=0
-        )
-        self.anti_ping_button.callback = self.anti_ping_callback
-        self.add_item(self.anti_ping_button)
-
-        self.staff_infraction_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Staff Infraction Module",
-            row=0
-        )
-        self.staff_infraction_button.callback = self.staff_infraction_callback
-        self.add_item(self.staff_infraction_button)
-
-        self.logging_channels_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Logging Channels",
-            row=1
-        )
-        self.logging_channels_button.callback = self.logging_channels_callback
-        self.add_item(self.logging_channels_button)
-
-        self.other_configurations_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Other Configurations",
-            row=1
-        )
-        self.other_configurations_button.callback = self.other_configurations_callback
-        self.add_item(self.other_configurations_button)
-
-        self.enable_moderation_module = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Enable/Disable Moderation Module",
-            row=1
-        )
-        self.enable_moderation_module.callback = self.enable_moderation_module_callback
-        self.add_item(self.enable_moderation_module)
-
-    async def basic_settings_callback(self, interaction: discord.Interaction):
+    async def warning_channel(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id, "basic_settings": {}}
+            settings = {"_id": interaction.guild.id, "staff_management": {}}
         try:
-            current_staff_roles = settings.get("basic_settings", {}).get("staff_roles", [])
-            current_management_roles = settings.get("basic_settings", {}).get("management_roles", [])
+            settings["staff_management"]["warning_channel"] = self.warning_channel_select.values[0].id
         except KeyError:
-            settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [], "management_roles": []}}
-        embed = discord.Embed(
-            title="Basic Setting",
-            description=" ",
-            color=0x2F3136
-        ).add_field(
-            name="Staff Roles",
-            value=f"""
-            > These roles grant permission to use Cyni moderation commands.\n
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in current_staff_roles]) + ">" if current_staff_roles else "No Staff Roles Set"}
-            """,
-            inline=False
-        ).add_field(
-            name="Management Roles",
-            value=f"""
-            > Users with these roles can utilize Cyni management commands, including Application Result commands, Staff Promo/Demo command, and setting the Moderation Log channel
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in current_management_roles]) + ">" if current_management_roles else "No Management Roles Set"}
-            """,
-            inline=False
-        )
-        await interaction.message.edit(embed=embed, view=BasicConfiguration(self.bot,user_id=interaction.user.id))
-        await interaction.response.send_message("Basic Settings Module",ephemeral=True)
-
-    async def anti_ping_callback(self, interaction: discord.Interaction):
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        embed = discord.Embed(
-            title="Anti Ping Module",
-            description=" ",
-            color=0x2F3136
-        ).add_field(
-            name="Enable/Disable Anti Ping",
-            value=f"""
-            > Enable or Disable the Anti Ping feature. When enabled, users will be warned if they ping the Anti Ping roles without having the bypass role.\n
-            Current Status: {"Enabled" if settings.get("anti_ping_module", {}).get("enabled", False) else "Disabled"}
-            """,
-            inline=False
-        ).add_field(
-            name="Affected Roles",
-            value=f"""
-            > Users with these roles will be affected by the Anti Ping feature & if someone pings them without having the bypass role, bot will send a warning message.\n
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("anti_ping_module", {}).get("affected_roles", [])]) + ">"}
-            """,
-            inline=False
-        ).add_field(
-            name="Bypass Roles",
-            value=f"""
-            > Users with these roles will be able to ping the Anti Ping roles without any warning message.\n
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("anti_ping_module", {}).get("exempt_roles", [])]) + ">"}
-            """,
-            inline=False
-        )
-        await interaction.message.edit(embed=embed, view=AntiPingView(self.bot, interaction.user.id))
-        await interaction.response.send_message("Anti Ping Module",ephemeral=True)
-
-    async def staff_infraction_callback(self, interaction: discord.Interaction):
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        infraction_module = settings.get("staff_management", {})
-        promotion_id = infraction_module.get("promotion_channel", 0)
-        demotion_id = infraction_module.get("demotion_channel", 0)
-        enalbed = infraction_module.get("enabled", False)
-
-        embed = discord.Embed(
-            title="Staff Infraction Module",
-            description=" ",
-            color=0x2F3136
-        ).add_field(
-            name="Enable/Disable Staff Infraction Module",
-            value=f"> Enable or Disable the Staff Infraction Module.\n Current Status: {'Enabled' if enalbed else 'Disabled'}",
-            inline=False
-        ).add_field(
-            name="Promotion Channel",
-            value=f"> Set the channel where you want to log promotions\n Current Channel: <#{promotion_id}>",
-            inline=False
-        ).add_field(
-            name="Infraction Channel",
-            value=f"> Set the channel where you want to log infractions.\n Current Channel: <#{demotion_id}>",
-            inline=False
-        )
-        await interaction.message.edit(embed=embed, view=StaffInfraction(self.bot, interaction.user.id,promo_channel=promotion_id,demotion_channel=demotion_id,enalbed=enalbed))
-
-    async def logging_channels_callback(self, interaction: discord.Interaction):
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        moderation_log_channel = settings.get("logging_channels", {}).get("mod_log_channel", 0)
-        staff_management_channel = settings.get("logging_channels", {}).get("application_channel", 0)
-        ban_appeal_channel = settings.get("logging_channels", {}).get("ban_appeal_channel", 0)
-        embed = discord.Embed(
-            title="Logging Channels",
-            description=" ",
-            color=0x2F3136
-        ).add_field(
-            name="Moderation Log Channel",
-            value=f"> Set the channel where you want to log moderation actions.\n Current Channel: <#{moderation_log_channel}>",
-            inline=False
-        ).add_field(
-            name="Application Log Channel",
-            value=f"> Set the channel where you want to log applications.,\n Current Channel: <#{staff_management_channel}>",
-            inline=False
-        ).add_field(
-            name="Ban Appeal Log Channel",
-            value=f"> Set the channel where you want to log ban appeals.,\n Current Channel: <#{ban_appeal_channel}>",
-        )
-        await interaction.message.edit(embed=embed, view=LoggingChannels(self.bot, interaction.user.id,moderation_log_channel,staff_management_channel,ban_appeal_channel))
-        await interaction.response.send_message("Logging Channels",ephemeral=True)
-        
-    async def other_configurations_callback(self, interaction: discord.Interaction):
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        prefix = settings.get("customization", {}).get("prefix", "?")
-        message_quota = settings.get("basic_settings", {}).get("message_quota", 0)
-        embed = discord.Embed(
-            title="Other Configurations",
-            description=" ",
-            color=0x2F3136
-        ).add_field(
-            name="Message Quota",
-            value=f"> Set the message quota for your server.\nCurrent Message Quota: {message_quota}",
-            inline=False
-        ).add_field(
-            name="Prefix",
-            value=f"> Set the prefix for your server.\nCurrent Prefix: {prefix}",
-            inline=False
-        )
-        await interaction.message.edit(embed=embed, view=OtherConfig(self.bot, interaction.user.id,prefix=prefix,message_quota=message_quota))
-        await interaction.response.send_message("Other Configurations",ephemeral=True)
-
-    async def enable_moderation_module_callback(self, interaction: discord.Interaction):
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id}
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "moderation_module": {"enabled": False}}
-            module_enabled = False
-        settings["moderation_module"]["enabled"] = not module_enabled
+            settings = {"_id": interaction.guild.id, "staff_management": {"warning_channel": self.warning_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        await interaction.response.send_message(f"Moderation Module {'Enabled' if settings.get('moderation_module', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
+        await interaction.response.send_message("Warning Channel Updated!",ephemeral=True)
 
 class AntiPingView(View):
-    def __init__(self,bot,user_id:int):
+    def __init__(self,bot,sett, user_id:int):
         super().__init__()
         self.bot = bot
         self.user_id = user_id
+        self.sett = sett or {}
 
-        self.main_page = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Main Page",
-            row=0
+        self.enable_disable_select = discord.ui.Select(
+            placeholder="Enable / Disable Anti Ping",
+            min_values=1,
+            max_values=1,
+            row=0,
+            options=[
+                discord.SelectOption(
+                    label="Enable",
+                    value="enable"
+                ),
+                discord.SelectOption(
+                    label="Disable",
+                    value="disable"
+                )
+            ]
         )
-        self.main_page.callback = self.main_page_callback
-        self.add_item(self.main_page)
+        self.enable_disable_select.callback = self.enable_disable_callback
+        self.add_item(self.enable_disable_select)
 
-        self.enable_disable_button = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Enable/Disable Anti Ping",
-            row=0
-        )
-        self.enable_disable_button.callback = self.enable_disable_callback
-        self.add_item(self.enable_disable_button)
+        try:
+            affected_roles = self.sett.get("anti_ping_module", {}).get("affected_roles", [])
+            bypass_roles = self.sett.get("anti_ping_module", {}).get("exempt_roles", [])
+        except KeyError:
+            affected_roles = []
+            bypass_roles = []
 
         self.affected_roles_button = discord.ui.RoleSelect(
             placeholder="Affected Roles",
             row=1,
             min_values=1,
-            max_values=10,
+            max_values=25,
+            default_values=[discord.Object(id=role_id) for role_id in affected_roles]
         )
         self.affected_roles_button.callback = self.affected_roles_callback
         self.add_item(self.affected_roles_button)
@@ -451,14 +316,11 @@ class AntiPingView(View):
             placeholder="Bypass Roles",
             row=2,
             min_values=1,
-            max_values=10,
+            max_values=25,
+            default_values=[discord.Object(id=role_id) for role_id in bypass_roles]
         )
         self.bypass_roles_button.callback = self.bypass_roles_callback
         self.add_item(self.bypass_roles_button)
-
-    async def main_page_callback(self,interaction:discord.Interaction):
-        await interaction.message.edit(embed=main_config_embed, view=Configuration(self.bot, interaction.user.id))
-        await interaction.response.send_message("Main Page",ephemeral=True)
 
     async def enable_disable_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:
@@ -479,11 +341,8 @@ class AntiPingView(View):
         embed = interaction.message.embeds[0]
         embed.set_field_at(
             0,
-            name="Enable/Disable Anti Ping",
-            value=f"""
-            > Enable or Disable the Anti Ping feature. When enabled, users will be warned if they ping the Anti Ping roles without having the bypass role.\n
-            Current Status: {"Enabled" if settings.get("anti_ping_module", {}).get("enabled", False) else "Disabled"}
-            """
+            name="Enable/Disable Anti-Ping Module",
+            value=f"{'Enabled' if settings.get('anti_ping_module', {}).get('enabled', False) else 'Disabled'}"
         )
         await interaction.message.edit(embed=embed)
         await interaction.response.send_message(
@@ -506,18 +365,6 @@ class AntiPingView(View):
         except KeyError:
             settings = {"_id": interaction.guild.id, "anti_ping_module": {"affected_roles": [role.id for role in self.affected_roles_button.values]}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            1,
-            name="Affected Roles",
-            value=f"""
-            > Users with these roles will be affected by the Anti Ping feature & if someone pings them without having the bypass role, bot will send a warning message.\n
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("anti_ping_module", {}).get("affected_roles", [])]) + ">"}
-            """
-        )
-        await interaction.message.edit(
-            embed=embed
-        )
         await interaction.response.send_message("Affected Roles Updated!",ephemeral=True)
 
     async def bypass_roles_callback(self,interaction:discord.Interaction):
@@ -534,197 +381,7 @@ class AntiPingView(View):
         except KeyError:
             settings = {"_id": interaction.guild.id, "anti_ping_module": {"exempt_roles": [role.id for role in self.bypass_roles_button.values]}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            2,
-            name="Bypass Roles",
-            value=f"""
-            > Users with these roles will be able to ping the Anti Ping roles without any warning message.\n
-            Current Roles: {"<@&" + ">, <@&".join([str(role) for role in settings.get("anti_ping_module", {}).get("exempt_roles", [])]) + ">"}
-            """
-        )
-        await interaction.message.edit(
-            embed=embed
-        )
         await interaction.response.send_message("Bypass Roles Updated!",ephemeral=True)
-
-class BanAppealChannel(View):
-    def __init__(self,bot,channel_id:int):
-        super().__init__()
-        self.bot = bot
-
-        self.ban_appeal_channel = discord.ui.ChannelSelect(
-            placeholder="Ban Appeal Log Channel",
-            row=0,
-            min_values=1,
-            max_values=1,
-            default_values=[discord.Object(id=channel_id)]
-        )
-        self.ban_appeal_channel.callback = self.ban_appeal_channel_callback
-        self.add_item(self.ban_appeal_channel)
-
-    async def ban_appeal_channel_callback(self,interaction:discord.Interaction):
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id, "logging_channels": {}}
-        try:
-            settings["logging_channels"]["ban_appeal_channel"] = self.ban_appeal_channel.values[0].id
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "logging_channels": {"ban_appeal_channel": self.ban_appeal_channel.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        await interaction.response.send_message("Ban Appeal Log Channel Updated!",ephemeral=True)
-
-class LoggingChannels(View):
-    def __init__(self,bot,user_id:int,moderation_log_channel:int,staff_management_channel:int,ban_appeal_channel:int):
-        super().__init__()
-        self.bot = bot
-        self.user_id = user_id
-        self.moderation_log_channel = moderation_log_channel
-        self.staff_management_channel = staff_management_channel
-        self.ban_appeal_channel = ban_appeal_channel
-
-        self.moderation_log_channel_select = discord.ui.ChannelSelect(
-            placeholder="Moderation Log Channel",
-            row=0,
-            min_values=1,
-            max_values=1,
-            default_values=[discord.Object(id=self.moderation_log_channel)]
-        )
-        self.moderation_log_channel_select.callback = self.moderation_log_channel_callback
-        self.add_item(self.moderation_log_channel_select)
-
-        self.staff_management_log_channel_select = discord.ui.ChannelSelect(
-            placeholder="Application Log Channel",
-            row=1,
-            min_values=1,
-            max_values=1,
-            default_values=[discord.Object(id=self.staff_management_channel)]
-        )
-        self.staff_management_log_channel_select.callback = self.staff_management_log_channel_callback
-        self.add_item(self.staff_management_log_channel_select)
-
-        self.ban_appeal_channel = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Ban Appeal Log Channel",
-            row=4
-        )
-        self.ban_appeal_channel.callback = self.ban_appeal_channel_callback
-        self.add_item(self.ban_appeal_channel)
-
-        self.main_page = discord.ui.Button(
-            style=discord.ButtonStyle.primary,
-            label="Main Page",
-            row=4
-        )
-        self.main_page.callback = self.main_page_callback
-        self.add_item(self.main_page)
-
-    async def ban_appeal_channel_callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message(
-                "You are not allowed to use this menu.", 
-                ephemeral=True
-            )
-        # Get the actual channel ID here
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id}
-        try:
-            channel_id = settings.get("logging_channels", {}).get("ban_appeal_channel", 0)
-        except KeyError:
-            channel_id = 0
-        view = BanAppealChannel(self.bot, channel_id)
-        await interaction.response.send_message(
-            "Select the channel where you want to log ban appeals.",
-            ephemeral=True,
-            view=view
-        )
-
-    async def main_page_callback(self,interaction:discord.Interaction):
-        await interaction.message.edit(embed=main_config_embed, view=Configuration(self.bot, interaction.user.id))
-        await interaction.response.send_message("Main Page",ephemeral=True)
-
-    async def moderation_log_channel_callback(self,interaction:discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message(
-                "You are not allowed to use this menu.", 
-                ephemeral=True
-            )
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id}
-        try:
-            settings["logging_channels"]["mod_log_channel"] = self.moderation_log_channel_select.values[0].id
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "logging_channels": {"mod_log_channel": self.moderation_log_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            0,
-            name="Moderation Log Channel",
-            value=f"> Set the channel where you want to log moderation actions.\n Current Channel: <#{self.moderation_log_channel_select.values[0].id}>"
-        )
-
-        await interaction.message.edit(embed=embed)
-        await interaction.response.send_message("Moderation Log Channel Updated!",ephemeral=True)
-
-    async def staff_management_log_channel_callback(self,interaction:discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message(
-                "You are not allowed to use this menu.", 
-                ephemeral=True
-            )
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id}
-        try:
-            settings["logging_channels"]["application_channel"] = self.staff_management_log_channel_select.values[0].id
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "logging_channels": {"application_channel": self.staff_management_log_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            1,
-            name="Application Log Channel",
-            value=f"> Set the channel where you want to log applications.\n Current Channel: <#{self.staff_management_log_channel_select.values[0].id}>"
-        )
-
-        await interaction.message.edit(embed=embed)
-        await interaction.response.send_message("Staff Management Log Channel Updated!",ephemeral=True)
-
-class PrefixModal(Modal):
-    def __init__(self):
-        super().__init__(title="Change Prefix", timeout=60)
-        
-        self.prefix_input = TextInput(
-            placeholder="Enter your prefix",
-            min_length=1,
-            max_length=5,
-            label="Prefix"
-        )
-        self.add_item(self.prefix_input)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        settings = await interaction.client.settings.find_by_id(interaction.guild.id)
-        if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id}
-        if "customization" not in settings:
-            settings["customization"] = {}
-        try:
-            settings["customization"]["prefix"] = self.prefix_input.value
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "customization": {"prefix": self.prefix_input.value}}
-        await interaction.client.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            1,
-            name="Prefix",
-            value=f"> Set the prefix for your server.\nCurrent Prefix: {self.prefix_input.value}"
-        )
-
-        await interaction.message.edit(embed=embed)
-        await interaction.response.send_message(f"Your prefix is now {self.prefix_input.value}", ephemeral=True)
-        self.stop()
 
 class MessageQuotaModal(Modal):
     def __init__(self):
@@ -760,62 +417,202 @@ class MessageQuotaModal(Modal):
         await interaction.response.send_message(f"Your message quota is now {self.message_quota_input.value}", ephemeral=True)
         self.stop()
 
-class OtherConfig(View):
-    def __init__(self, bot, user_id: int, prefix: str, message_quota: int):
+class ModerationModule(discord.ui.View):
+    def __init__(self, bot, setting, user_id: int):
         super().__init__()
         self.bot = bot
+        self.sett = setting
         self.user_id = user_id
-        self.prefix = prefix
-        self.message_quota = message_quota
 
-        self.prefix_input = Button(
-            style=discord.ButtonStyle.primary,
-            label="Prefix",
-            row=0
+        self.enable_select = discord.ui.Select(
+            placeholder="Enable/Disable Moderation Module",
+            row=0,
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(
+                    label="Enable",
+                    value="enable"
+                ),
+                discord.SelectOption(
+                    label="Disable",
+                    value="disable"
+                )
+            ],
         )
-        self.prefix_input.callback = self.prefix_callback
-        self.add_item(self.prefix_input)
+        self.enable_select.callback = self.enable_select_callback
+        
+        try:
+            mod_channel = self.sett["moderation_module"]["mod_log_channel"]
+        except KeyError:
+            mod_channel = 0
+        self.moderation_log_channel_select = discord.ui.ChannelSelect(
+                placeholder="Moderation Log Channel",
+                row=1,
+                min_values=1,
+                max_values=1,
+                default_values=[discord.Object(id=mod_channel)]
+        )
+        self.moderation_log_channel_select.callback = self.moderation_log_channel_callback
 
-        self.message_quota_input = Button(
-            style=discord.ButtonStyle.primary,
-            label="Message Quota",
-            row=0
+        try:
+            appeal_channel = self.sett["moderation_module"]["ban_appeal_channel"]
+        except KeyError:
+            appeal_channel = 0
+        self.ban_appeal_channel = discord.ui.ChannelSelect(
+            placeholder="Ban Appeal Log Channel",
+            row=2,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=appeal_channel)]
         )
-        self.message_quota_input.callback = self.message_quota_callback
-        self.add_item(self.message_quota_input)
+        self.ban_appeal_channel.callback = self.ban_appeal_channel_callback
 
-        self.main_page = Button(
-            style=discord.ButtonStyle.primary,
-            label="Main Page",
-            row=0
+        try:
+            audit_channel = self.sett["moderation_module"]["audit_channel"]
+        except:
+            audit_channel = 0
+
+        self.audit_channel_select = discord.ui.ChannelSelect(
+            placeholder="Audit Log Channel",
+            min_values=0,
+            max_values=1,
+            row=3,
+            default_values=[discord.Object(id=audit_channel)]
         )
-        self.main_page.callback = self.main_page_callback
-        self.add_item(self.main_page)
+        self.audit_channel_select.callback = self.audit_channel_select_callback
+        self.children.append(self.audit_channel_select)
+        
+        self.add_item(self.enable_select)
+        self.add_item(self.moderation_log_channel_select)
+        self.add_item(self.ban_appeal_channel)
+        self.add_item(self.audit_channel_select)
+
+    async def enable_select_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["moderation_module"]["enabled"] = True if self.enable_select.values[0] == "enable" else False
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "moderation_module": {"enabled": True if self.enable_select.values[0] == "enable" else False}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(
+            0,
+            name="Enable/Disable Moderation Module",
+            value=f"{'Enabled' if settings.get('moderation_module', {}).get('enabled', False) else 'Disabled'}"
+        )
+        await interaction.message.edit(embed=embed)
+        await interaction.response.send_message(f"Moderation Module {'Enabled' if settings.get('moderation_module', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
+
+    async def moderation_log_channel_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["moderation_module"]["mod_log_channel"] = self.moderation_log_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "moderation_module": {"mod_log_channel": self.moderation_log_channel_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Moderation Log Channel Updated!",ephemeral=True)
+
+    async def ban_appeal_channel_callback(self,interaction:discord.Interaction):
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id, "moderation_module": {}}
+        try:
+            settings["moderation_module"]["ban_appeal_channel"] = self.ban_appeal_channel.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "moderation_module": {"ban_appeal_channel": self.ban_appeal_channel.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Ban Appeal Log Channel Updated!",ephemeral=True)
+
+    async def audit_channel_select_callback(self,interaction:discord.Interaction):
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id, "moderation_module": {}}
+        try:
+            settings["moderation_module"]["audit_log"] = self.ban_appeal_channel.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "moderation_module": {"audit_log": self.ban_appeal_channel.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Audit Log Channel Updated!",ephemeral=True)
     
-    async def main_page_callback(self, interaction: discord.Interaction):
-        await interaction.message.edit(embed=main_config_embed, view=Configuration(self.bot, interaction.user.id))
-        await interaction.response.send_message("Main Page", ephemeral=True)
+class ServerManagement(discord.ui.View):
+    def __init__(self, bot, setting, user_id: int):
+        super().__init__()
+        self.bot = bot
+        self.sett = setting
+        self.user_id = user_id
 
-    async def prefix_callback(self, interaction: discord.Interaction):
+        try:
+            app_channel = self.sett["server_management"]["application_channel"]
+        except KeyError:
+            app_channel = 0
+        self.application_channel_select = discord.ui.ChannelSelect(
+            placeholder="Application Results Channel",
+            row=0,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=app_channel)]
+        )
+        self.application_channel_select.callback = self.application_channel_callback
+        self.add_item(self.application_channel_select)
+
+        try:
+            cyni_log_channel = self.sett["server_management"]["cyni_log_channel"]
+        except KeyError:
+            cyni_log_channel = 0
+        self.cyni_log_channel_select = discord.ui.ChannelSelect(
+            placeholder="Cyni Logging Channel",
+            row=1,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=cyni_log_channel)]
+        )
+        self.cyni_log_channel_select.callback = self.cyni_log_channel_callback
+        self.add_item(self.cyni_log_channel_select)
+
+    async def application_channel_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message(
                 "You are not allowed to use this menu.", 
                 ephemeral=True
             )
-        
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id}
-        await interaction.response.send_modal(PrefixModal())
+        try:
+            settings["server_management"]["application_channel"] = self.application_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "server_management": {"application_channel": self.application_channel_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Application Channel Updated!",ephemeral=True)
 
-    async def message_quota_callback(self,interaction:discord.Interaction):
+    async def cyni_log_channel_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message(
                 "You are not allowed to use this menu.", 
                 ephemeral=True
             )
-        
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id}
-        await interaction.response.send_modal(MessageQuotaModal())
+        try:
+            settings["server_management"]["cyni_log_channel"] = self.cyni_log_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "server_management": {"cyni_log_channel": self.cyni_log_channel_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Cyni Log Channel Updated!",ephemeral=True)

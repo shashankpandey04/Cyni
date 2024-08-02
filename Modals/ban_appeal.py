@@ -25,8 +25,8 @@ class BanAppealModal(discord.ui.Modal):
         settings = await self.bot.settings.find_by_id(guild_id)
         if not settings:
             return await interaction.response.send_message("Settings not found.")
-        module_enabled = settings["logging_channels"]["enabled"]
-        ban_appeal_channel = settings["logging_channels"]["ban_appeal_channel"]
+        module_enabled = settings["moderation_module"]["enabled"]
+        ban_appeal_channel = settings["moderation_module"]["ban_appeal_channel"]
         if not module_enabled:
             return await interaction.response.send_message("Moderation Module is not enabled.")
         if not ban_appeal_channel:

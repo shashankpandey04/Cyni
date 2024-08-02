@@ -1,6 +1,7 @@
 import datetime
 import os
 import traceback
+from utils.utils import gen_error_uid
 
 import discord
 from discord.ext import commands
@@ -19,8 +20,7 @@ class OnCommandError(commands.Cog):
     @commands.Cog.listener("on_command_error")
     async def on_command_error(self, ctx, error):
         
-        if hasattr(ctx.command, "on_error"):
-            return
+        error_id = gen_error_uid()
         
         if isinstance(error, commands.CommandNotFound):
             return
@@ -87,25 +87,7 @@ class OnCommandError(commands.Cog):
                     color=discord.Color.red()
                 )
             )
-        
-        if isinstance(error, commands.CommandError):
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Error",
-                    description="An error occurred.",
-                    color=discord.Color.red()
-                )
-            )
 
-        if isinstance(error, commands.BadArgument):
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Error",
-                    description="You provided a bad argument.",
-                    color=discord.Color.red()
-                )
-            )
-        
         if isinstance(error, commands.NoPrivateMessage):
             return await ctx.send(
                 embed=discord.Embed(
@@ -123,6 +105,20 @@ class OnCommandError(commands.Cog):
                     color=discord.Color.red()
                 )
             )
+        
+        await self.bot.errors_document.insert_one({
+            "error_id": error_id,
+            "error": str(error),
+            "traceback": traceback.format_exc(),
+            "time": datetime.datetime.now() + datetime.timedelta(hours=5, minutes=30),
+        })
+        return await ctx.send(
+            embed=discord.Embed(
+                title="An Error Occured",
+                description=f"An error occurred. Please report this error to the Support Team.\n\nError ID: `{error_id}`",
+                color=discord.Color.red()
+            )
+        )
 
 async def setup(bot):
     await bot.add_cog(OnCommandError(bot))
