@@ -25,6 +25,7 @@ from Datamodels.Sessions import Sessions
 from Datamodels.Infraction_log import Infraction_log
 from Datamodels.Infraction_types import Infraction_type
 from Datamodels.Giveaway import Giveaway
+from Datamodels.Backup import Backup
 
 load_dotenv()
 
@@ -63,6 +64,7 @@ class Bot(commands.Bot):
             self.infraction_log_document = Document(self.db, 'infraction_log')
             self.infraction_types_document = Document(self.db, 'infraction_types')
             self.giveaway_document = Document(self.db, 'giveaways')
+            self.backup_document = Document(self.db, 'backup')
 
     async def setup_hook(self) -> None:
 
@@ -76,6 +78,7 @@ class Bot(commands.Bot):
         self.infraction_log = Infraction_log(self.db, 'infraction_log')
         self.infraction_types = Infraction_type(self.db, 'infraction_types')
         self.giveaways = Giveaway(self.db, 'giveaways')
+        self.backup = Backup(self.db, 'backup')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
@@ -150,12 +153,17 @@ async def banappeal(interaction: discord.Interaction):
 async def change_status():
     await bot.wait_until_ready()
     logging.info("Changing status")
-    status = "✨ /about | Cyni v7.1"
+    status = "✨ /about | Cyni v7.2"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
 )
 
 up_time = time.time()
+
+class PremiumRequired(commands.CheckFailure):
+    def __init__(self, message="<:declined:1268849944455024671> This server doesn't have Cyni Premium!"):
+        self.message = message
+        super().__init__(self.message)
 
 async def staff_check(bot,guild,member):
     if member.guild_permissions.administrator:
@@ -200,6 +208,16 @@ async def staff_or_management_check(bot,guild,member):
         return True
     return False
 
+async def premium_check(bot, guild):
+    guild_settings = await bot.settings.get(guild.id)
+    if guild_settings:
+        try:
+            if "premium" in guild_settings.keys():
+                if guild_settings['premium']['enabled']:
+                    return True
+        except KeyError:
+            return False
+
 def is_staff():
     async def predicate(ctx):
         if await staff_check(ctx.bot,ctx.guild,ctx.author):
@@ -221,6 +239,12 @@ def is_staff_or_management():
         raise commands.MissingPermissions(["Staff or Management"])
     return commands.check(predicate)
 
+def is_premium():
+    async def predicate(ctx):
+        if await premium_check(ctx.bot, ctx.guild):
+            return True
+        raise PremiumRequired()
+    return commands.check(predicate)
 
 bot.cyni_team = {
     "coding.nerd {Creator}" : 1201129677457215558
@@ -229,9 +253,13 @@ bot.cyni_team = {
 if os.getenv("PRODUCTION_TOKEN"):
     bot_token = os.getenv("PRODUCTION_TOKEN")
     logging.info("Production Token")
+elif os.getenv("PREMIUM_TOKEN"):
+    bot_token = os.getenv("PREMIUM_TOKEN")
+    logging.info("Using Premium Token")
 else:
     bot_token = os.getenv("DEV_TOKEN")
     logging.info("Using Development Token")
+
 
 def run():
     try:

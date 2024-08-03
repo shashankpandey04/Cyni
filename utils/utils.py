@@ -116,3 +116,82 @@ async def config_change_log(bot,guild,member,data):
     embed.set_author(name=member.name, icon_url=member.display_avatar.url)
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     await log_channel.send(embed=embed)
+
+async def create_full_backup(guild, bot):
+    """
+    Create a full backup of the guild's settings, roles, channels, categories, and permissions,
+    including additional data from various collections.
+    
+    Args:
+    guild (discord.Guild): The guild to back up.
+    bot (commands.Bot): The bot instance.
+    
+    Returns:
+    dict: Backup data including backup ID and ID mappings.
+    """
+    backup_data = {
+        "_id": guild.id,
+        "guild_name": guild.name,
+        "guild_owner_id": guild.owner_id,
+        "roles": [],
+        "categories": [],
+        "channels": [],
+        "permissions": [],
+        "settings": {},
+        "staff_activity": [],
+        "infraction_logs": [],
+        "warnings": []
+    }
+
+    for role in guild.roles:
+        role_data = {
+            "name": role.name,
+            "permissions": list(role.permissions),
+            "color": role.color.value,
+            "hoist": role.hoist,
+            "position": role.position
+        }
+        backup_data["roles"].append(role_data)
+
+    for category in guild.categories:
+        category_data = {
+            "id": category.id,
+            "name": category.name,
+            "position": category.position
+        }
+        backup_data["categories"].append(category_data)
+        
+        for channel in category.channels:
+            channel_data = {
+                "id": channel.id,
+                "type": channel.type.name,
+                "name": channel.name,
+                "position": channel.position,
+                "nsfw": channel.nsfw,
+                "slowmode_delay": channel.slowmode_delay,
+                "category_id": category.id
+            }
+            backup_data["channels"].append(channel_data)
+
+    settings = await bot.settings.find_one({"_id": guild.id})
+    if settings:
+        backup_data["settings"] = settings
+
+    staff_activity = await bot.staff_activity.find_one({"_id": guild.id})
+    if staff_activity:
+        backup_data["staff_activity"] = staff_activity.get("staff", [])
+
+    infraction_logs = await bot.infraction_log.find({"_id": guild.id})
+    for log in infraction_logs:
+        backup_data["infraction_logs"].extend(log.get("staff", []))
+
+    warnings_cursor = await bot.warnings.find({"_id": {"$regex": f"^{guild.id}-"}})
+    for warning in warnings_cursor:
+        backup_data["warnings"].append(warning)
+
+    await bot.backup.update_by_id(backup_data)
+
+    return {
+        "_id": guild.id,
+        "guild_owner_id": guild.owner_id
+    }

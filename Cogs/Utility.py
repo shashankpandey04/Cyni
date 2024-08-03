@@ -89,24 +89,16 @@ class Utility(commands.Cog):
             user_flags = []
             if "discord_staff" in public_flags:
                 user_flags.append("Discord Employee")
-            if "DISCORD_PARTNER" in public_flags:
+            if "discord_partner" in public_flags:
                 user_flags.append("Discord Partner")
-            if "HYPESQUAD_EVENTS" in public_flags:
+            if "hypesquad_events" in public_flags:
                 user_flags.append("Hypesquad Events")
-            if "BUGHUNTER_LEVEL_1" in public_flags:
+            if "bughunter_level_1" in public_flags:
                 user_flags.append("Bug Hunter Level 1")
-            if "BUGHUNTER_LEVEL_2" in public_flags:
+            if "bughunter_level_2" in public_flags:
                 user_flags.append("Bug Hunter Level 2")
-            if "EARLY_SUPPORTER" in public_flags:
+            if "early_supporter" in public_flags:
                 user_flags.append("Early Supporter")
-            if "TEAM_USER" in public_flags:
-                user_flags.append("Team User")
-            if "SYSTEM" in public_flags:
-                user_flags.append("System")
-            if "VERIFIED_BOT" in public_flags:
-                user_flags.append("Verified Bot")
-            if "VERIFIED_DEVELOPER" in public_flags:
-                user_flags.append("Verified Developer")
             if 'active_developer' in public_flags:
                 user_flags.append("Active Developer")
             
@@ -123,18 +115,14 @@ class Utility(commands.Cog):
                 status = "Offline"
             embed = discord.Embed(
                 title=f"{member.name}",
+                description= " ",
                 color=BLANK_COLOR
             ).set_author(
                 name=f"{ctx.author}",
                 icon_url=ctx.author.avatar.url
             ).add_field(
                 name="User Information",
-                value=f'''
-                    **Mention:** {member.mention}
-                    **Nickname:** {member.display_name}
-                    **Status:** {status}
-                    **Joined Server Timestamp:** {joined_timestamp}
-                    **Created Account Timestamp:** {created_timestamp}''',
+                value=f'''**Mention:** {member.mention}\n**Nickname:** {member.display_name}\n**Status:** {status}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
                 inline=False
             ).add_field(
                 name="Server Permissions",
@@ -148,8 +136,15 @@ class Utility(commands.Cog):
                 name="Roles",
                 value=", ".join([role.mention for role in member.roles[1:]]) if member.roles[1:] else "None",
                 inline=False
-            )
-            embed.set_thumbnail(url=member.avatar.url)
+            ).set_thumbnail(url=member.avatar.url)
+            specific_role_id = 1158043149424398406
+            specific_guild_id = 1152949579407442050
+            guild = self.bot.get_guild(specific_guild_id)
+            member_in_guild = guild.get_member(member.id)
+            if member_in_guild:
+                specific_role = guild.get_role(specific_role_id)
+                if specific_role in member_in_guild.roles:
+                    embed.description += f"<:cyniverified:1269139230911893534> Cyni Staff"
             await ctx.send(embed=embed)
         except Exception as e:
             await ctx.send(f"An error occurred: {e}")

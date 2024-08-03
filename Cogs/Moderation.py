@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from Datamodels.Warning import Warnings
 from cyni import is_staff_or_management,is_management
 from utils.Schema import warning
@@ -31,7 +32,7 @@ class Moderation(commands.Cog):
             return await ctx.send(
                 embed = discord.Embed(
                     description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
         try:
@@ -42,14 +43,14 @@ class Moderation(commands.Cog):
             return await ctx.send(
                 embed = discord.Embed(
                     description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
         if member == ctx.author:
             return await ctx.send(
                 embed = discord.Embed(
                     description = "<:moderation:1268850116798844969> You cannot warn yourself.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
         user_warnings = await self.warnings.find_by_id(f"{ctx.guild.id}-{member.id}")
@@ -67,14 +68,14 @@ class Moderation(commands.Cog):
         await ctx.send(
             embed = discord.Embed(
                 description = f"<:moderation:1268850116798844969> {member.mention} has been warned for `{reason}`.\nCase ID: {len(user_warnings['warnings'])}",
-                color = discord.Color.green()
+                color = GREEN_COLOR
             )
         )
         await member.send(
             embed = discord.Embed(
                 title = f"You have been warned in {ctx.guild.name}",
                 description = f"Reason: {reason}\n",
-                color = discord.Color.red()
+                color = GREEN_COLOR
             )
         )
         try:
@@ -86,7 +87,7 @@ class Moderation(commands.Cog):
                 embed = discord.Embed(
                     title = "Warning",
                     description = f"**User:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
-                    color = discord.Color.red()
+                    color = GREEN_COLOR
                 )
             )
         else:
@@ -504,7 +505,7 @@ class Moderation(commands.Cog):
                 )
             )
         time = parse_duration(self,time)
-        member.timed_out_until = datetime.datetime.now() + datetime.timedelta(seconds=time)
+        member.timed_out_until = datetime.now() + timedelta(seconds=time)
 
         await ctx.send(
             embed = discord.Embed(

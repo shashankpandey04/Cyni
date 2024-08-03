@@ -168,12 +168,19 @@ class Document:
         """
         return await self.db.find(query).to_list(None)
     
-    async def count_all(self, guild_id):
+    async def count_all(self, query):
         """
         Count all infractions in the specified guild.
         :param guild_id (int): The ID of the guild.
         :return (int): The count of infractions.
         """
-        query = {"guild_id": guild_id}
         count = await self.db.count_documents(query)
         return count
+
+    async def insert_doc(self, doc):
+        """
+        Insert a document into the infraction_log collection.
+        :param doc (dict): The document to insert.
+        """
+        result = await self.db.insert_one(doc)
+        return result

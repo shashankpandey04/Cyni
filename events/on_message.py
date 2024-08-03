@@ -22,8 +22,9 @@ class OnMessage(commands.Cog):
             del afk_users[message.author.id]
             await message.channel.send(
                 f"Welcome back {message.author.mention}! I removed your AFK status.",
-                delete_after=15
+                delete_after=5
                 )
+            await message.author.edit(nick=message.author.display_name.replace("[AFK]",""))
 
         for mentions in message.mentions:
             if mentions.id in afk_users:

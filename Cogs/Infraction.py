@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from utils.constants import BLANK_COLOR, RED_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
 from utils.autocompletes import infraction_autocomplete
 from cyni import is_management
 from discord import app_commands
@@ -32,10 +32,11 @@ class Infraction(commands.Cog):
     @app_commands.autocomplete(
         type=infraction_autocomplete
     )
-    async def staff_infract(self,ctx,member:discord.Member, type:str,approver:discord.Role,*,reason:str = None,punishment:str = None,role_remove:discord.Role = None,role_add:discord.Role = None):
+    async def staff_infract(self,ctx,member:discord.Member, type:str,approver:discord.Role,*,reason:str,rank:str,punishment:str = None,role_remove:discord.Role = None,role_add:discord.Role = None):
         '''
         Warn, demote or promote a staff member.
         '''
+        await ctx.typing()
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,f"Staff Infraction for {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
@@ -66,11 +67,12 @@ class Infraction(commands.Cog):
                     )
                 )
         
-        count = await self.bot.infraction_log.count_all(ctx.guild.id)
+        count = await self.bot.infraction_log.count_all(
+            {"guild_id": ctx.guild.id}
+        )
         infract_embed = discord.Embed(
             title = f"{member} have got {type}.",
             description=" ",
-            color = RED_COLOR
         )
         if role_remove != None:
             await member.remove_roles(role_remove)
@@ -86,6 +88,9 @@ class Infraction(commands.Cog):
         if reason is not None:
             infract_embed.description += f"\n**Reason:** {reason}"
         
+        if rank is not None:
+            infract_embed.description += f"\n**Rank:** {rank}"
+        
         infract_embed.set_author(
             name=ctx.author,
             icon_url=ctx.author.avatar.url
@@ -94,28 +99,23 @@ class Infraction(commands.Cog):
         ).set_footer(
             text=f"Infraction Case: {count + 1}"
         )
+
         infraction_doc = {
             "guild_id": ctx.guild.id,
             "member_id": member.id,
             "type": type,
             "approver_id": approver.id,
             "reason": reason,
+            "rank": rank,
             "punishment": punishment,
             "date": ctx.message.created_at.strftime("%d %b %Y %H:%M:%S"),
             "case": count + 1
         }
-        await self.bot.infraction_log.insert_one(
-            infraction_doc
-        )
 
-        await ctx.send(
-            embed = discord.Embed(
-                title = "Success",
-                description = f"{member} infraction has been posted.",
-                color = BLANK_COLOR
-            )
-        )
+        await self.bot.infraction_log.insert_doc(infraction_doc)
+
         if type == "warning":
+            infract_embed.color = YELLOW_COLOR
             warning_channel = settings["staff_management"]["warning_channel"]
             if warning_channel:
                 channel = ctx.guild.get_channel(warning_channel)
@@ -145,11 +145,12 @@ class Infraction(commands.Cog):
                     )
                 )
         elif type == "demotion":
+            infract_embed.color = RED_COLOR
             demotion_channel = settings["staff_management"]["demotion_channel"]
             if demotion_channel:
                 channel = ctx.guild.get_channel(demotion_channel)
                 if channel:
-                    await channel.send(embed=infract_embed)
+                    await channel.send(member.mention, embed=infract_embed)
                     await ctx.send(
                         embed = discord.Embed(
                             title = "Success",
@@ -174,11 +175,12 @@ class Infraction(commands.Cog):
                     )
                 )
         elif type == "promotion":
+            infract_embed.color = GREEN_COLOR
             promotion_channel = settings["staff_management"]["promotion_channel"]
             if promotion_channel:
                 channel = ctx.guild.get_channel(promotion_channel)
                 if channel:
-                    await channel.send(embed=infract_embed)
+                    await channel.send(member.mention,embed=infract_embed)
                     await ctx.send(
                         embed = discord.Embed(
                             title = "Success",
@@ -202,6 +204,9 @@ class Infraction(commands.Cog):
                         color = RED_COLOR
                     )
                 )
+        await member.send(
+            embed = infract_embed
+        )
             
     @infraction.command(
         name="view",
@@ -239,6 +244,7 @@ class Infraction(commands.Cog):
                 infract_embed.description += f"\n**Type:** {infraction['type']}"
                 infract_embed.description += f"\n**Approver:** <@&{infraction['approver_id']}>"
                 infract_embed.description += f"\n**Reason:** {infraction['reason']}"
+                infract_embed.description += f"\n**Rank:** {infraction['rank']}"
                 infract_embed.description += f"\n**Punishment:** {infraction['punishment']}"
                 infract_embed.description += f"\n**Date:** {infraction['date']}"
                 infract_embed.description += f"\n**Case:** {infraction.get('case', 'N/A')}"

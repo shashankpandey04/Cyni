@@ -2,12 +2,11 @@ import datetime
 import os
 import traceback
 from utils.utils import gen_error_uid
+from cyni import PremiumRequired
 
 import discord
 from discord.ext import commands
 
-import asyncio
-from sentry_sdk import capture_exception, push_scope
 from utils.utils import gen_error_uid
 from dotenv import load_dotenv
 
@@ -25,6 +24,15 @@ class OnCommandError(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
         
+        if isinstance(error, PremiumRequired):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Premium Required",
+                    description=str(error),
+                    color=discord.Color.red()
+                )
+            )
+
         if isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send(
                 embed=discord.Embed(
@@ -107,7 +115,7 @@ class OnCommandError(commands.Cog):
             )
         
         await self.bot.errors_document.insert_one({
-            "error_id": error_id,
+            "_id": error_id,
             "error": str(error),
             "traceback": traceback.format_exc(),
             "time": datetime.datetime.now() + datetime.timedelta(hours=5, minutes=30),
