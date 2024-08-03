@@ -75,7 +75,8 @@ class Utility(commands.Cog):
         Get information about a user.
         """
         try:
-            member = user if user else ctx.author
+            if user is None:
+                user = ctx.author
 
             server_permissions = []
             if user.guild.owner:
@@ -85,7 +86,7 @@ class Utility(commands.Cog):
             elif user.guild_permissions.manage_messages:
                 server_permissions.append("<:moderation:1268850116798844969> Moderator")
 
-            public_flags = [flag[0] for flag in member.public_flags.all()]
+            public_flags = [flag[0] for flag in user.public_flags.all()]
             user_flags = []
             if "discord_staff" in public_flags:
                 user_flags.append("Discord Employee")
@@ -102,9 +103,9 @@ class Utility(commands.Cog):
             if 'active_developer' in public_flags:
                 user_flags.append("Active Developer")
             
-            joined_timestamp = discord_time(member.joined_at)
-            created_timestamp = discord_time(member.created_at)
-            status = member.status
+            joined_timestamp = discord_time(user.joined_at)
+            created_timestamp = discord_time(user.created_at)
+            status = user.status
             if status == discord.Status.online:
                 status = "Online"
             elif status == discord.Status.idle:
@@ -114,7 +115,7 @@ class Utility(commands.Cog):
             elif status == discord.Status.offline:
                 status = "Offline"
             embed = discord.Embed(
-                title=f"{member.name}",
+                title=f"{user.name}",
                 description= " ",
                 color=BLANK_COLOR
             ).set_author(
@@ -122,7 +123,7 @@ class Utility(commands.Cog):
                 icon_url=ctx.author.avatar.url
             ).add_field(
                 name="User Information",
-                value=f'''**Mention:** {member.mention}\n**Nickname:** {member.display_name}\n**Status:** {status}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
+                value=f'''**Mention:** {user.mention}\n**Nickname:** {user.display_name}\n**Status:** {status}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
                 inline=False
             ).add_field(
                 name="Server Permissions",
@@ -134,13 +135,13 @@ class Utility(commands.Cog):
                 inline=False
             ).add_field(
                 name="Roles",
-                value=", ".join([role.mention for role in member.roles[1:]]) if member.roles[1:] else "None",
+                value=", ".join([role.mention for role in user.roles[1:]]) if user.roles[1:] else "None",
                 inline=False
-            ).set_thumbnail(url=member.avatar.url)
+            ).set_thumbnail(url=user.avatar.url)
             specific_role_id = 1158043149424398406
             specific_guild_id = 1152949579407442050
             guild = self.bot.get_guild(specific_guild_id)
-            member_in_guild = guild.get_member(member.id)
+            member_in_guild = guild.get_member(user.id)
             if member_in_guild:
                 specific_role = guild.get_role(specific_role_id)
                 if specific_role in member_in_guild.roles:
