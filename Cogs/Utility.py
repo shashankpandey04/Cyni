@@ -291,7 +291,7 @@ class Utility(commands.Cog):
         """
         Get the bot's dashboard link.
         """
-        await ctx.send("Cyni Dashboard is under development!\n[Dashboard](https://cyni-cyni.44ayxw.easypanel.host/)")
+        await ctx.send("Cyni Dashboard is under development!\n[Dashboard](https://cyni.tg1cre.easypanel.host/)")
     
 async def setup(bot):
     await bot.add_cog(Utility(bot=bot))
