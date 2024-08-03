@@ -78,11 +78,11 @@ class Utility(commands.Cog):
             member = user if user else ctx.author
 
             server_permissions = []
-            if member.guild.owner:
+            if user.guild.owner:
                 server_permissions.append("<:moderation:1268850116798844969> Server Owner")
-            elif member.guild_permissions.administrator:
+            elif user.guild_permissions.administrator:
                 server_permissions.append("<:moderation:1268850116798844969> Administrator")
-            elif member.guild_permissions.manage_messages:
+            elif user.guild_permissions.manage_messages:
                 server_permissions.append("<:moderation:1268850116798844969> Moderator")
 
             public_flags = [flag[0] for flag in member.public_flags.all()]
