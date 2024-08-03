@@ -40,13 +40,16 @@ class OnMessageDelete(commands.Cog):
         await guild_log_channel.send(
             embed = discord.Embed(
                 title= " ",
-                description=f"Message by {message.author.mention} deleted on {created_at}",
+                description=f"Message from {message.author.mention} deleted in {message.channel.mention}\nIt was deleted  {created_at}",
                 color=RED_COLOR
             ).add_field(
                 name="Message Content",
                 value=f"{message.content}",
             ).set_footer(
                 text=f"Message ID: {message.id}"
+            ).set_author(
+                name=message.author,
+                icon_url=message.author.avatar.url if message.author.avatar else " "
             )
         )
 
