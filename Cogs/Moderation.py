@@ -1,13 +1,14 @@
 import discord
 from discord.ext import commands
 
-from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
 from Datamodels.Warning import Warnings
 from cyni import is_staff_or_management,is_management
 from utils.Schema import warning
 from utils.utils import log_command_usage
 from datetime import timedelta, datetime
 import re
+import asyncio
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
@@ -1023,6 +1024,85 @@ class Moderation(commands.Cog):
                     description = f"An error occurred: {e}",
                     color = discord.Color.red()
                 )
+            )
+            
+    @role.command(
+        name="all",
+        extras={"category": "Moderation"},
+    )
+    @commands.guild_only()
+    @is_management()
+    async def role_all(self, ctx, role: discord.Role):
+        '''
+        Add a role to all members in the server.
+        '''
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Add role {role.mention} to all members")
+        settings = await self.bot.settings.find_by_id(ctx.guild.id)
+        if not settings:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "No settings found.\nPlease set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
+            )
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
+        if not module_enabled:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "Moderation module is not enabled.",
+                    color = RED_COLOR
+                )
+            )
+        
+        msg = await ctx.send(
+            embed = discord.Embed(
+                description = f"Added {role.mention} to all members.\nEstimated time: {len(ctx.guild.members) * 0.5} seconds",
+                color = YELLOW_COLOR
+            )
+        )
+
+        for member in ctx.guild.members:
+            if role in member.roles:
+                continue
+            try:
+                await member.add_roles(role)
+                await asyncio.sleep(0.5)
+            except discord.Forbidden:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "I do not have the required permissions to add this role.",
+                        color = RED_COLOR
+                    )
+                )
+
+        await asyncio.sleep(len(ctx.guild.members) * 0.5)
+
+        await msg.edit(
+            embed = discord.Embed(
+                description = f"Added {role.mention} to all members.",
+                color = YELLOW_COLOR
+            )
+        
+        )
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
+        if mod_log_channel:
+            await mod_log_channel.send(
+                embed = discord.Embed(
+                    title = "Role Added to All Members",
+                    description = f"**Role:** {role.mention}\n**Moderator:** {ctx.author.mention}",
+                    color = discord.Color.red()
+                )
+            )
+        else:
+            await ctx.channel.send(
+                "Moderation log channel not found. Please set up the bot using the `config` command."
             )
 
     @commands.hybrid_command(

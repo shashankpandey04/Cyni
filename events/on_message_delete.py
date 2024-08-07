@@ -37,20 +37,28 @@ class OnMessageDelete(commands.Cog):
             return
         guild_log_channel = message.guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
-        await guild_log_channel.send(
-            embed = discord.Embed(
-                title= " ",
-                description=f"Message from {message.author.mention} deleted in {message.channel.mention}\nIt was deleted  {created_at}",
-                color=RED_COLOR
-            ).add_field(
+        embed = discord.Embed(
+            title= " ",
+            description=f"Message from {message.author.mention} deleted in {message.channel.mention}\nIt was deleted  {created_at}",
+            color=RED_COLOR
+        ).set_footer(
+            text=f"Message ID: {message.id}"
+        ).set_author(
+            name=message.author,
+            icon_url=message.author.avatar.url if message.author.avatar else " "
+        )
+        if message.content:
+            embed.add_field(
                 name="Message Content",
-                value=f"{message.content}",
-            ).set_footer(
-                text=f"Message ID: {message.id}"
-            ).set_author(
-                name=message.author,
-                icon_url=message.author.avatar.url if message.author.avatar else " "
+                value=message.content,
+                inline=False
             )
+        if message.embeds:
+            pass
+        if message.attachments:
+            pass
+        await guild_log_channel.send(
+            embed=embed
         )
 
 async def setup(bot):

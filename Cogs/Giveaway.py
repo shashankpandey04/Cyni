@@ -7,6 +7,7 @@ import random
 from utils.utils import log_command_usage
 import collections.abc
 import re
+from discord import app_commands
 
 class Giveaway(commands.Cog):
     def __init__(self, bot):
@@ -47,6 +48,11 @@ class Giveaway(commands.Cog):
         }
     )
     @is_management()
+    @app_commands.describe(title = "Giveaway Embed Title",)
+    @app_commands.describe(description = "Write the description & for new line use \\n\\n")
+    @app_commands.describe(duration = "Duration of the giveaway")
+    @app_commands.describe(total_winner = "Total winner of the giveaway")
+    @app_commands.describe(host = "Host of the giveaway")
     async def create(self, ctx, title: str, *, description: str, duration: str, total_winner: int, host: discord.Member):
         """
         Create a giveaway.
@@ -60,11 +66,17 @@ class Giveaway(commands.Cog):
         
         end_time = datetime.now() + timedelta(seconds=duration_seconds)
         end_time_epoch = int(end_time.timestamp())
+        description = re.sub(r'\\n', '\n', description)
+        formatted_description = (
+            f"{description}\n\n"
+            f"Ends At: <t:{end_time_epoch}:F>\n"
+            f"Total Winner: {total_winner}\n"
+            f"Host: {host.mention}"
+        )
 
         embed = discord.Embed(
             title=f"<:giveaway:1268849874233725000> {title}",
-            description=f"""
-            {description}\n\nEnds At: <t:{end_time_epoch}:F>\nTotal Winner: {total_winner}\nHost: {host.mention}""",
+            description=formatted_description,
             color=BLANK_COLOR
         )
         msg = await ctx.send(embed=embed)

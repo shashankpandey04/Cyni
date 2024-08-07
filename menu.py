@@ -613,6 +613,20 @@ class ServerManagement(discord.ui.View):
         self.cyni_log_channel_select.callback = self.cyni_log_channel_callback
         self.add_item(self.cyni_log_channel_select)
 
+        try:
+            suggestion_channel = self.sett["server_management"]["suggestion_channel"]
+        except KeyError:
+            suggestion_channel = 0
+        self.suggestion_channel_select = discord.ui.ChannelSelect(
+            placeholder="Suggestion Channel",
+            row=3,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=suggestion_channel)]
+        )
+        self.suggestion_channel_select.callback = self.suggestion_channel_callback
+        self.add_item(self.suggestion_channel_select)
+
     async def enable_disable_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message(
@@ -668,3 +682,88 @@ class ServerManagement(discord.ui.View):
             settings = {"_id": interaction.guild.id, "server_management": {"cyni_log_channel": self.cyni_log_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Cyni Log Channel Updated!",ephemeral=True)
+
+    async def suggestion_channel_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["server_management"]["suggestion_channel"] = self.suggestion_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "server_management": {"suggestion_channel": self.suggestion_channel_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Suggestion Channel Updated!",ephemeral=True)
+
+class UpVote(discord.ui.Button):
+    def __init__(self, row):
+        super().__init__(label="Upvote", style=discord.ButtonStyle.success, row=row, emoji="👍")
+        self.voters = set()
+
+    async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
+        embeds = interaction.message.embeds[0]
+        upvotes_field = embeds.fields[0]
+        upvotes = int(upvotes_field.value)
+
+        if user.id in self.voters:
+            self.voters.remove(user.id)
+            upvotes -= 1
+            await interaction.response.send_message(f"Your upvote has been removed.", ephemeral=True)
+        else:
+            self.voters.add(user.id)
+            upvotes += 1
+            await interaction.response.send_message(f"Your upvote has been added.", ephemeral=True)
+
+        # Update the embed
+        embeds.set_field_at(0, name="Upvotes", value=str(upvotes))
+        await interaction.message.edit(embed=embeds, view=self.view)
+
+class DownVote(discord.ui.Button):
+    def __init__(self, row):
+        super().__init__(label="Downvote", style=discord.ButtonStyle.danger, row=row, emoji="👎")
+        self.voters = set()
+
+    async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
+        embeds = interaction.message.embeds[0]
+        downvotes_field = embeds.fields[1]
+        downvotes = int(downvotes_field.value)
+
+        if user.id in self.voters:
+            self.voters.remove(user.id)
+            downvotes -= 1
+            await interaction.response.send_message(f"Your downvote has been removed.", ephemeral=True)
+        else:
+            self.voters.add(user.id)
+            downvotes += 1
+            await interaction.response.send_message(f"Your downvote has been added.", ephemeral=True)
+
+        # Update the embed
+        embeds.set_field_at(1, name="Downvotes", value=str(downvotes))
+        await interaction.message.edit(embed=embeds, view=self.view)
+
+class ViewVotersButton(discord.ui.Button):
+    def __init__(self, row, upvote_button, downvote_button):
+        super().__init__(label="View Voters", style=discord.ButtonStyle.secondary, row=row,emoji="👥")
+        self.upvote_button = upvote_button
+        self.downvote_button = downvote_button
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="Voters",
+            color=BLANK_COLOR
+        )
+        embed.add_field(
+            name="Upvotes",
+            value="\n".join([f"<@{voter}>" for voter in self.upvote_button.voters]) if self.upvote_button.voters else "No voters yet."
+        )
+        embed.add_field(
+            name="Downvotes",
+            value="\n".join([f"<@{voter}>" for voter in self.downvote_button.voters]) if self.downvote_button.voters else "No voters yet."
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)

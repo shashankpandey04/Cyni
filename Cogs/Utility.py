@@ -2,9 +2,10 @@ import discord
 from discord.ext import commands
 
 from cyni import afk_users
-from utils.constants import BLANK_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR
 from utils.utils import discord_time
 from cyni import up_time
+from menu import UpVote, DownVote, ViewVotersButton
 
 OWNER = 1201129677457215558
 LOGGING_CHANNEL = 1257705346525560885
@@ -292,7 +293,85 @@ class Utility(commands.Cog):
         """
         Get the bot's dashboard link.
         """
-        await ctx.send("Cyni Dashboard is under development!\n[Dashboard](https://cyni.tg1cre.easypanel.host/)")
+        await ctx.send("Cyni Dashboard is under development!\n[Dashboard](https://cyni.quprdigital.tk)")
+
+    @commands.hybrid_command(
+        name="suggestion",
+        extras={
+            "category": "General"
+        }
+    )
+    @commands.guild_only()
+    async def suggestion(self,ctx,suggestion:str):
+        """
+        Suggest something in the server.
+        """
+
+        sett = await self.bot.settings.find_by_id(ctx.guild.id)
+        if sett is None:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Settings not found for this server.",
+                    color=RED_COLOR
+                )
+            )
+        try:
+            channel = sett['server_management']['suggestion_channel']
+        except KeyError:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Suggestion channel not set.",
+                    color=RED_COLOR
+                )
+            )
+        channel = self.bot.get_channel(channel)
+        if channel is None:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Suggestion channel not found.",
+                    color=RED_COLOR
+                )
+            )
+        embed = discord.Embed(
+            title="Suggestion",
+            description=f"""
+            **From:** {ctx.author.mention}
+            **Suggestion:\n** {suggestion}
+            """,
+            color=BLANK_COLOR
+        ).set_author(
+            name=f"{ctx.author}",
+            icon_url=ctx.author.avatar.url
+        ).add_field(
+            name="Upvotes",
+            value="0",
+        ).add_field(
+            name="Downvotes",
+            value="0",
+        ).set_thumbnail(
+            url=ctx.author.avatar.url
+        )
+        view = discord.ui.View()
+        view.add_item(UpVote(row=0))
+        view.add_item(DownVote(row=0))
+        view.add_item(ViewVotersButton(row=0,upvote_button=view.children[0],downvote_button=view.children[1]))
+        msg = await channel.send(embed=embed, view=view)
+
+        await channel.create_thread(
+            name="Discussion",
+            message=msg,
+        )
+
+        await ctx.send(
+            embed=discord.Embed(
+                title="Success",
+                description="Suggestion sent successfully.",
+                color=BLANK_COLOR
+            )
+        )
     
 async def setup(bot):
     await bot.add_cog(Utility(bot=bot))

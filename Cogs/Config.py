@@ -89,6 +89,10 @@ class Config(commands.Cog):
                 name="Enable/Disable Moderation Module",
                 value = f"{{{'Enabled' if moderation_enabled else 'Disabled'}}}"
             )
+            if staff_management_enabled == False:
+                staff_management = "Disabled"
+            else:
+                staff_management = "Enabled"
             embed4 = discord.Embed(
                 title="Staff Infraction Module",
                 description="> What is Staff Management module? The staff management module allows you to configure the following settings:\n"
@@ -102,19 +106,25 @@ class Config(commands.Cog):
                 color=BLANK_COLOR
             ).add_field(
                 name="Enable/Disable Staff Infraction Module",
-                value = f"{{{'Enabled' if staff_management_enabled else 'Disabled'}}}"
+                value = staff_management
             )
+            if server_management_enabled == False:
+                server_management = "Disabled"
+            else:
+                server_management = "Enabled"
             embed5 = discord.Embed(
                 title="Server Management Module",
                 description="> What is Server Management module? The server management module allows you to configure the following settings:\n\n"
                             "<:anglesmallright:1268850037861908571> **Application Results Channel**\n"
                             "- The channel where application results will be sent.\n\n"
                             "<:anglesmallright:1268850037861908571> **Cyni Logging Channel**\n"
-                            "- The channel where Cyni command & config change logs will be sent.",
+                            "- The channel where Cyni command & config change logs will be sent."
+                            "<:anglesmallright:1268850037861908571> **Suggestion Channel**\n"
+                            "- The channel where suggestions will be sent and users can vote on them.",
                 color=BLANK_COLOR
             ).add_field(
                 name="Enable/Disable Server Management Module",
-                value = f"{{{'Enabled' if server_management_enabled else 'Disabled'}}}"
+                value = server_management
             )
             all_embed = [embed1, embed2, embed3, embed4, embed5]
             views = [
