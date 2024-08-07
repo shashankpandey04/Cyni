@@ -39,7 +39,7 @@ class Utility(commands.Cog):
         """
         embed = discord.Embed(
             title="Cyni",
-            description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** {up_time}\n**Latency:** {round(self.bot.latency * 1000)}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** v7.1",
+            description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** {up_time}\n**Latency:** {round(self.bot.latency * 1000)}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** v7.3",
             color=BLANK_COLOR
         )
         view = discord.ui.View()
