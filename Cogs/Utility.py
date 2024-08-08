@@ -87,9 +87,6 @@ class Utility(commands.Cog):
             elif user.guild_permissions.manage_messages:
                 server_permissions.append("<:moderation:1268850116798844969> Moderator")
 
-            if user.id == OWNER:
-                 embed.description +=  f"<:cyniverified:1269139230911893534> Cyni Founder"
-
             public_flags = [flag[0] for flag in user.public_flags.all()]
             user_flags = []
             if "discord_staff" in public_flags:
@@ -146,6 +143,10 @@ class Utility(commands.Cog):
             specific_guild_id = 1152949579407442050
             guild = self.bot.get_guild(specific_guild_id)
             member_in_guild = guild.get_member(user.id)
+            
+            if user.id == OWNER:
+                 embed.description +=  f"<:cyniverified:1269139230911893534> Cyni Founder"
+
             if member_in_guild:
                 specific_role = guild.get_role(specific_role_id)
                 if specific_role in member_in_guild.roles:
