@@ -80,12 +80,15 @@ class Utility(commands.Cog):
                 user = ctx.author
 
             server_permissions = []
-            if user.guild.owner:
+            if user == user.guild.owner:
                 server_permissions.append("<:moderation:1268850116798844969> Server Owner")
             elif user.guild_permissions.administrator:
                 server_permissions.append("<:moderation:1268850116798844969> Administrator")
             elif user.guild_permissions.manage_messages:
                 server_permissions.append("<:moderation:1268850116798844969> Moderator")
+
+            if user.id == OWNER:
+                server_permissions.append("<:cyniverified:1269139230911893534> Cyni Founder")
 
             public_flags = [flag[0] for flag in user.public_flags.all()]
             user_flags = []
@@ -136,7 +139,7 @@ class Utility(commands.Cog):
                 inline=False
             ).add_field(
                 name="Roles",
-                value=", ".join([role.mention for role in user.roles[1:]]) if user.roles[1:] else "None",
+                value=", ".join([role.mention for role in user.roles[:15]]) + ("..." if len(user.roles) > 15 else "") if user.roles else "None",
                 inline=False
             ).set_thumbnail(url=user.avatar.url)
             specific_role_id = 1158043149424398406
