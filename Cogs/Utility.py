@@ -88,7 +88,7 @@ class Utility(commands.Cog):
                 server_permissions.append("<:moderation:1268850116798844969> Moderator")
 
             if user.id == OWNER:
-                server_permissions.append("<:cyniverified:1269139230911893534> Cyni Founder")
+                 embed.description +=  f"<:cyniverified:1269139230911893534> Cyni Founder"
 
             public_flags = [flag[0] for flag in user.public_flags.all()]
             user_flags = []
