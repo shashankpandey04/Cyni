@@ -22,8 +22,11 @@ class Config(commands.Cog):
         """
         Configure your server settings.
         """
-        if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,"Config")
+        try:
+            if isinstance(ctx,commands.Context):
+                await log_command_usage(self.bot,ctx.guild,ctx.author,"Config")
+        except:
+            pass
         try:
             sett = await self.bot.settings.find_by_id(ctx.guild.id)
             if not sett:

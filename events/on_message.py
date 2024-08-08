@@ -43,23 +43,26 @@ class OnMessage(commands.Cog):
         except KeyError:
             anti_ping_module = None
         
-        if anti_ping_module and anti_ping_module["enabled"]:
-            if message.mentions:
-                for role in message.mentions[0].roles:
-                    if role.id in anti_ping_module["affected_roles"]:
-                        for role in message.author.roles:
-                            if role.id in anti_ping_module["exempt_roles"]:
-                                return
-                        await message.channel.send(
-                            embed=discord.Embed(
-                                title="Anti-Ping Warning",
-                                description=f"{message.author.mention} please do not ping users with the role {role.mention}.",
-                                color=discord.Color.red()
-                            ).set_image(
-                                url="https://media.tenor.com/aslruXgPKHEAAAAM/discord-ping.gif"
-                            ),
-                            delete_after=15
-                        )
+        try:
+            if anti_ping_module and anti_ping_module["enabled"]:
+                if message.mentions:
+                    for role in message.mentions[0].roles:
+                        if role.id in anti_ping_module["affected_roles"]:
+                            for role in message.author.roles:
+                                if role.id in anti_ping_module["exempt_roles"]:
+                                    return
+                            await message.channel.send(
+                                embed=discord.Embed(
+                                    title="Anti-Ping Warning",
+                                    description=f"{message.author.mention} please do not ping users with the role {role.mention}.",
+                                    color=discord.Color.red()
+                                ).set_image(
+                                    url="https://media.tenor.com/aslruXgPKHEAAAAM/discord-ping.gif"
+                                ),
+                                delete_after=15
+                            )
+        except KeyError:
+            pass
         
         if not settings["basic_settings"]["staff_roles"] or not settings["basic_settings"]["management_roles"]:
             return

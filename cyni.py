@@ -36,7 +36,8 @@ intents.presences = True
 intents.members = True
 intents.voice_states = True
 
-discord.utils.setup_logging(level=logging.DEBUG)
+discord.utils.setup_logging(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 class Bot(commands.Bot):
     

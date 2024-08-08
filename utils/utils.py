@@ -68,29 +68,32 @@ def parse_duration(duration):
     return int(total_seconds)
 
 async def log_command_usage(bot, guild, member, command_name):
-    settings = await bot.settings.find_by_id(guild.id)
-    if not settings:
-        return
-    if not settings.get('server_management', {}).get('cyni_log_channel'):
-        return
     try:
-        log_channel_id = settings.get('server_management', {}).get('cyni_log_channel')
-    except (ValueError, TypeError):
-        return
-    log_channel = guild.get_channel(log_channel_id)
-    if log_channel is None:
-        return
-    if not log_channel.permissions_for(guild.me).send_messages:
-        return
-    embed = discord.Embed(
-        title="Cyni Command Log",
-        description=f"Command `{command_name}` used by {member.mention}",
-        color=BLANK_COLOR
-    )
-    embed.set_footer(text=f"User ID: {member.id}")
-    embed.set_author(name=member.name, icon_url=member.display_avatar.url)
-    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-    await log_channel.send(embed=embed)
+        settings = await bot.settings.find_by_id(guild.id)
+        if not settings:
+            return
+        if not settings.get('server_management', {}).get('cyni_log_channel'):
+            return
+        try:
+            log_channel_id = settings.get('server_management', {}).get('cyni_log_channel')
+        except (ValueError, TypeError):
+            return
+        log_channel = guild.get_channel(log_channel_id)
+        if log_channel is None:
+            return
+        if not log_channel.permissions_for(guild.me).send_messages:
+            return
+        embed = discord.Embed(
+            title="Cyni Command Log",
+            description=f"Command `{command_name}` used by {member.mention}",
+            color=BLANK_COLOR
+        )
+        embed.set_footer(text=f"User ID: {member.id}")
+        embed.set_author(name=member.name, icon_url=member.display_avatar.url)
+        embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+        await log_channel.send(embed=embed)
+    except Exception as e:
+        print(e)
 
 async def config_change_log(bot,guild,member,data):
     setting = await bot.settings.find_by_id(guild.id)

@@ -179,7 +179,8 @@ class StaffInfraction(View):
             row=1,
             min_values=0,
             max_values=1,
-            default_values=[discord.Object(id=promo_channel)]
+            default_values=[discord.Object(id=promo_channel)],
+            channel_types=[discord.ChannelType.text]
         )
 
         self.promotion_channel_select.callback = self.promotion_channel
@@ -190,7 +191,8 @@ class StaffInfraction(View):
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=demotion_channel)]
+            default_values=[discord.Object(id=demotion_channel)],
+            channel_types=[discord.ChannelType.text]
         )
         self.infraction_channel_select.callback = self.infraction_channel
         self.add_item(self.infraction_channel_select)
@@ -200,7 +202,8 @@ class StaffInfraction(View):
             row=3,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=warning_channel)]
+            default_values=[discord.Object(id=warning_channel)],
+            channel_types=[discord.ChannelType.text]
         )
         self.warning_channel_select.callback = self.warning_channel
         self.add_item(self.warning_channel_select)
@@ -455,7 +458,8 @@ class ModerationModule(discord.ui.View):
                 row=1,
                 min_values=1,
                 max_values=1,
-                default_values=[discord.Object(id=mod_channel)]
+                default_values=[discord.Object(id=mod_channel)],
+                channel_types=[discord.ChannelType.text]
         )
         self.moderation_log_channel_select.callback = self.moderation_log_channel_callback
 
@@ -468,7 +472,8 @@ class ModerationModule(discord.ui.View):
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=appeal_channel)]
+            default_values=[discord.Object(id=appeal_channel)],
+            channel_types=[discord.ChannelType.text]
         )
         self.ban_appeal_channel.callback = self.ban_appeal_channel_callback
 
@@ -482,7 +487,8 @@ class ModerationModule(discord.ui.View):
             min_values=0,
             max_values=1,
             row=3,
-            default_values=[discord.Object(id=audit_channel)]
+            default_values=[discord.Object(id=audit_channel)],
+            channel_types=[discord.ChannelType.text]
         )
         self.audit_channel_select.callback = self.audit_channel_select_callback
         self.children.append(self.audit_channel_select)
@@ -594,7 +600,8 @@ class ServerManagement(discord.ui.View):
             row=1,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=app_channel)]
+            default_values=[discord.Object(id=app_channel)],
+            channel_types=[discord.ChannelType.text]
         )
         self.application_channel_select.callback = self.application_channel_callback
         self.add_item(self.application_channel_select)
@@ -608,7 +615,8 @@ class ServerManagement(discord.ui.View):
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=cyni_log_channel)]
+            default_values=[discord.Object(id=cyni_log_channel)],
+            channel_types=[discord.ChannelType.text]
         )
         self.cyni_log_channel_select.callback = self.cyni_log_channel_callback
         self.add_item(self.cyni_log_channel_select)
@@ -622,7 +630,8 @@ class ServerManagement(discord.ui.View):
             row=3,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=suggestion_channel)]
+            default_values=[discord.Object(id=suggestion_channel)],
+            channel_types=[discord.ChannelType.text]
         )
         self.suggestion_channel_select.callback = self.suggestion_channel_callback
         self.add_item(self.suggestion_channel_select)
