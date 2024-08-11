@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-
+from utils.constants import BLANK_COLOR
 import aiohttp
 
 class Fun(commands.Cog):
@@ -63,6 +63,26 @@ class Fun(commands.Cog):
                         color=discord.Color.blurple()
                     ).set_image(
                         url=data[0]["url"]
+                    )
+                )
+
+    @commands.hybrid_command(
+        name="meow",
+        extras={
+            "category": "Fun"
+        }
+    )
+    async def meow(self, ctx):
+        """
+        Get a random Cat Fact.
+        """
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://meowfacts.herokuapp.com/") as response:
+                data = await response.json()
+                await ctx.send(
+                    embed=discord.Embed(
+                        title=data["data"][0],
+                        color=BLANK_COLOR
                     )
                 )
 
