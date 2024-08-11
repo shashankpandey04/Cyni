@@ -326,7 +326,8 @@ class Infraction(commands.Cog):
         name="delete",
         extras={
             "category": "Infraction"
-        }
+        },
+        aliases=["del"]
     )
     @is_management()
     async def delete_infraction(self, ctx, case: int):
