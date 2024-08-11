@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
-from utils.autocompletes import infraction_autocomplete
+from utils.autocompletes import infraction_autocomplete, dm_autocomplete
 from cyni import is_management
 from discord import app_commands
 from utils.utils import log_command_usage
@@ -32,7 +32,10 @@ class Infraction(commands.Cog):
     @app_commands.autocomplete(
         type=infraction_autocomplete
     )
-    async def staff_infract(self,ctx,member:discord.Member, type:str,approver:discord.Role,*,reason:str,rank:str,punishment:str = None,role_remove:discord.Role = None,role_add:discord.Role = None):
+    @app_commands.autocomplete(
+        dm=dm_autocomplete
+    )
+    async def staff_infract(self,ctx,member:discord.Member, type:str,approver:discord.Role,*,reason:str,rank:str,punishment:str = None,role_remove:discord.Role = None,role_add:discord.Role = None, dm: str = "false"):
         '''
         Warn, demote or promote a staff member.
         '''
@@ -204,9 +207,11 @@ class Infraction(commands.Cog):
                         color = RED_COLOR
                     )
                 )
-        await member.send(
-            embed = infract_embed
-        )
+        if dm == "true":
+            await member.send(
+                embed = infract_embed
+            )
+
             
     @infraction.command(
         name="view",
@@ -316,6 +321,70 @@ class Infraction(commands.Cog):
                     color=RED_COLOR
                 )
             )
+
+    @infraction.command(
+        name="delete",
+        extras={
+            "category": "Infraction"
+        }
+    )
+    @is_management()
+    async def delete_infraction(self, ctx, case: int):
+        '''
+        Delete an infraction.
+        '''
+        await ctx.typing()
+        query = {"case": case, "guild_id": ctx.guild.id}
+        infraction = await self.bot.infraction_log.find_by_query(query)
+        if not infraction:
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="No infraction found.",
+                    color=RED_COLOR
+                )
+            )
+            return
+        await self.bot.infraction_log.delete_doc(query)
+        await ctx.send(
+            embed=discord.Embed(
+                title="Success",
+                description=f"Infraction case {case} has been deleted.",
+                color=GREEN_COLOR
+            )
+        )
+
+    @infraction.command(
+        name="clear",
+        extras={
+            "category": "Infraction"
+        }
+    )
+    @is_management()
+    async def clear_infractions(self, ctx, member: discord.Member):
+        '''
+        Clear all infractions of a staff member.
+        '''
+        await ctx.typing()
+        query = {"member_id": member.id, "guild_id": ctx.guild.id}
+        infractions = await self.bot.infraction_log.find_by_query(query)
+        if not infractions:
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="No infraction found.",
+                    color=RED_COLOR
+                )
+            )
+            return
+        await self.bot.infraction_log.delete_many(query)
+        await ctx.send(
+            embed=discord.Embed(
+                title="Success",
+                description=f"All infractions of {member} have been cleared.",
+                color=GREEN_COLOR
+            )
+        )
 
 async def setup(bot):
     await bot.add_cog(Infraction(bot))

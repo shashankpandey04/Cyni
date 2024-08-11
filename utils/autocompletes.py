@@ -67,3 +67,17 @@ async def application_autocomplete(
             value="declined"
         )
     ]
+
+async def dm_autocomplete(
+        interaction: discord.Interaction,_:str
+) -> typing.List[app_commands.Choice[str]]:
+    return [
+        app_commands.Choice(
+            name="Yes",
+            value="true"
+        ),
+        app_commands.Choice(
+            name="No",
+            value="false"
+        )
+    ]
