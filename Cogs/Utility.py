@@ -64,7 +64,7 @@ class Utility(commands.Cog):
         except discord.Forbidden:
             pass
         afk_users[ctx.author.id] = reason
-        self.bot.afk.insert(
+        await self.bot.afk.insert(
             {
                 "_id": ctx.author.id,
                 "reason": reason
