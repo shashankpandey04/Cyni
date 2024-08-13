@@ -24,7 +24,14 @@ class OnMessage(commands.Cog):
                 f"Welcome back {message.author.mention}! I removed your AFK status.",
                 delete_after=5
                 )
-            await message.author.edit(nick=message.author.display_name.replace("[AFK]",""))
+            doc = {
+                "_id" : message.author.id
+            }
+            await self.bot.afk.delete_by_id(doc)
+            try:
+                await message.author.edit(nick=message.author.display_name.replace("[AFK]",""))
+            except discord.Forbidden:
+                pass
 
         for mentions in message.mentions:
             if mentions.id in afk_users:

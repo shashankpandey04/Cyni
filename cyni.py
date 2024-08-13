@@ -26,6 +26,7 @@ from Datamodels.Infraction_log import Infraction_log
 from Datamodels.Infraction_types import Infraction_type
 from Datamodels.Giveaway import Giveaway
 from Datamodels.Backup import Backup
+from Datamodels.afk import AFK
 
 load_dotenv()
 
@@ -66,6 +67,7 @@ class Bot(commands.Bot):
             self.infraction_types_document = Document(self.db, 'infraction_types')
             self.giveaway_document = Document(self.db, 'giveaways')
             self.backup_document = Document(self.db, 'backup')
+            self.afk_document = Document(self.db,'afk')
 
     async def setup_hook(self) -> None:
 
@@ -80,6 +82,7 @@ class Bot(commands.Bot):
         self.infraction_types = Infraction_type(self.db, 'infraction_types')
         self.giveaways = Giveaway(self.db, 'giveaways')
         self.backup = Backup(self.db, 'backup')
+        self.afk = Backup(self.db,'afk')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
@@ -118,6 +121,10 @@ bot = Bot(
 bot.debug_server = [1152949579407442050]
 
 afk_users = {}
+all_afk_users = bot.afk.get_all()
+for user in all_afk_users:
+    afk_users[user["_id"]] = user["reason"]
+
 
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
@@ -154,7 +161,7 @@ async def banappeal(interaction: discord.Interaction):
 async def change_status():
     await bot.wait_until_ready()
     logging.info("Changing status")
-    status = "✨ /about | Cyni v7.3"
+    status = "✨ /about | Cyni v7.4"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
 )

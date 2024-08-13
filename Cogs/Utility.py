@@ -6,6 +6,7 @@ from utils.constants import BLANK_COLOR, RED_COLOR
 from utils.utils import discord_time
 from cyni import up_time
 from menu import UpVote, DownVote, ViewVotersButton
+import time
 
 OWNER = 1201129677457215558
 LOGGING_CHANNEL = 1257705346525560885
@@ -25,7 +26,7 @@ class Utility(commands.Cog):
         """
         Get the bot's latency.
         """
-        await ctx.send(f"<:serveronline:1268850002768171098> Pong! {round(self.bot.latency * 1000)}ms")
+        await ctx.send(f"🟢 Pong!")
 
     @commands.hybrid_command(
         name="about",
@@ -63,6 +64,12 @@ class Utility(commands.Cog):
         except discord.Forbidden:
             pass
         afk_users[ctx.author.id] = reason
+        self.bot.afk.insert(
+            {
+                "_id": ctx.author.id,
+                "reason": reason
+            }
+        )
 
 
     @commands.hybrid_command(
@@ -240,28 +247,16 @@ class Utility(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(
-        name="invite",
+        name="premium",
         extras={
             "category": "General"
         }
     )
-    async def invite(self, ctx):
+    async def premium(self, ctx):
         """
-        Get the bot's invite link.
+        Link to Cyni Premium.
         """
-        await ctx.send(f"Invite me to your server: https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot")
-
-    @commands.hybrid_command(
-        name="patreon",
-        extras={
-            "category": "General"
-        }
-    )
-    async def patreon(self, ctx):
-        """
-        Get the bot's Patreon link.
-        """
-        await ctx.send("[Patreon](https://www.patreon.com/CodingNerd04)")
+        await ctx.send("[Premium](https://www.patreon.com/CodingNerd04)")
 
     @commands.hybrid_command(
         name="vote",
@@ -300,13 +295,13 @@ class Utility(commands.Cog):
         await ctx.send("Cyni Dashboard is under development!\n[Dashboard](https://cyni.quprdigital.tk)")
 
     @commands.hybrid_command(
-        name="suggestion",
+        name="suggest",
         extras={
             "category": "General"
         }
     )
     @commands.guild_only()
-    async def suggestion(self,ctx,suggestion:str):
+    async def suggest(self,ctx,suggestion:str):
         """
         Suggest something in the server.
         """
