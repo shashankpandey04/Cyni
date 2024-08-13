@@ -82,7 +82,7 @@ class Bot(commands.Bot):
         self.infraction_types = Infraction_type(self.db, 'infraction_types')
         self.giveaways = Giveaway(self.db, 'giveaways')
         self.backup = Backup(self.db, 'backup')
-        self.afk = Backup(self.db,'afk')
+        self.afk = AFK(self.db,'afk')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
