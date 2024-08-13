@@ -121,10 +121,12 @@ bot = Bot(
 bot.debug_server = [1152949579407442050]
 
 afk_users = {}
-all_afk_users = bot.afk.get_all()
-for user in all_afk_users:
-    afk_users[user["_id"]] = user["reason"]
 
+@bot.event
+async def on_ready():
+    all_afk_users = await bot.afk.get_all()
+    for user in all_afk_users:
+        afk_users[user["_id"]] = user["reason"]
 
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
@@ -164,7 +166,7 @@ async def change_status():
     status = "✨ /about | Cyni v7.4"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
-)
+    )
 
 up_time = time.time()
 
