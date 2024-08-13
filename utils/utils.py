@@ -198,3 +198,22 @@ async def create_full_backup(guild, bot):
         "_id": guild.id,
         "guild_owner_id": guild.owner_id
     }
+
+def compare_overwrites(before_overwrites, after_overwrites):
+    changes = []
+    all_targets = set(before_overwrites.keys()).union(set(after_overwrites.keys()))
+    for target in all_targets:
+        before_perms = before_overwrites.get(target, discord.PermissionOverwrite())
+        after_perms = after_overwrites.get(target, discord.PermissionOverwrite())
+        perm_changes = []
+        for perm in discord.Permissions.VALID_FLAGS:
+            before_value = getattr(before_perms, perm, None)
+            after_value = getattr(after_perms, perm, None)
+            if before_value != after_value:
+                status_before = "Allowed" if before_value is True else "Denied" if before_value is False else "Neutral"
+                status_after = "Allowed" if after_value is True else "Denied" if after_value is False else "Neutral"
+                perm_changes.append(f"{perm}: {status_before} -> {status_after}")
+        if perm_changes:
+            changes.append(f"{target.name}:\n" + "\n".join(perm_changes))
+
+    return changes

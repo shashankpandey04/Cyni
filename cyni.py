@@ -30,12 +30,7 @@ from Datamodels.afk import AFK
 
 load_dotenv()
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-intents.presences = True
-intents.members = True
-intents.voice_states = True
+intents = discord.Intents.all()
 
 discord.utils.setup_logging(level=logging.INFO)
 logging.basicConfig(level=logging.INFO)
