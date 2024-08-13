@@ -184,7 +184,7 @@ def dashboard():
                 })
         
         session["guilds"] = user_guilds
-        print(user_guilds)
+        #print(user_guilds)
         return render_template("dashboard.html", user_id=user_id, username=username, user_guilds=user_guilds)
     
     return redirect(url_for("login"))
