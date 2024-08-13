@@ -122,12 +122,6 @@ bot.debug_server = [1152949579407442050]
 
 afk_users = {}
 
-@bot.event
-async def on_ready():
-    all_afk_users = await bot.afk.get_all()
-    for user in all_afk_users:
-        afk_users[user["_id"]] = user["reason"]
-
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
     analytics = await bot.analytics.find_by_id(
