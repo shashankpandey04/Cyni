@@ -12,3 +12,4 @@ sentry-sdk
 waitress
 requests
 decouple
+roblox
