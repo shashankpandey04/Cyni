@@ -10,6 +10,9 @@ from discord.ext import commands
 from utils.utils import gen_error_uid
 from dotenv import load_dotenv
 
+from utils.prc_api import ResponseFailed
+from utils.constants import BLANK_COLOR
+
 load_dotenv()
 
 class OnCommandError(commands.Cog):
@@ -75,6 +78,15 @@ class OnCommandError(commands.Cog):
                     title="Error",
                     description="You do not have permission to run this command.",
                     color=discord.Color.red()
+                )
+            )
+
+        if isinstance(error, ResponseFailed):
+            return await ctx.reply(
+                embed=discord.Embed(
+                    title=f"PRC Response Failure ({error.code})",
+                    description="Your server seems to be offline. If this is incorrect, PRC's API may be down." if error.code == 422 else "There seems to be issues with the PRC API. Stand by and wait a few minutes before trying again.",
+                    color=BLANK_COLOR
                 )
             )
         

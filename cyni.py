@@ -27,6 +27,10 @@ from Datamodels.Infraction_types import Infraction_type
 from Datamodels.Giveaway import Giveaway
 from Datamodels.Backup import Backup
 from Datamodels.afk import AFK
+from Datamodels.Erlc_keys import ERLC_Keys
+
+from utils.prc_api import PRC_API_Client
+from decouple import config
 
 load_dotenv()
 
@@ -63,6 +67,7 @@ class Bot(commands.Bot):
             self.giveaway_document = Document(self.db, 'giveaways')
             self.backup_document = Document(self.db, 'backup')
             self.afk_document = Document(self.db,'afk')
+            self.erlc_keys_document = Document(self.db, 'erlc_keys')
 
     async def setup_hook(self) -> None:
 
@@ -78,9 +83,14 @@ class Bot(commands.Bot):
         self.giveaways = Giveaway(self.db, 'giveaways')
         self.backup = Backup(self.db, 'backup')
         self.afk = AFK(self.db,'afk')
+        self.erlc_keys = ERLC_Keys(self.db, 'erlc_keys')
+        self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
+
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
+
+   
 
         for extension in Cogs:
             try:
@@ -96,6 +106,9 @@ class Bot(commands.Bot):
             except Exception as e:
                 logging.error(f'Failed to load extension {extension}.', exc_info=True)
     
+        if os.getenv("PRODUCTION_TOKEN"):
+            await self.unload_extension("Cogs.ERLC")
+
         logging.info("Connected to MongoDB")
 
         change_status.start()

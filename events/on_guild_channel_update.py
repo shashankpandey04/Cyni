@@ -57,20 +57,6 @@ class OnGuildChannelUpdate(commands.Cog):
                 )
             )
 
-        if before.topic != after.topic:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Channel Topic",
-                    value=f"{before.topic} -> {after.topic}",
-                ).set_footer(
-                    text=f"Channel ID: {after.id}"
-                )
-            )
-
         if before.position != after.position:
             await guild_log_channel.send(
                 embed = discord.Embed(
