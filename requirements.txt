@@ -11,5 +11,5 @@ pytz
 sentry-sdk
 waitress
 requests
-decouple
+python-decouple
 roblox
