@@ -70,7 +70,6 @@ class OnMemberUpdate(commands.Cog):
                         color=YELLOW_COLOR
                     ).set_author(
                         name=before,
-                        icon_url=before.avatar.url
                     ).set_footer(
                         text=f"User ID: {before.id}"
                     )
@@ -84,7 +83,6 @@ class OnMemberUpdate(commands.Cog):
                         color=YELLOW_COLOR
                     ).set_author(
                         name=before,
-                        icon_url=before.avatar.url
                     ).set_footer(
                         text=f"User ID: {before.id}"
                     )

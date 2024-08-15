@@ -57,20 +57,6 @@ class OnGuildChannelUpdate(commands.Cog):
                 )
             )
 
-        if before.position != after.position:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Channel Position",
-                    value=f"{before.position} -> {after.position}",
-                ).set_footer(
-                    text=f"Channel ID: {after.id}"
-                )
-            )
-
         if before.category != after.category:
             await guild_log_channel.send(
                 embed = discord.Embed(
@@ -99,19 +85,6 @@ class OnGuildChannelUpdate(commands.Cog):
                 )
             )
 
-        if before.slowmode_delay != after.slowmode_delay:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Channel Slowmode",
-                    value=f"{before.slowmode_delay} -> {after.slowmode_delay}",
-                ).set_footer(
-                    text=f"Channel ID: {after.id}"
-                )
-            )
         changes = []
         if before.overwrites != after.overwrites:
             changes = compare_overwrites(before.overwrites, after.overwrites)

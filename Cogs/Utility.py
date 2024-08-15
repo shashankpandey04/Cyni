@@ -371,6 +371,40 @@ class Utility(commands.Cog):
                 color=BLANK_COLOR
             )
         )
+
+    support_role = 1158043149424398406
+    @commands.hybrid_command(
+        name="sentry",
+        extras={
+            "category": "General"
+        }
+    )
+    async def sentry(self,ctx,error_id:str):
+        if ctx.author.roles:
+            if self.support_role in [role.id for role in ctx.author.roles]:
+                doc = await self.bot.errors.find_by_id(error_id)
+                if doc is None:
+                    await ctx.send(f"Error not found, retrying in 5 seconds.")
+                    time.sleep(5)
+                    doc = await self.bot.errors.find_by_id(error_id)
+                    if doc is None:
+                        return await ctx.send("Error not found.")
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Error",
+                        description=f"**Error ID:** {doc['_id']}\n\n**Error:** {doc['error']}",
+                        color=BLANK_COLOR
+                    )
+                )
+            else:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Not Permitted",
+                        description="Only Cyni Staff is allowed to use this command.",
+                        color=RED_COLOR
+                    )
+                )
+
     
 async def setup(bot):
     await bot.add_cog(Utility(bot=bot))
