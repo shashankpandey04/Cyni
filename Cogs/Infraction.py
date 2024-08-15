@@ -57,7 +57,7 @@ class Infraction(commands.Cog):
                 return await ctx.send(
                     embed=discord.Embed(
                         title="Module not enabled",
-                        description="Please enable Staff Management Module via `/modules` command.",
+                        description="Please enable Staff Management Module via `/config` command.",
                         color=BLANK_COLOR
                     )
                 )
@@ -65,7 +65,7 @@ class Infraction(commands.Cog):
             return await ctx.send(
                     embed=discord.Embed(
                         title="Module not enabled",
-                        description="Please enable Staff Management Module via `/modules` command.",
+                        description="Please enable Staff Management Module via `/config` command.",
                         color=BLANK_COLOR
                     )
                 )
@@ -119,7 +119,10 @@ class Infraction(commands.Cog):
 
         if type == "warning":
             infract_embed.color = YELLOW_COLOR
-            warning_channel = settings["staff_management"]["warning_channel"]
+            try:
+                warning_channel = settings["staff_management"]["warning_channel"]
+            except KeyError:
+                warning_channel = None
             if warning_channel:
                 channel = ctx.guild.get_channel(warning_channel)
                 if channel:
@@ -149,7 +152,10 @@ class Infraction(commands.Cog):
                 )
         elif type == "demotion":
             infract_embed.color = RED_COLOR
-            demotion_channel = settings["staff_management"]["demotion_channel"]
+            try:
+                demotion_channel = settings["staff_management"]["demotion_channel"]
+            except KeyError:
+                demotion_channel = None
             if demotion_channel:
                 channel = ctx.guild.get_channel(demotion_channel)
                 if channel:
@@ -179,7 +185,10 @@ class Infraction(commands.Cog):
                 )
         elif type == "promotion":
             infract_embed.color = GREEN_COLOR
-            promotion_channel = settings["staff_management"]["promotion_channel"]
+            try:
+                promotion_channel = settings["staff_management"]["promotion_channel"]
+            except KeyError:
+                promotion_channel = None
             if promotion_channel:
                 channel = ctx.guild.get_channel(promotion_channel)
                 if channel:
