@@ -215,7 +215,7 @@ def compare_overwrites(before_overwrites, after_overwrites):
                 status_after = "Allowed" if after_value is True else "Denied" if after_value is False else "Neutral"
                 perm_changes.append(f"{perm}: {status_before} -> {status_after}")
         if perm_changes:
-            changes.append(f"{target.name}:\n" + "\n".join(perm_changes))
+            changes.append("\n".join(perm_changes))
 
     return changes
 

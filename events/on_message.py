@@ -70,11 +70,16 @@ class OnMessage(commands.Cog):
                             )
         except KeyError:
             pass
-        
-        if not settings["basic_settings"]["staff_roles"] or not settings["basic_settings"]["management_roles"]:
+        try:
+            if not settings["basic_settings"]["staff_roles"] or not settings["basic_settings"]["management_roles"]:
+                return
+        except KeyError:
             return
-        
-        staff_roles = settings["basic_settings"]["staff_roles"]
+        try:
+            staff_roles = settings["basic_settings"]["staff_roles"]
+            management_roles = settings["basic_settings"]["management_roles"]
+        except KeyError:
+            return
 
         for role in message.author.roles:
             if role.id in staff_roles:
