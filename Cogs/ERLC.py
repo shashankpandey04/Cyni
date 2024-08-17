@@ -411,7 +411,8 @@ class ERLC(commands.Cog):
             else:
                 log.Player = player_parts[0]
                 player_id = ""
-            embed.description += f"> [{log.Player}](https://roblox.com/users/{player_id}/profile) {"Joined" if log.Join == True else 'Left'} the server • <t:{int(log.Timestamp)}:R>\n"
+                status = 'Joined' if log.Join else 'Left'
+                embed.description += f"> [{log.Player}](https://roblox.com/users/{player_id}/profile) {status} the server • <t:{int(log.Timestamp)}:R>\n"
         if embed.description in ['', '\n']:
             embed.description = "> No join logs found."
 
