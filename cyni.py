@@ -105,9 +105,7 @@ class Bot(commands.Bot):
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
                 logging.error(f'Failed to load extension {extension}.', exc_info=True)
-    
-        if os.getenv("PRODUCTION_TOKEN"):
-            await self.unload_extension("Cogs.ERLC")
+
 
         logging.info("Connected to MongoDB")
 
