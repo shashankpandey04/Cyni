@@ -8,6 +8,7 @@ import utils.prc_api as prc_api
 from utils.prc_api import ServerPlayers, ServerStatus, ServerKillLogs, ServerJoinLogs, ResponseFailed
 from discord import app_commands
 from cyni import is_management, is_staff
+from bson.objectid import ObjectId
 
 import roblox
 import re
@@ -21,7 +22,7 @@ class ERLC(commands.Cog):
         async def predicate(ctx: commands.Context):
             guild_id = ctx.guild.id
             try:
-                await ctx.bot.prc_api.get_server_status(guild_id)
+                await ctx.bot.prc_api._fetch_server_status(guild_id)
             except prc_api.ResponseFailed as exc:
                 raise prc_api.ServerLinkNotFound(str(exc))
             return True
@@ -51,43 +52,48 @@ class ERLC(commands.Cog):
         """
         Get information about the ERLC server.
         """
-        server_id = ctx.guild.id
-        status: ServerStatus = await ctx.bot.prc_api.get_server_status(server_id)
-        players: ServerPlayers = await ctx.bot.prc_api.get_server_players(server_id)
-        queue: int = await ctx.bot.prc_api.get_server_queue(server_id)
+        await ctx.typing()
+        server = ctx.guild.id
+        status: ServerStatus = await ctx.bot.prc_api._fetch_server_status(server)
         client = roblox.Client()
 
-        embed = discord.Embed(
-            title=f"{status.name}",
-            color=BLANK_COLOR
-        ).set_author(
-            name=ctx.guild.name,
-            icon_url=ctx.guild.icon_url
-        ).add_field(
-            name="Basic Information",
-            value= (
-                f"**> Join Code:** [{status.join_key}](https://policeroleplay.community/join/{status.join_key})\n"
-                f"**> In-Game Players:** {status.current_players}/{status.max_players}\n"
-                f"**> Queue:** {queue}\n"
-            ),
-            inline=False
-        ).add_field(
-            name="Server Information",
-            value=(
-                f"> **Owner:** [{(await client.get_user(status.owner_id)).name}](https://roblox.com/users/{status.owner_id}/profile)\n"
-                f"> **Co-Owners:** {f', '.join([f'[{user.name}](https://roblox.com/users/{user.id}/profile)' for user in await client.get_users(status.co_owner_ids, expand=False)])}"
-            ),
-            inline=False
-        ).add_field(
-            name="Server Staff",
-            value=(
-                f"> **Moderators:** {len(list(filter(lambda x: x.permission == 'Server Moderator', players)))}\n"
-                f"> **Administrators:** {len(list(filter(lambda x: x.permission == 'Server Administrator', players)))}\n"
-                f"> **Staff In-Game:** {len(list(filter(lambda x: x.permission != 'Normal', players)))}\n"
-            ),
-            inline=False
-        )
+        owner_name = "Unknown"
+        try:
+            owner = await client.get_user(status.OwnerId)
+            owner_name = f"[{owner.name}](https://roblox.com/users/{status.OwnerId}/profile)"
+        except roblox.UserNotFound:
+            pass
 
+        co_owners = []
+        if status.CoOwnerIds is None:
+            co_owners.append("You have no co-owners.")
+        else:
+            for co_owner_id in status.CoOwnerIds:
+                try:
+                    co_owner = await client.get_user(co_owner_id)
+                    co_owners.append(f"[{co_owner.name}](https://roblox.com/users/{co_owner_id}/profile)")
+                except roblox.UserNotFound:
+                    co_owners.append("Unknown")
+
+        embed = discord.Embed(
+            title=f"Emergency Response: Liberty County Server Information",
+            color=BLANK_COLOR,
+            description=f"""
+                **Server Details**
+                > **Server Name:** `{status.Name}`
+                > **Join Code:** [{status.JoinKey}](https://policeroleplay.community/join/{status.JoinKey})
+                > **In-Game Players:** {status.CurrentPlayers}/{status.MaxPlayers}
+
+                **Server Ownership**
+                > **Owner:** {owner_name}
+                > **Co-Owners:** {', '.join(co_owners) if co_owners else 'None'}
+            """
+        ).set_footer(
+            text="Cyni Bot | ERLC Integration",
+            icon_url=self.bot.user.avatar
+        ).set_thumbnail(
+            url=ctx.guild.icon
+        )
         await ctx.send(embed=embed)
 
     @server.command(
@@ -102,8 +108,9 @@ class ERLC(commands.Cog):
         """
         Get information about the ERLC server staff.
         """
+        await ctx.typing()
         server_id = ctx.guild.id
-        players: ServerPlayers = await ctx.bot.prc_api.get_server_players(server_id)
+        players: ServerPlayers = await ctx.bot.prc_api._fetch_server_players(server_id)
         client = roblox.Client()
 
         embed = discord.Embed(
@@ -111,7 +118,7 @@ class ERLC(commands.Cog):
             color=BLANK_COLOR
         ).set_author(
             name=ctx.guild.name,
-            icon_url=ctx.guild.icon_url
+            icon_url=ctx.guild.icon
         )
 
         actual_players = []
@@ -145,11 +152,12 @@ class ERLC(commands.Cog):
                     inline=False
                 )
         
-        if len(embed.fields) > 0:
+        if len(embed.fields) <= 0:
             embed.description = "> There are no staff members in this server."
 
         await ctx.send(embed=embed)
 
+    '''    
     @server.command(
         name="kills",
         extras={
@@ -331,7 +339,7 @@ class ERLC(commands.Cog):
             icon_url=ctx.guild.icon
         )
         await msg.edit(embed=embed)
-
+        '''
     @server.command(
         name="link",
         description="Link your Discord server to the ERLC server."
@@ -340,19 +348,20 @@ class ERLC(commands.Cog):
     @is_management()
     async def server_link(self, ctx: commands.Context, key: str):
         try:
-            status: int | ServerStatus = await self.bot.prc_api.send_test_request(key)
-            if isinstance(status, int):
+            status: int | ServerStatus = await self.bot.prc_api._send_test_request(key)
+            if status is not True:
                 await (ctx.send if not ctx.interaction else ctx.interaction.response.send_message)(
                     embed=discord.Embed(
-                        title="Incorrect Key",
-                        description="This Server Key is invalid and nonfunctional. Ensure you've entered it correctly.",
+                        title="Invalid Key",
+                        description="The key you provided is invalid. Please provide a valid key.",
                         color=BLANK_COLOR
                     ),
                     ephemeral=True
                 )
             else:
+                guild_id = ctx.guild.id
                 await self.bot.erlc_keys.upsert({
-                    "_id": ctx.guild.id,
+                    "_id": guild_id,
                     "key": key
                 })
 
@@ -374,6 +383,44 @@ class ERLC(commands.Cog):
                 ),
                 ephemeral=True
             )
+
+    @server.command(
+        name="joinlogs",
+        description="Get the join logs of the server."
+    )
+    @is_staff()
+    @is_server_linked()
+    async def join_logs(self, ctx: commands.Context):
+        await ctx.typing()
+        guild_id = ctx.guild.id
+        join_logs: list[ServerJoinLogs] = await self.bot.prc_api._fetch_server_join_logs(guild_id)
+        embed = discord.Embed(
+            color=BLANK_COLOR,
+            title="Server Join & Leave Logs",
+            description=""
+        )
+
+        sorted_join_logs = sorted(join_logs, key=lambda log: log.Timestamp, reverse=True)
+        for log in sorted_join_logs:
+            if len(embed.description) > 3800:
+                break
+            player_parts = log.Player.split(":")
+            if len(player_parts) > 1:
+                log.Player = player_parts[0]
+                player_id = player_parts[1]
+            else:
+                log.Player = player_parts[0]
+                player_id = ""
+            embed.description += f"> [{log.Player}](https://roblox.com/users/{player_id}/profile) {"Joined" if log.Join == True else 'Left'} the server • <t:{int(log.Timestamp)}:R>\n"
+        if embed.description in ['', '\n']:
+            embed.description = "> No join logs found."
+
+        embed.set_author(
+            name=ctx.guild.name,
+            icon_url=ctx.guild.icon
+        )
+
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(ERLC(bot))

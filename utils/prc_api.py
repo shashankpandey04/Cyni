@@ -27,33 +27,32 @@ class ResponseFailed(Exception):
         return f"ResponseFailed(data={self.data}, detail={self.detail}, code={self.code})"
 
 class ServerStatus():
-    name: str | None
-    owner_id: int | None
-    co_owner_ids: list[int] | None
-    current_players: int | None
-    max_players: int | None
-    join_key: str | None
-    verification: str
-    team_balance: bool
+    Name: str | None = None
+    OwnerId: int | None = None
+    CoOwnerIds: list[int] | None = None
+    CurrentPlayers: int | None = None
+    MaxPlayers: int | None = None
+    JoinKey: str | None = None
+    AccVerifiedReq: str = ""
+    TeamBalance: bool = False
 
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
-
 class ServerPlayers():
-    player: str | None
-    permission: str
-    call_sign: str | None
-    team: str | None
+    Player: str | None
+    Permission: str
+    Callsign: str | None
+    Team: str | None
 
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
 class ServerJoinLogs():
-    join: bool
-    timestamp: int
-    player: str | None
+    Join: bool
+    Timestamp: int
+    Player: str | None
 
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.items():
@@ -127,239 +126,55 @@ class PRC_API_Client:
     async def fetch_server_key(self, server_id: int):
         return await self.bot.erlc_keys.find_by_id(server_id)
 
-    async def _send_request(self, method: typing.Literal["GET", "POST"], endpoint: str, server_id: int, data: dict = None, key: str = None):
-        if key is None:
-            raise ServerLinkNotFound("Server link not found.")
-        
-        async with self.session.request(method, f"{self.base_url}{endpoint}", headers={
-            "Authorization": self.api_key,
-            "User-Agent": "Application",
-            "Server-Key": key
-        }, json=data) as resp:
-            if resp.status != 200:
-                data = await resp.json()
-                raise ResponseFailed(data=data, detail=data.get("detail"), code=resp.status)
-            return await resp.json()
+    async def _send_test_request(self,key: str):
+        async with self.session.get(f"{self.base_url}/server", headers={"Server-Key": key}) as resp:
+            data = await resp.json()
+            if resp.status == 200:
+                return True
+            else:
+                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
             
-
-    async def get_server_status(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server', server_id)
-        if status_code == 200:
-            return ServerStatus(
-                name=response_json.get('name'),
-                owner_id=response_json.get('owner_id'),
-                co_owner_ids=response_json.get('co_owner_ids'),
-                current_players=response_json.get('current_players'),
-                max_players=response_json.get('max_players'),
-                join_key=response_json.get('join_key'),
-                verification=response_json.get('verification'),
-                team_balance=response_json.get('team_balance')
-            )
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def send_test_request(self, server_key: str) -> int | ServerStatus:
-        code, response_json = await self._send_request('GET', '/server', 0, None, server_key)
-        return code if code != 200 else ServerStatus(
-            name=response_json.get('name'),
-            owner_id=response_json.get('owner_id'),
-            co_owner_ids=response_json.get('co_owner_ids'),
-            current_players=response_json.get('current_players'),
-            max_players=response_json.get('max_players'),
-            join_key=response_json.get('join_key'),
-            verification=response_json.get('verification'),
-            team_balance=response_json.get('team_balance')
-        )
-        
-    async def get_server_players(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/players', server_id)
-        if status_code == 200:
-            return [ServerPlayers(
-                player=player.get('player'),
-                permission=player.get('permission'),
-                call_sign=player.get('call_sign'),
-                team=player.get('team')
-            ) for player in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_join_logs(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/join_logs', server_id)
-        if status_code == 200:
-            return [ServerJoinLogs(
-                join=log.get('join'),
-                timestamp=log.get('timestamp'),
-                player=log.get('player')
-            ) for log in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_queue(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/queue', server_id)
-        if status_code == 200:
-            return ServerQueue(
-                total_players=response_json.get('total_players')
-            )
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_kill_logs(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/kill_logs', server_id)
-        if status_code == 200:
-            return [ServerKillLogs(
-                killed=log.get('killed'),
-                timestamp=log.get('timestamp'),
-                killer=log.get('killer')
-            ) for log in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_command_logs(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/command_logs', server_id)
-        if status_code == 200:
-            return [ServerCommandLogs(
-                player=log.get('player'),
-                timestamp=log.get('timestamp'),
-                command=log.get('command')
-            ) for log in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_mod_calls(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/mod_calls', server_id)
-        if status_code == 200:
-            return [ServerModCalls(
-                caller=log.get('caller'),
-                moderator=log.get('moderator'),
-                timestamp=log.get('timestamp')
-            ) for log in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_bans(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/bans', server_id)
-        if status_code == 200:
-            return [ServerBans(
-                player_id=ban.get('player_id')
-            ) for ban in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_vehicles(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/vehicles', server_id)
-        if status_code == 200:
-            return [ServerVehicles(
-                texture=vehicle.get('texture'),
-                name=vehicle.get('name'),
-                owner=vehicle.get('owner')
-            ) for vehicle in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def get_server_commands(self, server_id: int):
-        status_code, response_json = await self._send_request('GET', '/server/commands', server_id)
-        if status_code == 200:
-            return [ServerCommand(
-                command=command.get('command')
-            ) for command in response_json]
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-        
-    async def send_command(self, server_id: int, command: str):
-        status_code, response_json = await self._send_request('POST', '/server/command', server_id, {"command": command})
-        if status_code == 200:
-            return response_json
-        else:
-            raise ResponseFailed(
-                data=response_json,
-                detail=response_json.get('detail'),
-                code=status_code
-            )
-
-    async def unban_player(self, server_id: int, player_id: int):
-        status_code, response_json = await self._send_request('POST', '/server/command', server_id, data={
-                "command": ":unban {}".format(str(player_id))
-            })
-        if status_code == 429:
-            await asyncio.sleep(response_json['retry_after']+0.1)
-            return await self.unban_player(server_id, player_id)
-        if status_code == 200:
-            return response_json
-        
-        raise ResponseFailed(
-            data=response_json,
-            detail=response_json.get('detail'),
-            code=status_code
-        )
-    
-    async def ban_player(self, server_id: int, player_id: int):
-        status_code, response_json = await self._send_request('POST', '/server/command', server_id, data={
-                "command": ":ban {}".format(str(player_id))
-            })
-        if status_code == 429:
-            await asyncio.sleep(response_json['retry_after']+0.1)
-            return await self.ban_player(server_id, player_id)
-        if status_code == 200:
-            return response_json
-        
-        raise ResponseFailed(
-            data=response_json,
-            detail=response_json.get('detail'),
-            code=status_code
-        )
-    
-    async def kick_player(self, server_id: int, player_id: int):
-        status_code, response_json = await self._send_request('POST', '/server/command', server_id, data={
-                "command": ":kick {}".format(str(player_id))
-            })
-        if status_code == 429:
-            await asyncio.sleep(response_json['retry_after']+0.1)
-            return await self.kick_player(server_id, player_id)
-        if status_code == 200:
-            return response_json
-        
-        raise ResponseFailed(
-            data=response_json,
-            detail=response_json.get('detail'),
-            code=status_code
-        )
+    async def _fetch_server_status(self, server_id: int):
+        server_key = await self.fetch_server_key(server_id)
+        if not server_key:
+            raise ServerLinkNotFound("Server link not found")
+        async with self.session.get(f"{self.base_url}/server", headers={"Server-Key": server_key["key"]}) as resp:
+            data = await resp.json()
+            if resp.status == 200:
+                return ServerStatus(**data)
+            elif resp.status == 429:
+                retry_after = data.get("retry_after")
+                await asyncio.sleep(retry_after)
+                return await self._fetch_server_status(server_id)
+            else:
+                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
+            
+    async def _fetch_server_players(self, server_id: int):
+        server_key = await self.fetch_server_key(server_id)
+        if not server_key:
+            raise ServerLinkNotFound("Server link not found")
+        async with self.session.get(f"{self.base_url}/server/players", headers={"Server-Key": server_key["key"]}) as resp:
+            data = await resp.json()
+            if resp.status == 200:
+                return [ServerPlayers(**x) for x in data]
+            elif resp.status == 429:
+                retry_after = data.get("retry_after")
+                await asyncio.sleep(retry_after)
+                return await self._fetch_server_players(server_id)
+            else:
+                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
+            
+    async def _fetch_server_join_logs(self, server_id: int):
+        server_key = await self.fetch_server_key(server_id)
+        if not server_key:
+            raise ServerLinkNotFound("Server link not found")
+        async with self.session.get(f"{self.base_url}/server/joinlogs", headers={"Server-Key": server_key["key"]}) as resp:
+            data = await resp.json()
+            if resp.status == 200:
+                return [ServerJoinLogs(**x) for x in data]
+            elif resp.status == 429:
+                retry_after = data.get("retry_after")
+                await asyncio.sleep(retry_after)
+                return await self._fetch_server_join_logs(server_id)
+            else:
+                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
