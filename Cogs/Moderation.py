@@ -498,8 +498,7 @@ class Moderation(commands.Cog):
         time = datetime.now() + timedelta(seconds=time)
         print(time)
         try:
-            await member.edit(mute=True)
-            await member.timed_out_until(time)
+            await member.edit(timed_out_until=time, reason=reason)
         except discord.Forbidden:
             return await ctx.send(
                 embed = discord.Embed(
@@ -562,7 +561,7 @@ class Moderation(commands.Cog):
                 )
             )
         try:
-            await member.edit(mute=False)
+            await member.edit(timed_out_until=None)
         except discord.Forbidden:
             return await ctx.send(
                 embed = discord.Embed(
