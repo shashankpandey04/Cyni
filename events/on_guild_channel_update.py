@@ -89,6 +89,8 @@ class OnGuildChannelUpdate(commands.Cog):
         if before.overwrites != after.overwrites:
             changes = compare_overwrites(before.overwrites, after.overwrites)
             if changes:
+                if len(changes) > 1024:
+                    changes = changes[:1021] + "..."
                 await guild_log_channel.send(
                     embed = discord.Embed(
                         title= " ",
