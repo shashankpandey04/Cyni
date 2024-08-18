@@ -495,7 +495,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        time = datetime.now() + timedelta(seconds=time)
+        time = discord.utils.utcnow() + timedelta(seconds=time)
         print(time)
         try:
             await member.edit(timed_out_until=time, reason=reason)
