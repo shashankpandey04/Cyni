@@ -485,7 +485,7 @@ class Moderation(commands.Cog):
             return int(total_seconds)
         
         if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Mute {member}")
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Mute {member} for {time}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -506,8 +506,8 @@ class Moderation(commands.Cog):
                 )
             )
         time = parse_duration(self,time)
-        member.timed_out_until = datetime.now() + timedelta(seconds=time)
 
+        await member.timed_out_until(datetime.now() + timedelta(seconds=time))
         await ctx.send(
             embed = discord.Embed(
                 description = f"{member.mention} has been muted for `{reason}`.",
@@ -562,7 +562,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        member.timed_out_until = None
+        await member.timed_out_until(None)
         await ctx.send(
             embed = discord.Embed(
                 description = f"{member.mention} has been unmuted for `{reason}`.",
