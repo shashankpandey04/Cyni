@@ -499,11 +499,14 @@ class Moderation(commands.Cog):
         print(time)
         try:
             await member.edit(timed_out_until=time, reason=reason)
-        except discord.Forbidden:
+        except Exception as e:
             return await ctx.send(
                 embed = discord.Embed(
                     description = "I do not have permission to mute this user.",
                     color = discord.Color.red()
+                ).add_field(
+                    name="Error",
+                    value=str(e)
                 )
             )
         await ctx.send(
