@@ -467,6 +467,7 @@ class Moderation(commands.Cog):
         """
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,f"Mute {member} for {time}")
+        print(time)
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -487,8 +488,25 @@ class Moderation(commands.Cog):
                 )
             )
         time = parse_duration(self,time)
-
-        await member.timed_out_until(datetime.now() + timedelta(seconds=time))
+        if not time:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "Invalid duration.",
+                    color = discord.Color.red()
+                )
+            )
+        time = datetime.now() + timedelta(seconds=time)
+        print(time)
+        try:
+            await member.edit(mute=True)
+            await member.timed_out_until(time)
+        except discord.Forbidden:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "I do not have permission to mute this user.",
+                    color = discord.Color.red()
+                )
+            )
         await ctx.send(
             embed = discord.Embed(
                 description = f"{member.mention} has been muted for `{reason}`.",
@@ -543,7 +561,15 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        await member.timed_out_until(None)
+        try:
+            await member.edit(mute=False)
+        except discord.Forbidden:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "I do not have permission to unmute this user.",
+                    color = discord.Color.red()
+                )
+            )
         await ctx.send(
             embed = discord.Embed(
                 description = f"{member.mention} has been unmuted for `{reason}`.",
