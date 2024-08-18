@@ -380,6 +380,9 @@ class Utility(commands.Cog):
         }
     )
     async def sentry(self,ctx,error_id:str):
+        """
+        Get information about a sentry error.
+        """
         if ctx.author.roles:
             if self.support_role in [role.id for role in ctx.author.roles]:
                 doc = await self.bot.errors.find_by_id(error_id)
