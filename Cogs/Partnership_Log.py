@@ -117,7 +117,7 @@ class Partnership_Log(commands.Cog):
             embed.set_image(url = image)
         await log_channel.send(embed = embed)
         try:
-            await representative.add_roles(partner_role, reason = "Partner Role")
+            await representative.add_roles(partner_role, reason = "Partnership Logged")
         except:
             pass
         await ctx.send(
@@ -200,6 +200,12 @@ class Partnership_Log(commands.Cog):
                     color = RED_COLOR
                 )
             )
+        partner_role = ctx.guild.get_role(partnership["partner_role"])
+        representative = ctx.guild.get_member(partnership["representative"])
+        try:
+            await representative.remove_roles(partner_role, reason = "Partnership Deleted")
+        except:
+            pass
         await self.bot.partnership.delete_by_id(f"{ctx.guild.id}_{partnership_id}")
         await ctx.send(
             embed = discord.Embed(
