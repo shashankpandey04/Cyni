@@ -218,5 +218,45 @@ class Partnership_Log(commands.Cog):
             )
         )
 
+    @partnership.command(
+        name="view",
+        extras={
+            "category": "Partnership"
+        }
+    )
+    @is_staff()
+    @app_commands.describe(partnership_id = "ID of the partnership")
+    async def view(self, ctx, partnership_id: int):
+        """
+        View a partnership.
+        """
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,"partnership view")
+        partnership = await self.bot.partnership.find_by_id(f"{ctx.guild.id}_{partnership_id}")
+        if not partnership:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title = "Partnership not found",
+                    description = "The partnership with the specified ID was not found",
+                    color = RED_COLOR
+                )
+            )
+        representative = ctx.guild.get_member(partnership["representative"])
+        description = re.sub(r'\\n', '\n', partnership["description"])
+        formatted_description = (
+            f"{description}\n\n"
+            f"Representative: {representative.mention}"
+        )
+        embed = discord.Embed(
+            title = partnership["title"],
+            description = formatted_description,
+            color = BLANK_COLOR
+        ).set_footer(
+            text = f"Partnership ID: {partnership_id} | Logged by {ctx.guild.get_member(partnership['logged_by'])}",
+        )
+        if partnership["image"]:
+            embed.set_image(url = partnership["image"])
+        await ctx.send(embed = embed)
+
 async def setup(bot):
     await bot.add_cog(Partnership_Log(bot))
