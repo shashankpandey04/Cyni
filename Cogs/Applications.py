@@ -3,7 +3,7 @@ from discord.ext import commands
 
 from discord import app_commands
 from cyni import is_management
-from utils.autocompletes import application_autocomplete
+from utils.autocompletes import application_autocomplete, application_type_autocomplete
 from utils.constants import RED_COLOR, BLANK_COLOR, GREEN_COLOR
 from utils.utils import log_command_usage
 
@@ -93,6 +93,37 @@ class Applications(commands.Cog):
         await ctx.send(
             f"Application result sent for {applicant.mention}"
         )
+
+    #@application.command(
+    #    name="apply",
+    #    extras={
+    #        "category": "Applications"
+    #    }
+    #)
+    #@app_commands.autocomplete(
+    #    application = application_type_autocomplete
+    #)
+    #async def apply(self, ctx: commands.Context, application: str):
+    #    """
+    #    Fill out an application.
+    #    """
+    #    if application == "None":
+    #        return await ctx.send(
+    #            embed=discord.Embed(
+    #                title="No Applications",
+    #                description="No applications found for this server.",
+    #                color=BLANK_COLOR
+    #            )
+    #        )
+    #    settings = await self.bot.settings.find_by_id(ctx.guild.id)
+    #    if settings is None:
+    #        return await ctx.send(
+    #            embed = discord.Embed(
+    #                title="Bot isn't configured properly",
+    #                description="No settings found for this server. Please use `/config` command.",
+    #                color=RED_COLOR
+    #            )
+    #        )
 
 async def setup(bot):
     await bot.add_cog(Applications(bot))

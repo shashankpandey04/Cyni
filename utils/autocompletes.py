@@ -81,3 +81,36 @@ async def dm_autocomplete(
             value="false"
         )
     ]
+
+async def application_type_autocomplete(
+        interaction: discord.Interaction,_:str
+) -> typing.List[app_commands.Choice[str]]:
+    bot = interaction.client
+
+    data = await bot.applications.find_by_id(interaction.guild.id)
+    if data is None:
+         return [
+            app_commands.Choice(
+                name="None",
+                value="None"
+            )
+        ]
+    
+    applications_types = data["applications"]
+    types = applications_types.get('name', [])
+
+    if types is not None and len(types or []) != 0:
+        return [
+            app_commands.Choice(
+                name=application_type,
+                value=application_type
+            )
+            for application_type in types
+        ]
+    else:
+        return [
+            app_commands.Choice(
+                name="None",
+                value="None"
+            )
+        ]

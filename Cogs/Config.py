@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
-from menu import BasicConfig, AntiPingView, ModerationModule, StaffInfraction, ServerManagement
+from menu import BasicConfig, AntiPingView, ModerationModule, StaffInfraction, ServerManagement, PartnershipModule
 from utils.pagination import Pagination
 from cyni import is_management
-from utils.constants import BLANK_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR
 from utils.utils import log_command_usage
 class Config(commands.Cog):
     def __init__(self, bot):
@@ -34,22 +34,6 @@ class Config(commands.Cog):
         except KeyError:
             sett = {}
         try:
-            anti_ping_enabled = sett["anti_ping_module"]["enabled"]
-        except:
-            anti_ping_enabled = False
-        try:
-            moderation_enabled = sett["moderation_module"]["enabled"]
-        except KeyError:
-            moderation_enabled = False
-        try:
-            staff_management_enabled = sett["staff_management"]["enabled"]
-        except KeyError:
-            staff_management_enabled = False
-        try:
-            server_management_enabled = sett["server_management_module"]["enabled"]
-        except KeyError:
-            server_management_enabled = False
-        try:
             embed1 = discord.Embed(
                 title="Basic Configuration",
                 description="> This is the basic configuration for your server. But what does it do?\n"
@@ -64,6 +48,7 @@ class Config(commands.Cog):
                             ,
                 color=BLANK_COLOR
             )
+
             embed2 = discord.Embed(
                 title="Anti-Ping Module",
                 description="> What is Anti-Ping? Anti-Ping prevents users from pinging specific roles.\n"
@@ -74,10 +59,8 @@ class Config(commands.Cog):
                             "-  An individual who holds one of these roles will not be able to trigger Anti-Ping filters, and will be able to ping any individual within the Affected Roles list without Cyni intervening."
                             ,
                 color=BLANK_COLOR
-            ).add_field(
-                name="Enable/Disable Anti-Ping Module",
-                value = f"{{{'Enabled' if anti_ping_enabled else 'Disabled'}}}"
             )
+
             embed3 = discord.Embed(
                 title="Moderation Module",
                 description="> What is Moderation module? The moderation module allows you to configure the following settings:\n\n"
@@ -88,14 +71,8 @@ class Config(commands.Cog):
                             "<:anglesmallright:1268850037861908571> **Audit Log Channel**\n"
                             "- The channel where audit logs will be sent like message edits, message deletes, etc.",
                 color=BLANK_COLOR
-            ).add_field(
-                name="Enable/Disable Moderation Module",
-                value = f"{{{'Enabled' if moderation_enabled else 'Disabled'}}}"
             )
-            if staff_management_enabled == False:
-                staff_management = "Disabled"
-            else:
-                staff_management = "Enabled"
+
             embed4 = discord.Embed(
                 title="Staff Infraction Module",
                 description="> What is Staff Management module? The staff management module allows you to configure the following settings:\n"
@@ -107,14 +84,8 @@ class Config(commands.Cog):
                             "- The channel where staff warnings will be sent like staff strikes and warnings."
                             ,
                 color=BLANK_COLOR
-            ).add_field(
-                name="Enable/Disable Staff Infraction Module",
-                value = staff_management
             )
-            if server_management_enabled == False:
-                server_management = "Disabled"
-            else:
-                server_management = "Enabled"
+
             embed5 = discord.Embed(
                 title="Server Management Module",
                 description="> What is Server Management module? The server management module allows you to configure the following settings:\n\n"
@@ -125,23 +96,41 @@ class Config(commands.Cog):
                             "<:anglesmallright:1268850037861908571> **Suggestion Channel**\n"
                             "- The channel where suggestions will be sent and users can vote on them.",
                 color=BLANK_COLOR
-            ).add_field(
-                name="Enable/Disable Server Management Module",
-                value = server_management
             )
-            all_embed = [embed1, embed2, embed3, embed4, embed5]
+
+            embed6 = discord.Embed(
+                title="Partnership Module",
+                description="> What is Partnership module? The partnership module allows you to configure the following settings:\n\n"
+                            "<:anglesmallright:1268850037861908571> **Partnership Module Enabled**\n"
+                            "- Enable or disable the partnership module.\n\n"
+                            "<:anglesmallright:1268850037861908571> **Partnership Channel**\n"
+                            "- The channel where partnership logs will be sent.\n\n"
+                            "<:anglesmallright:1268850037861908571> **Partner Role**\n"
+                            "- The role that is considered as a partner and automatically given when a partnership is logged."
+                            ,
+                color=BLANK_COLOR
+            )
+
+            all_embed = [embed1, embed2, embed3, embed4, embed5, embed6]
             views = [
                 BasicConfig(self.bot, sett, ctx.author.id), 
                 AntiPingView(self.bot, sett, ctx.author.id), 
                 ModerationModule(bot=self.bot,setting=sett,user_id=ctx.author.id),
                 StaffInfraction(bot=self.bot,setting=sett,user_id=ctx.author.id),
-                ServerManagement(bot=self.bot,setting=sett,user_id=ctx.author.id)
+                ServerManagement(bot=self.bot,setting=sett,user_id=ctx.author.id),
+                PartnershipModule(bot=self.bot,setting=sett,user_id=ctx.author.id)
             ]
             view = Pagination(self.bot, ctx.author.id, all_embed, views)
             await ctx.send(embed=embed1, view=view)
 
-        except discord.HTTPException:
-            pass
+        except Exception as e:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Something went wrong",
+                    description=f"```{e}```",
+                    color=RED_COLOR
+                )
+            )
 
 async def setup(bot):
     await bot.add_cog(Config(bot))

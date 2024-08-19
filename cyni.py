@@ -28,6 +28,8 @@ from Datamodels.Giveaway import Giveaway
 from Datamodels.Backup import Backup
 from Datamodels.afk import AFK
 from Datamodels.Erlc_keys import ERLC_Keys
+from Datamodels.Applications import Applications
+from Datamodels.Partnership import Partnership
 
 from utils.prc_api import PRC_API_Client
 from decouple import config
@@ -68,6 +70,8 @@ class Bot(commands.Bot):
             self.backup_document = Document(self.db, 'backup')
             self.afk_document = Document(self.db,'afk')
             self.erlc_keys_document = Document(self.db, 'erlc_keys')
+            self.applications_document = Document(self.db, 'applications')
+            self.partnership_document = Document(self.db, 'partnership')
 
     async def setup_hook(self) -> None:
 
@@ -85,6 +89,8 @@ class Bot(commands.Bot):
         self.afk = AFK(self.db,'afk')
         self.erlc_keys = ERLC_Keys(self.db, 'erlc_keys')
         self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
+        self.applications = Applications(self.db, 'applications')
+        self.partnership = Partnership(self.db, 'partnership')
 
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]

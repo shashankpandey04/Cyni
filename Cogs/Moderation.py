@@ -492,7 +492,7 @@ class Moderation(commands.Cog):
             return await ctx.send(
                 embed = discord.Embed(
                     description = "Invalid duration.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
         time = discord.utils.utcnow() + timedelta(seconds=time)
@@ -503,7 +503,7 @@ class Moderation(commands.Cog):
             return await ctx.send(
                 embed = discord.Embed(
                     description = "I do not have permission to mute this user.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 ).add_field(
                     name="Error",
                     value=str(e)
@@ -511,8 +511,8 @@ class Moderation(commands.Cog):
             )
         await ctx.send(
             embed = discord.Embed(
-                description = f"{member.mention} has been muted for `{reason}`.",
-                color = discord.Color.green()
+                description = f"{member.mention} has been muted for `{reason}`.\nTime: {time}",
+                color = GREEN_COLOR
             )
         )
         try:
@@ -524,13 +524,20 @@ class Moderation(commands.Cog):
                 embed = discord.Embed(
                     title = "User Muted",
                     description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
         else:
             await ctx.channel.send(
                 "Moderation log channel not found. Please set up the bot using the `config` command."
             )
+        return await member.send(
+            embed = discord.Embed(
+                title = f"You have been muted in {ctx.guild.name}",
+                description = f"Reason: {reason}\nTime: {time}",
+                color = RED_COLOR
+            )
+        )
 
     @commands.hybrid_command(
         name="unmute",

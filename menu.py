@@ -27,19 +27,23 @@ class BasicConfig(discord.ui.View):
             options=[
                 discord.SelectOption(
                     label="?",
-                    value="?"
+                    value="?",
+                    default=prefix == "?" or False
                 ),
                 discord.SelectOption(
                     label="!",
-                    value="!"
+                    value="!",
+                    default=prefix == "!" or False
                 ),
                 discord.SelectOption(
                     label=">",
-                    value=">"
+                    value=">",
+                    default=prefix == ">" or False
                 ),
                 discord.SelectOption(
                     label=":",
-                    value=":"
+                    value=":",
+                    default=prefix == ":" or False
                 )
             ],
             row=0
@@ -85,7 +89,6 @@ class BasicConfig(discord.ui.View):
             settings["customization"]["prefix"] = self.prefix_button.values[0]
         except KeyError:
             settings = {"_id": interaction.guild.id, "customization": {"prefix": self.prefix_button.values[0]}}
-        logging.info(f"Updated Prefix: {settings['customization']['prefix']} for {interaction.guild.id}")
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Prefix Updated!", ephemeral=True)
 
@@ -108,7 +111,6 @@ class BasicConfig(discord.ui.View):
             settings['basic_settings']['staff_roles'] = [role.id for role in self.staff_role_select.values]
         except KeyError:
             settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [role.id for role in self.staff_role_select.values]}}
-        logging.info(f"Updated Staff Roles: {settings['basic_settings']['staff_roles']} for {interaction.guild.id}")
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Staff Roles Updated!", ephemeral=True)
 
@@ -131,7 +133,6 @@ class BasicConfig(discord.ui.View):
             settings['basic_settings']['management_roles'] = [role.id for role in self.management_role_select.values]
         except KeyError:
             settings = {"_id": interaction.guild.id, "basic_settings": {"management_roles": [role.id for role in self.management_role_select.values]}}
-        logging.info(f"Updated Management Roles: {settings['basic_settings']['management_roles']} for {interaction.guild.id}")
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Management Roles Updated!", ephemeral=True)
 class StaffInfraction(View):
@@ -141,6 +142,11 @@ class StaffInfraction(View):
         self.bot = bot
         self.user_id = user_id
         self.sett = setting or {}
+
+        try:
+            enabled = self.sett.get("staff_management", {}).get("enabled", False)
+        except KeyError:
+            enabled = False
 
         try:
             promo_channel = self.sett.get("staff_management", {}).get("promotion_channel", 0)
@@ -163,11 +169,13 @@ class StaffInfraction(View):
             options=[
                 discord.SelectOption(
                     label="Enable",
-                    value="enable"
+                    value="enable",
+                    default=enabled == True or False
                 ),
                 discord.SelectOption(
                     label="Disable",
-                    value="disable"
+                    value="disable",
+                    default=enabled == False or False
                 )
             ]
         )
@@ -283,6 +291,11 @@ class AntiPingView(View):
         self.user_id = user_id
         self.sett = sett or {}
 
+        try:
+            enabled = self.sett.get("anti_ping_module", {}).get("enabled", False)
+        except KeyError:
+            enabled = False
+
         self.enable_disable_select = discord.ui.Select(
             placeholder="Enable / Disable Anti Ping",
             min_values=1,
@@ -291,11 +304,13 @@ class AntiPingView(View):
             options=[
                 discord.SelectOption(
                     label="Enable",
-                    value="enable"
+                    value="enable",
+                    default=enabled == True or False
                 ),
                 discord.SelectOption(
                     label="Disable",
-                    value="disable"
+                    value="disable",
+                    default=enabled == False or False
                 )
             ]
         )
@@ -431,6 +446,11 @@ class ModerationModule(discord.ui.View):
         self.sett = setting
         self.user_id = user_id
 
+        try:
+            enabled = self.sett["moderation_module"]["enabled"]
+        except KeyError:
+            enabled = False
+
         self.enable_select = discord.ui.Select(
             placeholder="Enable/Disable Moderation Module",
             row=0,
@@ -439,11 +459,13 @@ class ModerationModule(discord.ui.View):
             options=[
                 discord.SelectOption(
                     label="Enable",
-                    value="enable"
+                    value="enable",
+                    default=enabled == True or False
                 ),
                 discord.SelectOption(
                     label="Disable",
-                    value="disable"
+                    value="disable",
+                    default=enabled == False or False
                 )
             ],
         )
@@ -580,11 +602,13 @@ class ServerManagement(discord.ui.View):
             options=[
                 discord.SelectOption(
                     label="Enable",
-                    value="enable"
+                    value="enable",
+                    default=enabled == True or False
                 ),
                 discord.SelectOption(
                     label="Disable",
-                    value="disable"
+                    value="disable",
+                    default=enabled == False or False
                 )
             ]
         )
@@ -776,3 +800,113 @@ class ViewVotersButton(discord.ui.Button):
             value="\n".join([f"<@{voter}>" for voter in self.downvote_button.voters]) if self.downvote_button.voters else "No voters yet."
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+class PartnershipModule(View):
+    def __init__(self, bot, setting, user_id: int):
+        super().__init__()
+        self.bot = bot
+        self.sett = setting
+        self.user_id = user_id
+
+        try:
+            enabled = self.sett["partnership_module"]["enabled"]
+        except KeyError:
+            enabled = False
+
+        self.enable_disable_select = discord.ui.Select(
+            placeholder="Enable/Disable Partnership Module",
+            row=0,
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(
+                    label="Enable",
+                    value="enable",
+                    default=enabled == True or False
+                ),
+                discord.SelectOption(
+                    label="Disable",
+                    value="disable",
+                    default=enabled == False or False
+                )
+            ]
+        )
+        self.enable_disable_select.callback = self.enable_disable_callback
+        self.add_item(self.enable_disable_select)
+
+        try:
+            partnership_channel = self.sett["partnership_module"]["partnership_channel"]
+        except KeyError:
+            partnership_channel = 0
+        self.partnership_channel_select = discord.ui.ChannelSelect(
+            placeholder="Partnership Channel",
+            row=1,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=partnership_channel)],
+            channel_types=[discord.ChannelType.text]
+        )
+        self.partnership_channel_select.callback = self.partnership_channel_callback
+        self.add_item(self.partnership_channel_select)
+
+        try:
+            partner_role = self.sett["partnership_module"]["partner_role"]
+        except KeyError:
+            partner_role = 0
+        self.partner_role_select = discord.ui.RoleSelect(
+            placeholder="Partner Role",
+            row=2,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=partner_role)]
+        )
+        self.partner_role_select.callback = self.partner_role_callback
+        self.add_item(self.partner_role_select)
+
+    async def enable_disable_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["partnership_module"]["enabled"] = not settings["partnership_module"].get("enabled",False)
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "partnership_module": {"enabled": True}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message(f"Partnership Module {'Enabled' if settings.get('partnership_module', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
+
+    async def partnership_channel_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["partnership_module"]["partnership_channel"] = self.partnership_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "partnership_module": {"partnership_channel": self.partnership_channel_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Partnership Channel Updated!",ephemeral=True)
+
+    async def partner_role_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["partnership_module"]["partner_role"] = self.partner_role_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "partnership_module": {"partner_role": self.partner_role_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("Partner Role Updated!",ephemeral=True)

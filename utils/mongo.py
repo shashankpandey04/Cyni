@@ -179,8 +179,16 @@ class Document:
 
     async def insert_doc(self, doc):
         """
-        Insert a document into the infraction_log collection.
+        Insert a document into the collection.
         :param doc (dict): The document to insert.
         """
         result = await self.db.insert_one(doc)
         return result
+    
+    async def search_id(self, partial_id):
+        """
+        Search for documents by a partial ID.
+        :param partial_id (str): The partial ID to search for.
+        :return (list): A list of documents that match the partial ID.
+        """
+        return await self.db.find({"_id": {"$regex": f"^{partial_id}"}}).to_list(None)
