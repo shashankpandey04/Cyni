@@ -42,6 +42,10 @@ class OnMessageEdit(commands.Cog):
             return
         guild_log_channel = before.guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
+        if len(before.content) > 1024:
+            before.content = before.content[:1021] + "..."
+        if len(after.content) > 1024:
+            after.content = after.content[:1021] + "..."
         await guild_log_channel.send(
             embed = discord.Embed(
                 title= " ",
