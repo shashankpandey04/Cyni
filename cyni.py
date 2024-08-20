@@ -39,7 +39,6 @@ load_dotenv()
 intents = discord.Intents.all()
 
 discord.utils.setup_logging(level=logging.INFO)
-logging.basicConfig(level=logging.INFO)
 
 class Bot(commands.Bot):
     
@@ -50,7 +49,10 @@ class Bot(commands.Bot):
 
     async def is_owner(self, user: User) -> bool:
 
-        if user.id == 1201129677457215558:
+        if user.id in [
+            1201129677457215558, #coding.nerd
+            707064490826530888, #imlimiteds
+        ]:
             return True
         
     def __init__(self, *args, **kwargs):

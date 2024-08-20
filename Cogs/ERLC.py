@@ -157,7 +157,7 @@ class ERLC(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    '''    
+    
     @server.command(
         name="kills",
         extras={
@@ -168,7 +168,7 @@ class ERLC(commands.Cog):
     @is_server_linked()
     async def kills(self, ctx: commands.Context):
         guild_id = int(guild_id)
-        kill_logs: list[ServerKillLogs] = await self.bot.prc_api.fetch_kill_logs(guild_id)
+        kill_logs: list[ServerKillLogs] = await self.bot.prc_api._fetch_server_killlogs(guild_id)
         embed = discord.Embed(
             color=BLANK_COLOR,
             title="Server Kill Logs",
@@ -191,7 +191,7 @@ class ERLC(commands.Cog):
         )
 
         await ctx.send(embed=embed)
-
+    '''
     @server.command(
         name="players",
         extras={
@@ -203,9 +203,9 @@ class ERLC(commands.Cog):
     async def server_players(self, ctx: commands.Context):
         try:
             guild_id = int(ctx.guild.id)
-            status: ServerStatus = await self.bot.prc_api.get_server_status(guild_id)
-            players: list[ServerPlayers] = await self.bot.prc_api.get_server_players(guild_id)
-            queue: int = await self.bot.prc_api.get_server_queue(guild_id)
+            status: ServerStatus = await self.bot.prc_api._fetch_server_status(guild_id)
+            players: ServerPlayers = await self.bot.prc_api._fetch_server_players(guild_id)
+            queue: int = await self.bot.prc_api._fetch_server_queue(guild_id)
             embed = discord.Embed(
                 title=f"Server Players [{len(players)}]",
                 color=BLANK_COLOR,
@@ -262,11 +262,12 @@ class ERLC(commands.Cog):
             print(e)
             await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
+                    title=" ",
                     description="An error occurred while fetching the players from the PRC API.",
                     color=BLANK_COLOR
                 )
             )
+    '''
 
     @server.command(
         name="check",
@@ -284,7 +285,7 @@ class ERLC(commands.Cog):
         )
         guild_id = ctx.guild.id
         try:
-            players: list[ServerPlayers] = await self.bot.prc_api.get_server_players(guild_id)
+            players: list[ServerPlayers] = await self.bot.prc_api._fetch_server_players(guild_id)
         except ResponseFailed:
             return await msg.edit(
                 embed=discord.Embed(
@@ -339,7 +340,7 @@ class ERLC(commands.Cog):
             icon_url=ctx.guild.icon
         )
         await msg.edit(embed=embed)
-        '''
+
     @server.command(
         name="link",
         description="Link your Discord server to the ERLC server."

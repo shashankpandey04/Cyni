@@ -113,7 +113,7 @@ class ServerCommand():
             setattr(self, key, value)
 
 class PRC_API_Client:
-    def __init__(self,bot,base_url: str, api_key: str):
+    def __init__(self, bot, base_url: str, api_key: str):
         self.bot = bot
         self.base_url = base_url
         self.api_key = api_key
@@ -122,59 +122,64 @@ class PRC_API_Client:
     async def close(self):
         await self.session.close()
 
-
     async def fetch_server_key(self, server_id: int):
         return await self.bot.erlc_keys.find_by_id(server_id)
 
-    async def _send_test_request(self,key: str):
-        async with self.session.get(f"{self.base_url}/server", headers={"Server-Key": key}) as resp:
+    async def _send_request(self, method: str, endpoint: str, server_id: int, **kwargs):
+        server_key = await self.fetch_server_key(server_id)
+        if not server_key:
+            raise ServerLinkNotFound("Server link not found")
+        async with self.session.request(method, f"{self.base_url}/{endpoint}", headers={"Server-Key": server_key["key"]}, **kwargs) as resp:
             data = await resp.json()
             if resp.status == 200:
-                return True
+                return data
+            elif resp.status == 429:
+                retry_after = data.get("retry_after")
+                await asyncio.sleep(retry_after)
+                return await self._send_request(method, endpoint, server_id, **kwargs)
+            elif resp.status == 400:
+                raise ResponseFailed(data, detail="Bad Request", code=400)
+            elif resp.status == 403:
+                raise ResponseFailed(data, detail="Unauthorized", code=403)
+            elif resp.status == 422:
+                raise ResponseFailed(data, detail="The private server has no players in it", code=422)
+            elif resp.status == 500:
+                raise ResponseFailed(data, detail="Problem communicating with Roblox", code=500)
             else:
                 raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
-            
+
     async def _fetch_server_status(self, server_id: int):
-        server_key = await self.fetch_server_key(server_id)
-        if not server_key:
-            raise ServerLinkNotFound("Server link not found")
-        async with self.session.get(f"{self.base_url}/server", headers={"Server-Key": server_key["key"]}) as resp:
-            data = await resp.json()
-            if resp.status == 200:
-                return ServerStatus(**data)
-            elif resp.status == 429:
-                retry_after = data.get("retry_after")
-                await asyncio.sleep(retry_after)
-                return await self._fetch_server_status(server_id)
-            else:
-                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
-            
+        return await self._send_request("GET", "server", server_id)
+
     async def _fetch_server_players(self, server_id: int):
-        server_key = await self.fetch_server_key(server_id)
-        if not server_key:
-            raise ServerLinkNotFound("Server link not found")
-        async with self.session.get(f"{self.base_url}/server/players", headers={"Server-Key": server_key["key"]}) as resp:
-            data = await resp.json()
-            if resp.status == 200:
-                return [ServerPlayers(**x) for x in data]
-            elif resp.status == 429:
-                retry_after = data.get("retry_after")
-                await asyncio.sleep(retry_after)
-                return await self._fetch_server_players(server_id)
-            else:
-                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
-            
+        return [ServerPlayers(**x) for x in await self._send_request("GET", "server/players", server_id)]
+
     async def _fetch_server_join_logs(self, server_id: int):
-        server_key = await self.fetch_server_key(server_id)
-        if not server_key:
-            raise ServerLinkNotFound("Server link not found")
-        async with self.session.get(f"{self.base_url}/server/joinlogs", headers={"Server-Key": server_key["key"]}) as resp:
-            data = await resp.json()
-            if resp.status == 200:
-                return [ServerJoinLogs(**x) for x in data]
-            elif resp.status == 429:
-                retry_after = data.get("retry_after")
-                await asyncio.sleep(retry_after)
-                return await self._fetch_server_join_logs(server_id)
-            else:
-                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
+        return [ServerJoinLogs(**x) for x in await self._send_request("GET", "server/joinlogs", server_id)]
+
+    async def _fetch_server_queue(self, server_id: int):
+        return ServerQueue(**await self._send_request("GET", "server/queue", server_id))
+    
+    async def _fetch_server_killlogs(self, server_id: int):
+        return [ServerKillLogs(**x) for x in await self._send_request("GET", "server/killlogs", server_id)]
+
+    async def _fetch_server_commandlogs(self, server_id: int):
+        return ServerCommandLogs(**await self._send_request("GET", "server/commandlogs", server_id))
+
+    async def _fetch_server_modcalls(self, server_id: int):
+        return [ServerModCalls(**x) for x in await self._send_request("GET", "server/modcalls", server_id)]
+
+    async def _fetch_server_bans(self, server_id: int):
+        return [ServerBans(**x) for x in await self._send_request("GET", "server/bans", server_id)]
+
+    async def _fetch_server_vehicles(self, server_id: int):
+        return [ServerVehicles(**x) for x in await self._send_request("GET", "server/vehicles", server_id)]
+    
+    async def _send_command(self, server_id: int, command: str):
+        return await self._send_request("POST", "server/command", server_id, json={"command": command})
+    
+    async def _send_message_command(self, server_id:int, command:str):
+        return await self._send_request("POST", "server/command", server_id, json={"command": ":m"+command})
+    
+    async def _send_hint_command(self, server_id:int, command: str):
+        return await self._send_request("POST", "server/command", server_id, json={"command": ":h"+command})
