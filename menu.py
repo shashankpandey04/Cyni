@@ -236,13 +236,6 @@ class StaffInfraction(View):
 
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            0,
-            name="Enable/Disable Staff Infraction Module",
-            value=f"{'Enabled' if settings.get('staff_management', {}).get('enabled', False) else 'Disabled'}"
-        )
-        await interaction.message.edit(embed=embed)
         await interaction.response.send_message(f"Staff Infraction Module {'Enabled' if settings.get('staff_management', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
     async def promotion_channel(self, interaction: discord.Interaction):
@@ -360,13 +353,6 @@ class AntiPingView(View):
             settings = {"_id": interaction.guild.id, "anti_ping_module": {"enabled": True}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            0,
-            name="Enable/Disable Anti-Ping Module",
-            value=f"{'Enabled' if settings.get('anti_ping_module', {}).get('enabled', False) else 'Disabled'}"
-        )
-        await interaction.message.edit(embed=embed)
         await interaction.response.send_message(
             f"Anti Ping Module {'Enabled' if settings.get('anti_ping_module', {}).get('enabled', False) else 'Disabled'}",
             ephemeral=True
@@ -428,14 +414,6 @@ class MessageQuotaModal(Modal):
         except KeyError:
             settings = {"_id": interaction.guild.id, "basic_settings": {"message_quota": self.message_quota_input.value}}
         await interaction.client.settings.update({"_id": interaction.guild.id}, settings)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            0,
-            name="Message Quota",
-            value=f"> Set the message quota for your server.\nCurrent Message Quota: {self.message_quota_input.value}"
-        )
-
-        await interaction.message.edit(embed=embed)
         await interaction.response.send_message(f"Your message quota is now {self.message_quota_input.value}", ephemeral=True)
         self.stop()
 
@@ -535,13 +513,6 @@ class ModerationModule(discord.ui.View):
             settings = {"_id": interaction.guild.id, "moderation_module": {"enabled": True if self.enable_select.values[0] == "enable" else False}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            0,
-            name="Enable/Disable Moderation Module",
-            value=f"{'Enabled' if settings.get('moderation_module', {}).get('enabled', False) else 'Disabled'}"
-        )
-        await interaction.message.edit(embed=embed)
         await interaction.response.send_message(f"Moderation Module {'Enabled' if settings.get('moderation_module', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
     async def moderation_log_channel_callback(self,interaction:discord.Interaction):
@@ -675,13 +646,6 @@ class ServerManagement(discord.ui.View):
             settings = {"_id": interaction.guild.id, "server_management": {"enabled": True}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(
-            0,
-            name="Enable/Disable Server Management Module",
-            value=f"{'Enabled' if settings.get('server_management', {}).get('enabled', False) else 'Disabled'}"
-        )
-        await interaction.message.edit(embed=embed)
         await interaction.response.send_message(f"Server Management Module {'Enabled' if settings.get('server_management', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
     async def application_channel_callback(self,interaction:discord.Interaction):
