@@ -149,7 +149,7 @@ class PRC_API_Client:
                 raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
 
     async def _fetch_server_status(self, server_id: int):
-        return [ServerStatus(**x) for x in await self._send_request("GET", "server/status", server_id)]
+        return [ServerStatus(**x) for x in await self._send_request("GET", "server", server_id)]
 
     async def _fetch_server_players(self, server_id: int):
         return [ServerPlayers(**x) for x in await self._send_request("GET", "server/players", server_id)]
