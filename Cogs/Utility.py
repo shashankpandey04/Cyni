@@ -26,7 +26,7 @@ class Utility(commands.Cog):
         """
         Get the bot's latency.
         """
-        await ctx.send(f"🟢 Pong!")
+        await ctx.send(f"Pong! {round(self.bot.latency * 1000)}ms")
 
     @commands.hybrid_command(
         name="about",
