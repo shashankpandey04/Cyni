@@ -353,7 +353,7 @@ class Utility(commands.Cog):
         ).set_thumbnail(
             url=ctx.author.avatar.url
         )
-        view = discord.ui.View()
+        view = discord.ui.View(timeout=None)
         view.add_item(UpVote(row=0))
         view.add_item(DownVote(row=0))
         view.add_item(ViewVotersButton(row=0,upvote_button=view.children[0],downvote_button=view.children[1]))
