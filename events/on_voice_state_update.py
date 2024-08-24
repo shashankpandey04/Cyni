@@ -48,7 +48,6 @@ class OnVoiceStateUpdate(commands.Cog):
                     color=YELLOW_COLOR
                 ).set_author(
                     name=member,
-                    icon_url=member.avatar.url
                 ).set_footer(
                     text=f"User ID: {member.id}"
                 )
@@ -61,7 +60,6 @@ class OnVoiceStateUpdate(commands.Cog):
                     color=RED_COLOR
                 ).set_author(
                     name=member,
-                    icon_url=member.avatar.url
                 ).set_footer(
                     text=f"User ID: {member.id}"
                 )
@@ -74,7 +72,6 @@ class OnVoiceStateUpdate(commands.Cog):
                     color=GREEN_COLOR
                 ).set_author(
                     name=member,
-                    icon_url=member.avatar.url
                 ).set_footer(
                     text=f"User ID: {member.id}"
                 )

@@ -21,6 +21,8 @@ class BanAppealModal(discord.ui.Modal):
     
     async def on_submit(self, interaction: discord.Interaction):
         guild_id = self.guild_id.value
+        if not guild_id.isdigit():
+            return await interaction.response.send_message("Guild ID must be a number.")
         guild_id = int(guild_id)
         settings = await self.bot.settings.find_by_id(guild_id)
         if not settings:

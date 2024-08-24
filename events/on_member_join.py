@@ -49,9 +49,6 @@ class OnMemberJoin(commands.Cog):
             ).add_field(
                 name="Member Count",
                 value=f"{guild.member_count}",
-            ).set_author(
-                name=member,
-                icon_url=member.avatar.url
             ).set_footer(
                 text=f"User ID: {member.id}"
             )

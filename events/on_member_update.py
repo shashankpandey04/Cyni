@@ -46,8 +46,7 @@ class OnMemberUpdate(commands.Cog):
                     description=f"{before.mention} changed their nickname on {created_at}",
                     color=YELLOW_COLOR
                 ).set_author(
-                    name=after,
-                    icon_url=before.avatar.url
+                    name=after
                 ).set_footer(
                     text=f"User ID: {before.id}"
                 ).add_field(
