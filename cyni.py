@@ -4,6 +4,7 @@ from discord.ext import commands
 from discord.ext import tasks
 from utils.mongo import Document
 import sentry_sdk
+import asyncio
 
 from pkgutil import iter_modules
 import logging
@@ -257,16 +258,36 @@ def is_staff_or_management():
         raise commands.MissingPermissions(["Staff or Management"])
     return commands.check(predicate)
 
+async def fetch_invite(guild_id):
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        raise ValueError("Guild not found.")
+    
+    try:
+        invite = await guild.vanity_invite()
+        return invite.url
+    except discord.Forbidden:
+        pass
+
+    try:
+        invites = await guild.invites()
+        if invites:
+            return invites[0].url
+    except discord.Forbidden:
+        pass
+
+    try:
+        invite = await guild.text_channels[0].create_invite()
+        return invite.url
+    except discord.Forbidden:
+        raise ValueError("Failed to get invite")
+
 def is_premium():
     async def predicate(ctx):
         if await premium_check(ctx.bot, ctx.guild):
             return True
         raise PremiumRequired()
     return commands.check(predicate)
-
-bot.cyni_team = {
-    "coding.nerd {Creator}" : 1201129677457215558
-}
 
 if os.getenv("PRODUCTION_TOKEN"):
     bot_token = os.getenv("PRODUCTION_TOKEN")

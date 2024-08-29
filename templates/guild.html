@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ guild.name }} | Cyni Dashboard</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/cyni.png') }}">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <a class="navbar-brand" href="#">
+        <img src="{{ url_for('static', filename='images/cyni.png') }}" alt="Cyni Logo" class="navbar-logo">
+        Cyni
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('docs') }}">Documentation</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('directory') }}">Server Directory</a>
+          </li>
+        {% if 'username' in session %}
+        <li class="nav-item active">
+            <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+        </li>
+        {% else %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+            <a class="nav-link" href="http://discord.gg/J96XEbGNDm">Support</a>
+        </li>
+        </ul>
+    </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-4 text-center">
+                <img src="{{ guild.icon.url }}" alt="{{ guild.name }}" class="img-fluid rounded-circle">        
+                <h2 class="mt-3">{{ guild.name }}</h2>
+                <p class="text-muted">ID: {{ guild.id }}</p>
+            </div>
+            <div class="col-md-8">
+                <h3>Guild Details</h3>
+                <ul class="list-group" style="background-color: #3d3d3d; color: white;">
+                    <li class="list-group-item" style="background-color: #3d3d3d; color: white;">
+                        <strong>Owner:</strong> {{ guild.owner.name }}#{{ guild.owner.discriminator }}
+                    </li>
+                    <li class="list-group-item" style="background-color: #3d3d3d; color: white;">
+                        <strong>Member Count:</strong> {{ guild.member_count }}
+                    </li>
+                    <li class="list-group-item" style="background-color: #3d3d3d; color: white;">
+                        <strong>Created At:</strong> {{ guild.created_at.strftime('%B %d, %Y') }}
+                    </li>
+                </ul>                
+                <h4 class="mt-4">Channels</h4>
+                <ul class="list-group">
+                    <!--Total Channel Count-->
+                    <li class="list-group item"><strong>Total Channels:</strong> {{ guild.channels|length }}</li>
+                </ul>
+                <h4 class="mt-4">Roles</h4>
+                <ul class="list-group">
+                    <!--Total Role Count-->
+                    <li class="list-group item"><strong>Total Roles:</strong> {{ guild.roles|length }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.4.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

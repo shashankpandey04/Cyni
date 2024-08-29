@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 
 from cyni import afk_users
-from utils.constants import BLANK_COLOR, RED_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
 from cyni import up_time
-from menu import UpVote, DownVote, ViewVotersButton
+from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 
 OWNER = 1201129677457215558
@@ -256,7 +256,37 @@ class Utility(commands.Cog):
         """
         Link to Cyni Premium.
         """
-        await ctx.send("[Premium](https://www.patreon.com/CodingNerd04)")
+        embed = discord.Embed(
+            title="Cyni Premium",
+            description="Get access to exclusive features with Cyni Premium.",
+            color=YELLOW_COLOR
+        ).add_field(
+            name="Premium Lite",
+            value="""
+                Server Backup & Restore
+                Up-to 1 server
+                """
+        ).add_field(
+            name="Premium Plus",
+            value="""
+                Server Backup & Restore
+                Custom Applications
+                Custom Infraction Types
+                Up-to 3 servers
+                """
+        ).add_field(
+            name="Cyni Whitelabel",
+            value="""
+                Customise Bot Name
+                Customise Bot Avatar
+                Customise Bot Status
+                Custom Applications
+                Custom Infraction Types
+                Unlimited Servers
+                """
+        )
+        view = PremiumButton()
+        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="vote",

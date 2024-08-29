@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ guild.name }} | Dashboard</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/cyni.png') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <a class="navbar-brand" href="#">
+          <img src="../static/images/cyni.png" alt="Cyni Logo" class="navbar-logo">
+          Cyni
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="{{ url_for('docs') }}">Documentation</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('directory') }}">Server Directory</a>
+            </li>
+            {% if 'username' in session %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link" href="http://discord.gg/J96XEbGNDm">Support</a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+<form method="POST">
+    <div class="form-group">
+        <label for="enabled">Enable Anti-Ping</label>
+        <input type="checkbox" name="enabled" id="enabled" {% if enabled %}checked{% endif %}>
+    </div>
+
+    <div class="form-group">
+        <label for="affected_roles">Affected Roles</label>
+        <select multiple name="affected_roles" id="affected_roles">
+            {% for role in guild.roles %}
+                <option value="{{ role.id }}" {% if role.id in affected_roles %}selected{% endif %}>{{ role.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="exempt_roles">Exempt Roles</label>
+        <select multiple name="exempt_roles" id="exempt_roles">
+            {% for role in guild.roles %}
+                <option value="{{ role.id }}" {% if role.id in exempt_roles %}selected{% endif %}>{{ role.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.4.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

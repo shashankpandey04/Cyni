@@ -12,6 +12,8 @@ from bson import ObjectId
 from cyni import bot
 import datetime
 import bson
+from cyni import fetch_invite
+
 load_dotenv()
 
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
@@ -19,6 +21,12 @@ DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 DISCORD_API_BASE_URL = "https://discord.com/api"
 OAUTH_SCOPE = "identify guilds"
+
+directory_mode = os.getenv("DIRECTORY_MODE")
+if directory_mode == "True":
+    directory_mode = True
+else:
+    directory_mode = False
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_secret_key')
@@ -66,7 +74,7 @@ class MongoSessionInterface(SessionInterface):
                 "$set": {
                     "data": session_data,
                     "logged_in": True,
-                    "expiration": datetime.datetime.utcnow() + app.permanent_session_lifetime
+                    "expiration": datetime.datetime.now() + app.permanent_session_lifetime
                 }
             },
             upsert=True
@@ -189,10 +197,55 @@ def dashboard():
     
     return redirect(url_for("login"))
 
-@app.route('/dashboard/antiping', methods=["GET", "POST"])
+@app.route('/dashboard/guild/<guild_id>', methods=["GET", "POST"])
 @login_required
-def antiping():
-    return "AntiPing Settings"
+def guild(guild_id):
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return render_template("404.html"), 404
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        return "You are not a member of this guild.", 403
+    if not member.guild_permissions.manage_guild or not member.guild_permissions.administrator:
+        return "You do not have the required permissions to access this page.", 403
+    return render_template("guild.html", guild=guild)
+
+@app.route('/dashboard/guild/<guild_id>/antiping', methods=["GET", "POST"])
+@login_required
+async def antiping(guild_id):
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return render_template("404.html"), 404
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        return render_template("403.html"), 403
+    if not member.guild_permissions.manage_guild or not member.guild_permissions.administrator:
+        return render_template("403.html"), 403
+    sett = await bot.settings.find_by_id(guild_id)
+    if request.method == "POST":
+        enabled = request.form.get("enabled") == "True"
+        affected_roles = request.form.getlist("affected_roles")
+        exempt_roles = request.form.getlist("exempt_roles")
+        sett["anti_ping_module"] = {
+            "enabled": enabled,
+            "affected_roles": affected_roles,
+            "exempt_roles": exempt_roles
+        }
+        await bot.settings.update_by_id(guild_id, sett)
+        return redirect(url_for("guild", guild_id=guild_id))
+    else:
+        affected_roles = sett.get("anti_ping_module", {}).get("affected_roles", [])
+        exempt_roles = sett.get("anti_ping_module", {}).get("exempt_roles", [])
+        enabled = sett.get("anti_ping_module", {}).get("enabled", False)
+        return render_template(
+            "antiping.html", 
+            guild=guild, 
+            affected_roles=affected_roles, 
+            exempt_roles=exempt_roles, 
+            enabled=enabled
+        )
 
 @app.route("/logout")
 def logout():
@@ -210,6 +263,84 @@ def logout():
         pass
     finally:
         return redirect(url_for("index"))
+    
+@app.route("/docs")
+def docs():
+    return render_template("docs.html")
+
+@app.route("/docs/config")
+def docs_config():
+    return render_template("config.html")
+
+@app.route('/directory')
+def directory():
+    if not directory_mode:
+        return render_template("under_development.html")
+    return render_template("directory.html")
+
+import asyncio
+
+def get_invite(guild_id):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        invite_url = loop.run_until_complete(fetch_invite(guild_id))
+        return invite_url
+    except Exception as e:
+        return str(e)
+
+@app.route('/directory/<guild_id>')
+def directory_guild(guild_id):
+    if not directory_mode:
+        return render_template("under_development.html")
+    try:
+        guild_id_int = int(guild_id)
+    except ValueError:
+        return "Invalid guild ID.", 400
+    
+    invite_url = get_invite(guild_id_int)
+    
+    if "Failed" in invite_url or "Guild not found" in invite_url:
+        return f"Failed to get invite: {invite_url}", 404
+
+    guild = bot.get_guild(guild_id_int)
+    if guild is None:
+        return "Guild not found.", 404
+    
+    return render_template("directory_guild.html", guild=guild, invite=invite_url)
+
+@app.route('/directory/<guild_id>/add')
+@login_required
+def directory_add(guild_id):
+    if not directory_mode:
+        return render_template("under_development.html")
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return "Guild not found.", 404
+    return render_template("directory_add.html", guild=guild)
+
+@app.route('/directory/<guild_id>/edit')
+@login_required
+def directory_edit(guild_id):
+    if not directory_mode:
+        return render_template("under_development.html")
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return "Guild not found.", 404
+    return render_template("directory_edit.html", guild=guild)
+
+@app.route('/directory/<guild_id>/vote')
+@login_required
+def directory_view(guild_id):
+    if not directory_mode:
+        return render_template("under_development.html")
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return "Guild not found.", 404
+    return render_template("directory_view.html", guild=guild)
 
 def run_production():
     hostname = socket.gethostname()

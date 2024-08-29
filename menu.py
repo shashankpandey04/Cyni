@@ -874,3 +874,17 @@ class PartnershipModule(View):
             settings = {"_id": interaction.guild.id, "partnership_module": {"partner_role": self.partner_role_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
         await interaction.response.send_message("Partner Role Updated!",ephemeral=True)
+
+class PremiumButton(View):
+    def __init__(self):
+        super().__init__()
+
+        self.premium_button = discord.ui.Button(
+            label="Cyni Premium",
+            style=discord.ButtonStyle.secondary,
+            emoji="💎",
+            row=0,
+            url="https://www.patreon.com/codingnerd04/membership"
+        )
+        self.add_item(self.premium_button)
+        

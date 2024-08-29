@@ -48,67 +48,15 @@
     </div>
   </nav>
   
-<div class="hero">
-  {% if session['username'] %}
+  <div class="hero">
+    {% if session['username'] %}
     <h3 class="animate__animated animate__fadeInDown">Hey {{ session['username'] }} 👋</h3>
-  {% else %}
-  {% endif %}
-    <h1 class="animate__animated animate__fadeInDown">Cyni Documentation</h1>
-</div>
-
-  
-<div class="guild_containers container">
-    <div class="row">
-          <!--Getting Started-->
-          <div class="col-md-4 mb-4">
-              <div class="server_card d-flex align-items-center justify-content-between">
-                  <img src="../static/images/configuration.png" class="card-image">
-                  <h5 class="mb-0">Basic Config</h5>
-                  <a href="{{ url_for('docs_config') }}" class="btn btn-primary">View</a>
-              </div>
-          </div>
-          <!--UtilityModule-->
-          <div class="col-md-4 mb-4">
-              <div class="server_card d-flex align-items-center justify-content-between">
-                  <img src="../static/images/utility.png" class="card-image">
-                  <h5 class="mb-0">Anti Ping</h5>
-                  <a href="#" class="btn btn-primary">View</a>
-              </div>
-          </div>
-          <!--ModerationModule-->
-          <div class="col-md-4 mb-4">
-              <div class="server_card d-flex align-items-center justify-content-between">
-                  <img src="../static/images/moderation.png" class="card-image">
-                  <h5 class="mb-0">Moderation</h5>
-                  <a href="#" class="btn btn-primary">View</a>
-              </div>
-          </div>
-          <!--Staff Infraction-->
-          <div class="col-md-4 mb-4">
-              <div class="server_card d-flex align-items-center justify-content-between">
-                  <img src="../static/images/moderation.png" class="card-image">
-                  <h5 class="mb-0">Staff Infraction</h5>
-                  <a href="#" class="btn btn-primary">View</a>
-              </div>
-          </div>
-          <!--Server Management-->
-          <div class="col-md-4 mb-4">
-              <div class="server_card d-flex align-items-center justify-content-between">
-                  <img src="../static/images/moderation.png" class="card-image">
-                  <h5 class="mb-0">Server Management</h5>
-                  <a href="#" class="btn btn-primary">View</a>
-              </div>
-          </div>
-          <!--Partnership Module-->
-          <div class="col-md-4 mb-4">
-              <div class="server_card d-flex align-items-center justify-content-between">
-                  <img src="../static/images/moderation.png" class="card-image">
-                  <h5 class="mb-0">Partnership Module</h5>
-                  <a href="#" class="btn btn-primary">View</a>
-              </div>
-          </div>
-    </div>
-</div>
+    {% else %}
+    {% endif %}
+    <h1 class="animate__animated animate__fadeInDown">Welcome to Cyni Bot</h1>
+    <p class="animate__animated animate__fadeInUp" style="font-size: 30px ">The Next Generation Bot for Discord Moderation, Fun, Giveaway, etc to your community.</p>
+    <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" class="btn btn-primary btn-lg animate__animated animate__bounceIn">Add to Discord</a>
+  </div>
 
 <footer style="background-color: #3d3d3d; padding: 20px;">
   <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap;">

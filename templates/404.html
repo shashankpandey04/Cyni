@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 | Not Found</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/cyni.png') }}">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <a class="navbar-brand" href="#">
+        <img src="{{ url_for('static', filename='images/cyni.png') }}" alt="Cyni Logo" class="navbar-logo">
+        Cyni
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('docs') }}">Documentation</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('directory') }}">Server Directory</a>
+        </li>
+        {% if 'username' in session %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+        </li>
+        {% else %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+            <a class="nav-link" href="http://discord.gg/J96XEbGNDm">Support</a>
+        </li>
+        </ul>
+    </div>
+    </nav>
+    <img src="https://freefrontend.com/assets/img/html-funny-404-pages/HTML-404-Error-Page.gif" alt="404-Not-Found" style="width: 100%;">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.4.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
