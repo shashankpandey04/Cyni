@@ -40,50 +40,63 @@ class OnGuildChannelUpdate(commands.Cog):
             return
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
+        
         if before.name != after.name:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was renamed to {after.mention} on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Channel Type",
-                    value=f"{after.type}",
-                ).add_field(
-                    name="Channel Category",
-                    value=f"{after.category}",
-                ).set_footer(
-                    text=f"Channel ID: {after.id}"
-                )
-            )
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
+                if entry.target.id == after.id:
+                    return await guild_log_channel.send(
+                        embed = discord.Embed(
+                            title= " ",
+                            description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                            color=YELLOW_COLOR
+                        ).add_field(
+                            name="Channel Name",
+                            value=f"{before.name} -> {after.name}",
+                        ).add_field(
+                            name="Channel Category",
+                            value=f"{before.category}",
+                        ).set_footer(
+                            text=f"Channel ID: {after.id}"
+                        )
+                    )
 
         if before.category != after.category:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Channel Category",
-                    value=f"{before.category} -> {after.category}",
-                ).set_footer(
-                    text=f"Channel ID: {after.id}"
-                )
-            )
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
+                if entry.target.id == after.id:
+                    return await guild_log_channel.send(
+                        embed = discord.Embed(
+                            title= " ",
+                            description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                            color=YELLOW_COLOR
+                        ).add_field(
+                            name="Channel Name",
+                            value=f"{before.name}",
+                        ).add_field(
+                            name="Channel Category",
+                            value=f"{before.category} -> {after.category}",
+                        ).set_footer(
+                            text=f"Channel ID: {after.id}"
+                        )
+                    )
 
         if before.is_nsfw() != after.is_nsfw():
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Channel NSFW",
-                    value=f"{before.is_nsfw()} -> {after.is_nsfw()}",
-                ).set_footer(
-                    text=f"Channel ID: {after.id}"
-                )
-            )
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
+                if entry.target.id == after.id:
+                    return await guild_log_channel.send(
+                        embed = discord.Embed(
+                            title= " ",
+                            description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                            color=YELLOW_COLOR
+                        ).add_field(
+                            name="Channel Name",
+                            value=f"{before.name}",
+                        ).add_field(
+                            name="Channel NSFW",
+                            value=f"{before.is_nsfw()} -> {after.is_nsfw()}",
+                        ).set_footer(
+                            text=f"Channel ID: {after.id}"
+                        )
+                    )
 
         changes = []
         if before.overwrites != after.overwrites:
@@ -91,33 +104,42 @@ class OnGuildChannelUpdate(commands.Cog):
             if changes:
                 if len(changes) > 1024:
                     changes = changes[:1021] + "..."
-                await guild_log_channel.send(
+                async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.overwrite_update):
+                    if entry.target.id == after.id:
+                        return await guild_log_channel.send(
+                            embed = discord.Embed(
+                                title= " ",
+                                description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                                color=YELLOW_COLOR
+                            ).add_field(
+                                name="Channel Name",
+                                value=f"{before.name}",
+                            ).add_field(
+                                name="Overwrites",
+                                value=f"```{changes}```",
+                            ).set_footer(
+                                text=f"Channel ID: {after.id}"
+                            )
+                        )
+
+
+        if before.type != after.type:
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
+                return await guild_log_channel.send(
                     embed = discord.Embed(
                         title= " ",
-                        description=f"{before.mention} was updated on {created_at}",
+                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
                     ).add_field(
-                        name="Channel Overwrites",
-                        value="\n".join(changes),
+                        name="Channel Name",
+                        value=f"{before.name}",
+                    ).add_field(
+                        name="Channel Type",
+                        value=f"{before.type} -> {after.type}",
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
                 )
-
-
-        if before.type != after.type:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Channel Type",
-                    value=f"{before.type} -> {after.type}",
-                ).set_footer(
-                    text=f"Channel ID: {after.id}"
-                )
-            )
 
 async def setup(bot):
     await bot.add_cog(OnGuildChannelUpdate(bot))

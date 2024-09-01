@@ -49,7 +49,7 @@ class OnMessageEdit(commands.Cog):
         await guild_log_channel.send(
             embed = discord.Embed(
                 title= " ",
-                description=f"Message by {before.author.mention} edited on {created_at}",
+                description=f"Message by {before.author.mention} edited {created_at}",
                 color=YELLOW_COLOR
             ).add_field(
                 name="Before",

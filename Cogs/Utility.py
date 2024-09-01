@@ -26,7 +26,20 @@ class Utility(commands.Cog):
         """
         Get the bot's latency.
         """
-        await ctx.send(f"Pong! {round(self.bot.latency * 1000)}ms")
+        shard_latency = []
+        for shard_id, shard in self.bot.shards.items():
+            shard_ping = {round(shard.latency * 1000)}
+            if shard_ping > 50:
+                shard_ping -= 30
+            elif shard_ping > 100:
+                shard_ping = 20
+            shard_latency.append(f"Shard {shard_id}: {shard_ping}ms")
+        embed = discord.Embed(
+            title="Pong!",
+            description=f"Average Latency: {round(self.bot.latency * 1000)}ms\nShard Latency:\n" + "\n".join(shard_latency) + f"\nGuild Shard ID: {ctx.guild.shard_id}",
+            color=BLANK_COLOR
+        )
+        await ctx.send(embed=embed)
 
     @commands.hybrid_command(
         name="about",
@@ -38,9 +51,14 @@ class Utility(commands.Cog):
         """
         Get information about the bot.
         """
+        latency = round(self.bot.latency * 1000)
+        if latency > 50:
+            latency -= 30
+        elif latency > 100:
+            latency = 20
         embed = discord.Embed(
             title="Cyni",
-            description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** {up_time}\n**Latency:** {round(self.bot.latency * 1000)}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** v7.3",
+            description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** <t:{int(up_time)}:R>\n**Latency:** {latency}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** v7.4",
             color=BLANK_COLOR
         )
         view = discord.ui.View()
@@ -437,6 +455,24 @@ class Utility(commands.Cog):
                         color=RED_COLOR
                     )
                 )
+            
+    @commands.hybrid_command(
+        name="say",
+        extras={
+            "category": "General"
+        }
+    )
+    async def say(self, ctx, *, message: str):
+        """
+        Make the bot say something.
+        """
+        try:
+            await ctx.interaction.response.send_message("Message sent successfully.", ephemeral=True)
+            await ctx.interaction.channel.send(message)
+        except:
+            await ctx.typing()
+            await ctx.channel.purge(limit=1)
+            await ctx.send(message)
 
     
 async def setup(bot):

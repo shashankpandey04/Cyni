@@ -40,52 +40,51 @@ class OnMemberUpdate(commands.Cog):
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
         if before.nick != after.nick:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} changed their nickname on {created_at}",
-                    color=YELLOW_COLOR
-                ).set_author(
-                    name=after
-                ).set_footer(
-                    text=f"User ID: {before.id}"
-                ).add_field(
-                    name="Before",
-                    value=f"{before.nick}",
-                ).add_field(
-                    name="After",
-                    value=f"{after.nick}",
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.member_update):
+                return await guild_log_channel.send(
+                    embed = discord.Embed(
+                        title= " ",
+                        description=f"{entry.user.mention} updated {before.mention}\n Edited Nickname {created_at}",
+                        color=YELLOW_COLOR
+                    ).add_field(
+                        name="Nickname",
+                        value=f"{before.nick} -> {after.nick}",
+                    ).set_footer(
+                        text=f"User ID: {before.id}"
+                    )
                 )
-            )
+                
         if before.roles != after.roles:
             role_added = [role for role in after.roles if role not in before.roles]
             role_removed = [role for role in before.roles if role not in after.roles]
             if role_added:
                 role_added = [role.mention for role in role_added]
-                await guild_log_channel.send(
-                    embed = discord.Embed(
-                        title= " ",
-                        description=f"{before.mention} was given the following roles: {', '.join(role_added)} on {created_at}",
-                        color=YELLOW_COLOR
-                    ).set_author(
-                        name=before,
-                    ).set_footer(
-                        text=f"User ID: {before.id}"
+                async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.member_role_update):
+                    return await guild_log_channel.send(
+                        embed = discord.Embed(
+                            title= " ",
+                            description=f"{entry.user.mention} added {', '.join(role_added)} to {before.mention}\n Event Time: {created_at}",
+                            color=YELLOW_COLOR
+                        ).set_author(
+                            name=before,
+                        ).set_footer(
+                            text=f"User ID: {before.id}"
+                        )
                     )
-                )
             if role_removed:
                 role_removed = [role.mention for role in role_removed]
-                await guild_log_channel.send(
-                    embed = discord.Embed(
-                        title= " ",
-                        description=f"{before.mention} was removed from the following roles: {', '.join(role_removed)} on {created_at}",
-                        color=YELLOW_COLOR
-                    ).set_author(
-                        name=before,
-                    ).set_footer(
-                        text=f"User ID: {before.id}"
+                async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.member_role_update):
+                    return await guild_log_channel.send(
+                        embed = discord.Embed(
+                            title= " ",
+                            description=f"{entry.user.mention} removed {', '.join(role_removed)} from {before.mention}\nEvent Time: {created_at}",
+                            color=YELLOW_COLOR
+                        ).set_author(
+                            name=before,
+                        ).set_footer(
+                            text=f"User ID: {before.id}"
+                        )
                     )
-                )
 
 async def setup(bot):
     await bot.add_cog(OnMemberUpdate(bot))

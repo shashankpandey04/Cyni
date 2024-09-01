@@ -41,89 +41,85 @@ class OnGuildRoleUpdate(commands.Cog):
         created_at = discord_time(datetime.datetime.now())
 
         if before.name != after.name:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Role Name",
-                    value=f"{before.name} -> {after.name}",
-                ).add_field(
-                    name="Role ID",
-                    value=f"{before.id}",
-                ).set_footer(
-                    text=f"Role Position: {before.position}"
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+                return await guild_log_channel.send(
+                    embed = discord.Embed(
+                        title= " ",
+                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                        color=YELLOW_COLOR
+                    ).add_field(
+                        name="Before",
+                        value=f"{before.name}",
+                    ).add_field(
+                        name="After",
+                        value=f"{after.name}",
+                    ).set_footer(
+                        text=f"Role ID: {after.id}"
+                    )
                 )
-            )
 
         if before.color != after.color:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Role Color",
-                    value=f"{before.color} -> {after.color}",
-                ).add_field(
-                    name="Role ID",
-                    value=f"{before.id}",
-                ).set_footer(
-                    text=f"Role Position: {before.position}"
+            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+                return await guild_log_channel.send(
+                    embed = discord.Embed(
+                        title= "Role Color Update",
+                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                        color=YELLOW_COLOR
+                    ).add_field(
+                        name="Before",
+                        value=f"{before.color}",
+                    ).add_field(
+                        name="After",
+                        value=f"{after.color}",
+                    ).set_footer(
+                        text=f"Role ID: {after.id}"
+                    )
                 )
-            )
 
         if before.permissions != after.permissions:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Role Permissions",
-                    value=f"{before.permissions.value} -> {after.permissions.value}",
-                ).add_field(
-                    name="Role ID",
-                    value=f"{before.id}",
-                ).set_footer(
-                    text=f"Role Position: {before.position}"
+            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+                return await guild_log_channel.send(
+                    embed = discord.Embed(
+                        title= " ",
+                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                        color=YELLOW_COLOR
+                    ).add_field(
+                        name="Role Permissions",
+                        value=f"{before.permissions} -> {after.permissions}",
+                    ).set_footer(
+                        text=f"Role ID: {after.id}"
+                    )
                 )
-            )
 
         if before.hoist != after.hoist:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Role Hoist",
-                    value=f"{before.hoist} -> {after.hoist}",
-                ).add_field(
-                    name="Role ID",
-                    value=f"{before.id}",
-                ).set_footer(
-                    text=f"Role Position: {before.position}"
+            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+                return await guild_log_channel.send(
+                    embed = discord.Embed(
+                        title= " ",
+                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                        color=YELLOW_COLOR
+                    ).add_field(
+                        name="Role Hoist",
+                        value=f"{before.hoist} -> {after.hoist}",
+                    ).set_footer(
+                        text=f"Role ID: {after.id}"
+                    )
                 )
-            )
 
         if before.mentionable != after.mentionable:
-            await guild_log_channel.send(
-                embed = discord.Embed(
-                    title= " ",
-                    description=f"{before.mention} was updated on {created_at}",
-                    color=YELLOW_COLOR
-                ).add_field(
-                    name="Role Mentionable",
-                    value=f"{before.mentionable} -> {after.mentionable}",
-                ).add_field(
-                    name="Role ID",
-                    value=f"{before.id}",
-                ).set_footer(
-                    text=f"Role Position: {before.position}"
+            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+                return await guild_log_channel.send(
+                    embed = discord.Embed(
+                        title= " ",
+                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                        color=YELLOW_COLOR
+                    ).add_field(
+                        name="Role Mentionable",
+                        value=f"{before.mentionable} -> {after.mentionable}",
+                    ).set_footer(
+                        text=f"Role ID: {after.id}"
+                    )
                 )
-            )
 
 async def setup(bot):
     await bot.add_cog(OnGuildRoleUpdate(bot))

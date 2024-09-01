@@ -51,6 +51,8 @@ class OnMemberJoin(commands.Cog):
                 value=f"{guild.member_count}",
             ).set_footer(
                 text=f"User ID: {member.id}"
+            ).set_thumbnail(
+                url=member.avatar.url
             )
         )
 

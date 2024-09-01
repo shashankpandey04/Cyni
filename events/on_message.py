@@ -77,7 +77,7 @@ class OnMessage(commands.Cog):
             return
         try:
             staff_roles = settings["basic_settings"]["staff_roles"]
-            management_roles = settings["basic_settings"]["management_roles"]
+            #management_roles = settings["basic_settings"]["management_roles"]
         except KeyError:
             return
 

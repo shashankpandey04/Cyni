@@ -38,15 +38,18 @@ class OnMemberBan(commands.Cog):
             return
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
-        await guild_log_channel.send(
-            embed = discord.Embed(
-                title= " ",
-                description=f"{user.mention} was banned on {created_at}",
-                color=RED_COLOR
-            ).set_footer(
-                text=f"User ID: {user.id}"
+        async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.ban):
+            return await guild_log_channel.send(
+                embed = discord.Embed(
+                    title= " ",
+                    description=f"{entry.user.mention} banned {user.mention}\nUser was banned {created_at}",
+                    color=RED_COLOR
+                ).set_footer(
+                    text=f"User ID: {user.id}"
+                ).set_thumbnail(
+                    url=user.avatar.url
+                )
             )
-        )
 
 async def setup(bot):
     await bot.add_cog(OnMemberBan(bot))

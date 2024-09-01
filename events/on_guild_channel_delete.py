@@ -38,21 +38,16 @@ class OnGuildChannelDelete(commands.Cog):
             return
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
-        await guild_log_channel.send(
-            embed = discord.Embed(
-                title= " ",
-                description=f"{channel.mention} was deleted on {created_at}",
-                color=RED_COLOR
-            ).add_field(
-                name="Channel Type",
-                value=f"{channel.type}",
-            ).add_field(
-                name="Channel Category",
-                value=f"{channel.category}",
-            ).set_footer(
-                text=f"Channel ID: {channel.id}"
+        async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_delete):
+            return await guild_log_channel.send(
+                embed = discord.Embed(
+                    title= " ",
+                    description=f"{entry.user.mention} deleted {channel.mention} on {created_at}",
+                    color=RED_COLOR
+                ).set_footer(
+                    text=f"Channel ID: {channel.id}"
+                )
             )
-        )
 
 async def setup(bot):
     await bot.add_cog(OnGuildChannelDelete(bot))

@@ -51,6 +51,8 @@ class OnMemberRemove(commands.Cog):
                 icon_url=member.avatar.url
             ).set_footer(
                 text=f"User ID: {member.id}"
+            ).set_thumbnail(
+                url=member.avatar.url
             )
         )
 

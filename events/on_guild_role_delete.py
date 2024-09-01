@@ -38,21 +38,16 @@ class OnGuildRoleDelete(commands.Cog):
             return
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
-        await guild_log_channel.send(
-            embed = discord.Embed(
-                title= " ",
-                description=f"{role.mention} was deleted on {created_at}",
-                color=RED_COLOR
-            ).add_field(
-                name="Role Name",
-                value=f"{role.name}",
-            ).add_field(
-                name="Role ID",
-                value=f"{role.id}",
-            ).set_footer(
-                text=f"Role Position: {role.position}"
+        async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_delete):
+            return await guild_log_channel.send(
+                embed = discord.Embed(
+                    title= " ",
+                    description=f"{entry.user.mention} deleted {role.mention} on {created_at}",
+                    color=RED_COLOR
+                ).set_footer(
+                    text=f"Role ID: {role.id}"
+                )
             )
-        )
 
 async def setup(bot):
     await bot.add_cog(OnGuildRoleDelete(bot))
