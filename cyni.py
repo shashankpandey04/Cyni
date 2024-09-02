@@ -164,7 +164,7 @@ async def AutoDefer(ctx: commands.Context):
     webhook_link = os.getenv("CYNI_LOGS_WEBHOOK")
     embed = discord.Embed(
         title="Command Used",
-        description=f"Command `{ctx.command}` used by {ctx.author.mention} in {ctx.guild.name}.",
+        description=f"Command `{ctx.command}` used.",
         color=BLANK_COLOR
     )
     async with aiohttp.ClientSession() as session:
