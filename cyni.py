@@ -343,3 +343,65 @@ def run():
 
 if __name__ == "__main__":
     run()
+    
+# AI moderation Code start
+import requests
+import os
+
+# Retrieve your Discord bot token from your environment or configuration
+DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')  # If using environment variables
+PERSPECTIVE_API_KEY = os.getenv('PERSPECTIVE_API_KEY')  # Get Perspective API key from environment
+
+# Perspective API endpoint
+PERSPECTIVE_API_URL = 'https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze'
+
+# Initialize your Discord client (if not already initialized)
+intents = discord.Intents.default()
+intents.messages = True
+client = discord.Client(intents=intents)
+
+# Function to check message toxicity
+def check_toxicity(message):
+    analyze_request = {
+        'comment': {'text': message},
+        'languages': ['en'],
+        'requestedAttributes': {'TOXICITY': {}}
+    }
+
+    response = requests.post(
+        PERSPECTIVE_API_URL,
+        params={'key': PERSPECTIVE_API_KEY},
+        json=analyze_request
+    )
+
+    response_dict = response.json()
+    toxicity_score = response_dict['attributeScores']['TOXICITY']['summaryScore']['value']
+    
+    return toxicity_score
+
+# Existing on_ready or any other events remain unchanged
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user}')
+
+# Modify your existing on_message event to include toxicity checking
+@client.event
+async def on_message(message):
+    # Prevent the bot from replying to itself or other bots
+    if message.author == client.user or message.author.bot:
+        return
+
+    # Implement toxicity check
+    toxicity_score = check_toxicity(message.content)
+    
+    if toxicity_score >= 0.7:  # Adjust the threshold as needed
+        await message.delete()
+        await message.channel.send(f'{message.author.mention}, your message was removed due to toxic content.')
+    else:
+        print(f'Message from {message.author}: {message.content} (Toxicity Score: {toxicity_score})')
+
+    # Include any additional functionality your bot already has below
+
+# Run the bot (only if you aren't already doing so elsewhere)
+client.run(DISCORD_TOKEN)
+# AI moderation Code end
