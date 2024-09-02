@@ -364,8 +364,14 @@ client = discord.Client(intents=intents)
 def check_toxicity(message):
     analyze_request = {
         'comment': {'text': message},
-        'languages': ['en'],
-        'requestedAttributes': {'TOXICITY': {}}
+        'languages': ['en', 'es', 'fr'],  # List of language codes you want to support
+        'requestedAttributes': {
+            'TOXICITY': {},
+            'SEVERE_TOXICITY': {},
+            'SEXUALLY_EXPLICIT': {},  # Add this attribute to detect sexually vulgar messages
+            'PROFANITY': {},  # Optionally add this to detect offensive language
+            'INSULT': {}  # Optionally add this to detect insults
+        }
     }
 
     response = requests.post(
@@ -376,6 +382,10 @@ def check_toxicity(message):
 
     response_dict = response.json()
     toxicity_score = response_dict['attributeScores']['TOXICITY']['summaryScore']['value']
+    severe_toxicity_score = response_dict['attributeScores']['SEVERE_TOXICITY']['summaryScore']['value']
+    sexually_explicit_score = response_dict['attributeScores']['SEXUALLY_EXPLICIT']['summaryScore']['value']
+    profanity_score = response_dict['attributeScores']['PROFANITY']['summaryScore']['value']
+    insult_score = response_dict['attributeScores']['INSULT']['summaryScore']['value']
     
     return toxicity_score
 
