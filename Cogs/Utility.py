@@ -4,7 +4,7 @@ from discord.ext import commands
 from cyni import afk_users
 from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
-from cyni import up_time
+from cyni import up_time, is_staff
 from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 
@@ -72,6 +72,7 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
     async def afk(self, ctx, *, reason: str = "No reason provided."):
         """
         Set your status as AFK.
@@ -96,6 +97,7 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
     async def whois(self, ctx, user: discord.Member = None):
         """
         Get information about a user.
@@ -198,6 +200,7 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
     async def avatar_user(self, ctx, user: discord.Member = None):
         """
         Get a user's avatar.
@@ -217,6 +220,7 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
     async def avatar_server(self, ctx):
         """
         Get the server's icon.
@@ -235,6 +239,7 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
     async def serverinfo(self, ctx: commands.Context):
         """
         Get information about the server.
@@ -270,6 +275,7 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
     async def premium(self, ctx):
         """
         Link to Cyni Premium.
@@ -401,7 +407,7 @@ class Utility(commands.Cog):
         ).set_thumbnail(
             url=ctx.author.avatar.url
         )
-        view = discord.ui.View(timeout=None)
+        view = discord.ui.View(timeout=604800)
         view.add_item(UpVote(row=0))
         view.add_item(DownVote(row=0))
         view.add_item(ViewVotersButton(row=0,upvote_button=view.children[0],downvote_button=view.children[1]))
@@ -462,6 +468,8 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
+    @is_staff()
     async def say(self, ctx, *, message: str):
         """
         Make the bot say something.
