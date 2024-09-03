@@ -349,7 +349,7 @@ import requests
 import os
 
 # Retrieve your Discord bot token from your environment or configuration
-DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')  # If using environment variables
+DEV_TOKEN= os.getenv('DEV_TOKEN')  # If using environment variables
 PERSPECTIVE_API_KEY = os.getenv('PERSPECTIVE_API_KEY')  # Get Perspective API key from environment
 
 # Perspective API endpoint
@@ -413,5 +413,5 @@ async def on_message(message):
     # Include any additional functionality your bot already has below
 
 # Run the bot (only if you aren't already doing so elsewhere)
-client.run(DISCORD_TOKEN)
+client.run(DEV_TOKEN)
 # AI moderation Code end
