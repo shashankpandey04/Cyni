@@ -124,14 +124,6 @@ class PRC_API_Client:
 
     async def fetch_server_key(self, server_id: int):
         return await self.bot.erlc_keys.find_by_id(server_id)
-    
-    async def _send_test_request(self, key: str):
-        async with self.session.get(f"{self.base_url}/server", headers={"Server-Key": key}) as resp:
-            data = await resp.json()
-            if resp.status == 200:
-                return data
-            else:
-                raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
 
     async def _send_request(self, method: str, endpoint: str, server_id: int, **kwargs):
         server_key = await self.fetch_server_key(server_id)
@@ -155,6 +147,12 @@ class PRC_API_Client:
                 raise ResponseFailed(data, detail="Problem communicating with Roblox", code=500)
             else:
                 raise ResponseFailed(data, detail=data.get("detail"), code=data.get("code"))
+            
+    async def _send_test_request(self, api_key: str):
+        async with self.session.request("GET", f"{self.base_url}/server", headers={"Server-Key": api_key}) as resp:
+            if resp.status == 200:
+                return True
+            return False
 
     async def _fetch_server_status(self, server_id: int):
         return ServerStatus(**await self._send_request("GET", "server", server_id))
