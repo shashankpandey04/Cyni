@@ -25,6 +25,8 @@ class ERLC(commands.Cog):
                 await ctx.bot.prc_api._fetch_server_status(guild_id)
             except prc_api.ResponseFailed as exc:
                 raise prc_api.ServerLinkNotFound(str(exc))
+            except Exception as e:
+                raise prc_api.ServerLinkNotFound(str(e))
             return True
         return commands.check(predicate)
     

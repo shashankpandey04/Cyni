@@ -192,3 +192,10 @@ class Document:
         :return (list): A list of documents that match the partial ID.
         """
         return await self.db.find({"_id": {"$regex": f"^{partial_id}"}}).to_list(None)
+
+    async def delete_many(self, query):
+        """
+        Delete multiple documents in the collection.
+        :param query (dict): The query to match documents.
+        """
+        await self.db.delete_many(query)
