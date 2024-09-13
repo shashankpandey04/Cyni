@@ -1,6 +1,6 @@
-from flask import Flask, session, render_template, request, redirect, url_for, current_app
+from flask import Flask, session, render_template, request, redirect, url_for, current_app, flash
 from flask_session import Session
-from flask_login import LoginManager, login_required, login_user, logout_user, UserMixin
+from flask_login import LoginManager, login_required, login_user, logout_user, UserMixin, current_user
 import requests
 import os
 from flask.sessions import SessionInterface
@@ -13,6 +13,7 @@ from cyni import bot
 import datetime
 import bson
 from cyni import fetch_invite
+import discord
 
 load_dotenv()
 
@@ -341,6 +342,115 @@ def directory_view(guild_id):
     if not guild:
         return "Guild not found.", 404
     return render_template("directory_view.html", guild=guild)
+
+@app.route('/dashboard/guild/<guild_id>/massdemote', methods=["GET", "POST"])
+@login_required
+def massdemote(guild_id):
+    # Convert guild_id to integer if needed
+    guild_id = int(guild_id)
+
+    # Get the guild from the Discord bot
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        flash("Guild not found.")
+        return redirect(url_for('dashboard'))
+
+    if request.method == "POST":
+        # Extracting form data
+        members = request.form.getlist("members")
+        role_id = request.form.get("role_id")
+        punishment = request.form.get("punishment")
+        reason = request.form.get("reason")
+        rank = request.form.get("rank")
+
+        # Validate form inputs
+        if not members or not role_id:
+            flash("Please select members and a role.")
+            return redirect(url_for("massdemote", guild_id=guild_id))
+
+        # Get the role from the guild
+        role = guild.get_role(int(role_id))
+        if not role:
+            flash("Role not found.")
+            return redirect(url_for("massdemote", guild_id=guild_id))
+
+        for member_id in members:
+            member = guild.get_member(int(member_id))
+            if member:
+                try:
+                    # Removing the role from the member
+                    bot.loop.create_task(member.remove_roles(role))
+                except Exception as e:
+                    print(f"Error removing role from {member}: {e}")
+                    flash(f"Error demoting {member.name}: {e}")
+            else:
+                flash(f"Member with ID {member_id} not found.")
+
+        # Fetch server settings (using bot.loop.run_until_complete to run async code)
+        sett = bot.loop.run_until_complete(bot.settings.find_by_id(guild_id))
+        if not sett:
+            flash("Settings not found.")
+            return redirect(url_for("guild", guild_id=guild_id))
+
+        # Check if the staff management module is enabled
+        enabled = sett['staff_management'].get("enabled", False)
+        if not enabled:
+            flash("Staff management module is not enabled.")
+            return redirect(url_for("guild", guild_id=guild_id))
+
+        # Get the demotion channel from settings
+        demotion_channel_id = sett["staff_management"].get("demotion_channel")
+        if not demotion_channel_id:
+            flash("Demotion channel not set.")
+            return redirect(url_for("guild", guild_id=guild_id))
+
+        demotion_channel = guild.get_channel(demotion_channel_id)
+        if not demotion_channel:
+            flash("Demotion channel not found.")
+            return redirect(url_for("guild", guild_id=guild_id))
+
+        # Send demotion notifications and log infractions
+        for member_id in members:
+            count = bot.loop.run_until_complete(bot.infraction_log.count_all({"guild_id": guild.id}))
+            member = guild.get_member(int(member_id))
+            if member:
+                # Creating the embed for the demotion
+                infract_embed = discord.Embed(
+                    title=f"{member} has been demoted.",
+                    description=" ",
+                )
+                if reason:
+                    infract_embed.add_field(name="Reason", value=reason)
+                if punishment:
+                    infract_embed.add_field(name="Punishment", value=punishment)
+                infract_embed.set_footer(text=f"Case {count + 1}")
+                infract_embed.set_thumbnail(url=member.avatar_url)
+
+                # Sending the embed to the demotion channel
+                bot.loop.create_task(demotion_channel.send(embed=infract_embed))
+
+                # Log the infraction in the database
+                infraction_doc = {
+                    "guild_id": guild.id,
+                    "member_id": member.id,
+                    "type": "demotion",
+                    "approver_id": current_user.id,
+                    "reason": reason,
+                    "rank": rank,
+                    "punishment": punishment,
+                    "date": datetime.datetime.now(),
+                    "case": count + 1
+                }
+                bot.loop.create_task(bot.infraction_log.insert_one(infraction_doc))
+
+        flash("Members demoted successfully.")
+        return redirect(url_for("guild", guild_id=guild_id))
+
+    else:
+        # Render the mass demotion form
+        members = guild.members
+        roles = guild.roles
+        return render_template("massdemote.html", guild=guild, members=members, roles=roles)
 
 def run_production():
     hostname = socket.gethostname()

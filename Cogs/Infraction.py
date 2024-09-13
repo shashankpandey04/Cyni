@@ -73,10 +73,32 @@ class Infraction(commands.Cog):
         count = await self.bot.infraction_log.count_all(
             {"guild_id": ctx.guild.id}
         )
-        infract_embed = discord.Embed(
-            title = f"{member} have got {type}.",
-            description=" ",
-        )
+        if type == "warning":
+            infract_embed = discord.Embed(
+                title = f"{member} has been warned.",
+                description=" ",
+                color = YELLOW_COLOR
+            )
+        elif type == "demotion":
+            infract_embed = discord.Embed(
+                title = f"{member} has been demoted.",
+                description=" ",
+                color = RED_COLOR
+            )
+        elif type == "promotion":
+            infract_embed = discord.Embed(
+                title = f"{member} has been promoted.",
+                description=" ",
+                color = GREEN_COLOR
+            )
+        else:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Invalid type. Please provide a valid type.",
+                    color=RED_COLOR
+                )
+            )
         if role_remove != None:
             await member.remove_roles(role_remove)
         if role_add != None:
