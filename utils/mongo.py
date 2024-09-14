@@ -199,3 +199,11 @@ class Document:
         :param query (dict): The query to match documents.
         """
         await self.db.delete_many(query)
+
+    async def delete_by_query(self, query):
+        """
+        Delete a document by a query.
+        :param query (dict): The query to match the document.
+        """
+        await self.db.delete_one(query)
+        

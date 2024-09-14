@@ -377,7 +377,7 @@ class Infraction(commands.Cog):
                 )
             )
             return
-        await self.bot.infraction_log.delete_doc(query)
+        await self.bot.infraction_log.delete_by_query(query)
         await ctx.send(
             embed=discord.Embed(
                 title="Success",
