@@ -38,8 +38,7 @@ class OnMemberJoin(commands.Cog):
             return
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         joined_at = discord_time(datetime.datetime.now())
-        await guild_log_channel.send(
-            embed = discord.Embed(
+        embed = discord.Embed(
                 title= " ",
                 description=f"{member.mention} joined the server on {joined_at}",
                 color=GREEN_COLOR
@@ -51,10 +50,14 @@ class OnMemberJoin(commands.Cog):
                 value=f"{guild.member_count}",
             ).set_footer(
                 text=f"User ID: {member.id}"
-            ).set_thumbnail(
+            )
+        try:
+            embed.set_thumbnail(
                 url=member.avatar.url
             )
-        )
+        except:
+            pass
+        await guild_log_channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(OnMemberJoin(bot))

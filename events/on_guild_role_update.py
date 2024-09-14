@@ -59,7 +59,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 )
 
         if before.color != after.color:
-            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
                 return await guild_log_channel.send(
                     embed = discord.Embed(
                         title= "Role Color Update",
@@ -77,7 +77,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 )
 
         if before.permissions != after.permissions:
-            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
                 return await guild_log_channel.send(
                     embed = discord.Embed(
                         title= " ",
@@ -92,7 +92,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 )
 
         if before.hoist != after.hoist:
-            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
                 return await guild_log_channel.send(
                     embed = discord.Embed(
                         title= " ",
@@ -107,7 +107,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 )
 
         if before.mentionable != after.mentionable:
-            for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
                 return await guild_log_channel.send(
                     embed = discord.Embed(
                         title= " ",
