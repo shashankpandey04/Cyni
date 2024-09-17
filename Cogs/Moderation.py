@@ -732,6 +732,7 @@ class Moderation(commands.Cog):
         """
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,f"Purge {amount} messages")
+        await ctx.typing()
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
