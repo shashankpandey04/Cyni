@@ -35,9 +35,8 @@ class OnMessage(commands.Cog):
 
         for mentions in message.mentions:
             if mentions.id in afk_users:
-                pressence = mentions.status.value
                 await message.channel.send(
-                    f"`{mentions} `is currently AFK and in {pressence} mode. Reason: {afk_users[mentions.id]}",
+                    f"`{mentions} `is currently AFK. Reason: {afk_users[mentions.id]}",
                     delete_after=15
                     )
 

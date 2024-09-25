@@ -133,15 +133,6 @@ class Utility(commands.Cog):
             
             joined_timestamp = discord_time(user.joined_at)
             created_timestamp = discord_time(user.created_at)
-            status = user.status
-            if status == discord.Status.online:
-                status = "Online"
-            elif status == discord.Status.idle:
-                status = "Idle"
-            elif status == discord.Status.dnd:
-                status = "Do Not Disturb"
-            elif status == discord.Status.offline:
-                status = "Offline"
             embed = discord.Embed(
                 title=f"{user.name}",
                 description= " ",
@@ -151,7 +142,7 @@ class Utility(commands.Cog):
                 icon_url=ctx.author.avatar.url
             ).add_field(
                 name="User Information",
-                value=f'''**Mention:** {user.mention}\n**Nickname:** {user.display_name}\n**Status:** {status}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
+                value=f'''**Mention:** {user.mention}\n**Nickname:** {user.display_name}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
                 inline=False
             ).add_field(
                 name="Server Permissions",
