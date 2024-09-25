@@ -80,7 +80,7 @@ class Utility(commands.Cog):
         await ctx.send(f"`{ctx.author}` is now AFK. Reason: {reason}")
         try:
             await ctx.author.edit(nick=f"[AFK] {ctx.author.display_name}")
-        except discord.Forbidden:
+        except Exception as e:
             pass
         afk_users[ctx.author.id] = reason
         await self.bot.afk.insert(
@@ -108,11 +108,11 @@ class Utility(commands.Cog):
 
             server_permissions = []
             if user == user.guild.owner:
-                server_permissions.append("<:moderation:1268850116798844969> Server Owner")
+                server_permissions.append("<:moderation:1268850116798844969> Server Owner\n")
             elif user.guild_permissions.administrator:
-                server_permissions.append("<:moderation:1268850116798844969> Administrator")
+                server_permissions.append("<:moderation:1268850116798844969> Administrator\n")
             elif user.guild_permissions.manage_messages:
-                server_permissions.append("<:moderation:1268850116798844969> Moderator")
+                server_permissions.append("<:moderation:1268850116798844969> Moderator\n")
 
             public_flags = [flag[0] for flag in user.public_flags.all()]
             user_flags = []
@@ -133,15 +133,29 @@ class Utility(commands.Cog):
             
             joined_timestamp = discord_time(user.joined_at)
             created_timestamp = discord_time(user.created_at)
-            status = user.status
-            if status == discord.Status.online:
-                status = "Online"
-            elif status == discord.Status.idle:
-                status = "Idle"
-            elif status == discord.Status.dnd:
-                status = "Do Not Disturb"
-            elif status == discord.Status.offline:
-                status = "Offline"
+            #status = user.status
+            #if status == discord.Status.online:
+            #    status = "Online"
+            #elif status == discord.Status.idle:
+            #    status = "Idle"
+            #elif status == discord.Status.dnd:
+            #    status = "Do Not Disturb"
+            #elif status == discord.Status.offline:
+            #    status = "Offline"
+
+            #if user.activity:
+            #    if user.activity.type == discord.ActivityType.playing:
+            #        status = f"Playing {user.activity.name}"
+            #    elif user.activity.type == discord.ActivityType.streaming:
+            #        status = f"Streaming {user.activity.name}"
+            #    elif user.activity.type == discord.ActivityType.listening:
+            #        status = f"Listening to {user.activity.name}"
+            #    elif user.activity.type == discord.ActivityType.watching:
+            #        status = f"Watching {user.activity.name}"
+            #    elif user.activity.type == discord.ActivityType.custom:
+            #        status = f"{user.activity.name}"
+            #    elif user.activity.type == discord.ActivityType.competing:
+            #        status = f"Competing in {user.activity.name}"
             embed = discord.Embed(
                 title=f"{user.name}",
                 description= " ",
@@ -151,7 +165,7 @@ class Utility(commands.Cog):
                 icon_url=ctx.author.avatar.url
             ).add_field(
                 name="User Information",
-                value=f'''**Mention:** {user.mention}\n**Nickname:** {user.display_name}\n**Status:** {status}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
+                value=f'''**Mention:** {user.mention}\n**Nickname:** {user.display_name}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
                 inline=False
             ).add_field(
                 name="Server Permissions",
@@ -172,12 +186,12 @@ class Utility(commands.Cog):
             member_in_guild = guild.get_member(user.id)
             
             if user.id == OWNER:
-                 embed.description +=  f"<:cyniverified:1269139230911893534> Cyni Founder"
+                 embed.description +=  f"<:cyniverified:1269139230911893534> Cyni Founder\n"
 
             if member_in_guild:
                 specific_role = guild.get_role(specific_role_id)
                 if specific_role in member_in_guild.roles:
-                    embed.description += f"<:cyniverified:1269139230911893534> Cyni Staff"
+                    embed.description += f"<:cyniverified:1269139230911893534> Cyni Staff\n"
             await ctx.send(embed=embed)
         except Exception as e:
             await ctx.send(f"An error occurred: {e}")

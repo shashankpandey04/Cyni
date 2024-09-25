@@ -5,6 +5,7 @@ from utils.autocompletes import infraction_autocomplete, dm_autocomplete
 from cyni import is_management
 from discord import app_commands
 from utils.utils import log_command_usage
+from utils.pagination import Pagination
 
 class Infraction(commands.Cog):
     def __init__(self, bot):

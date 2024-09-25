@@ -232,7 +232,7 @@ async def get_discord_by_roblox(bot,username):
         else:
             return None
         
-def parse_duration(self, duration):
+def parse_duration(duration):
     """
     Parse a duration string and return the total duration in seconds.
     Supports days (d), weeks (w), hours (h), minutes (m), and seconds (s).
