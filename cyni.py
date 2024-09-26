@@ -39,7 +39,10 @@ from decouple import config
 
 load_dotenv()
 
-intents = discord.Intents.all()
+intents = discord.Intents.default()
+intents.presences = False
+intents.message_content = True
+intents.members = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
