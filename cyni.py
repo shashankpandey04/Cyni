@@ -43,6 +43,9 @@ intents = discord.Intents.default()
 intents.presences = False
 intents.message_content = True
 intents.members = True
+intents.messages = True
+intents.moderation = True
+intents.bans = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
