@@ -1,130 +1,79 @@
 import discord
-from discord.abc import User
-from discord.ext import commands
-from discord.ext import tasks
-from utils.mongo import Document
-from utils.constants import BLANK_COLOR
+from discord.ext import tasks, commands
 import sentry_sdk
-import asyncio
-import aiohttp
-
-from pkgutil import iter_modules
-import logging
 import os
-import time
-
 from dotenv import load_dotenv
+import logging
+import traceback
+import aiohttp
 import motor.motor_asyncio
-from utils.utils import get_prefix
-from Modals.ban_appeal import BanAppealModal
+from discord.utils import get, setup_logging
+from pkgutil import iter_modules
 
+import bcrypt
 
-from Datamodels.Settings import Settings
-from Datamodels.Analytics import Analytics
-from Datamodels.Warning import Warnings
-from Datamodels.StaffActivity import StaffActivity
-from Datamodels.Errors import Errors
-from Datamodels.Sessions import Sessions
-from Datamodels.Infraction_log import Infraction_log
-from Datamodels.Infraction_types import Infraction_type
-from Datamodels.Giveaway import Giveaway
-from Datamodels.Backup import Backup
-from Datamodels.afk import AFK
-from Datamodels.Erlc_keys import ERLC_Keys
-from Datamodels.Applications import Applications
-from Datamodels.Partnership import Partnership
+from Utility.utils import get_prefix
 
-from utils.prc_api import PRC_API_Client
-from decouple import config
+intents = discord.Intents.default()
+intents.members = True
+intents.presences = False
+intents.message_content = True
 
 load_dotenv()
 
-intents = discord.Intents.all()
+KEY = os.getenv("KEY")
+ENV = os.getenv("ENV", "DEVELOPMENT")
+TOKEN = os.getenv("TOKEN")
 
-discord.utils.setup_logging(level=logging.INFO)
+
+setup_logging(level=logging.INFO)
+
+sentry_sdk.init(os.getenv("SENTRY_DSN"))
 
 class Bot(commands.AutoShardedBot):
-    
+
     async def close(self):
-        print('Closing...')
+        await logging.warning("Closing bot")
+        await self.session.close()
+        await self.mongo_client.close()
         await super().close()
-        print('Closed!')
 
-    async def is_owner(self, user: User) -> bool:
-
+    async def is_owner(self, user):
         if user.id in [
             1201129677457215558, #coding.nerd
             707064490826530888, #imlimiteds
         ]:
             return True
         
+        return False
+    
+    async def on_ready(self):
+        logging.info(f"Logged in as {self.user} ({self.user.id})")
+
     def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
-            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") else self.mongo["dev"]
-            self.settings_document = Document(self.db, 'settings')
-            self.analytics_document = Document(self.db, 'analytics')
-            self.warnings_document = Document(self.db, 'warnings')
-            self.actvity_document = Document(self.db, 'staff_activity')
-            self.appeals_document = Document(self.db, 'ban_appeals')
-            self.errors_document = Document(self.db, 'errors')
-            self.sessions_document = Document(self.db, 'sessions')
-            self.infraction_log_document = Document(self.db, 'infraction_log')
-            self.infraction_types_document = Document(self.db, 'infraction_types')
-            self.giveaway_document = Document(self.db, 'giveaways')
-            self.backup_document = Document(self.db, 'backup')
-            self.afk_document = Document(self.db,'afk')
-            self.erlc_keys_document = Document(self.db, 'erlc_keys')
-            self.applications_document = Document(self.db, 'applications')
-            self.partnership_document = Document(self.db, 'partnership')
-
-    async def setup_hook(self) -> None:
-
-        self.settings = Settings(self.db, 'settings')
-        self.analytics = Analytics(self.db, 'analytics')
-        self.warnings = Warnings(self.db, 'warnings')
-        self.staff_activity = StaffActivity(self.db, 'staff_activity')
-        self.ban_appeals = Document(self.db, 'ban_appeals')
-        self.errors = Errors(self.db, 'errors')
-        self.sessions = Sessions(self.db, 'sessions')
-        self.infraction_log = Infraction_log(self.db, 'infraction_log')
-        self.infraction_types = Infraction_type(self.db, 'infraction_types')
-        self.giveaways = Giveaway(self.db, 'giveaways')
-        self.backup = Backup(self.db, 'backup')
-        self.afk = AFK(self.db,'afk')
-        self.erlc_keys = ERLC_Keys(self.db, 'erlc_keys')
-        self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
-        self.applications = Applications(self.db, 'applications')
-        self.partnership = Partnership(self.db, 'partnership')
-
+        super().__init__(*args, **kwargs)
+        self.mongo_client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("MONGO_URI"))
+        self.db = self.mongo_client["cyni"] if ENV == "PRODUCTION" else self.mongo_client["cyni_dev"]
+        logging.info(f"Connected to MongoDB with ENV {ENV}")
+        self.session = aiohttp.ClientSession()
         
-        Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
-        Events = [m.name for m in iter_modules(['events'],prefix='events.')]
+        self.load_extension("jishaku")
 
-   
+        Commands = [m.name for m in iter_modules(["Commands"])]
+        Events = [m.name for m in iter_modules(["Events"])]
+        API = [m.name for m in iter_modules(["API"])]
+        AI = [m.name for m in iter_modules(["AI"])]
+        for command in Commands:
+            self.load_extension(command)
+        for event in Events:
+            self.load_extension(event)
+        for api in API:
+            self.load_extension(api)
+        for ai in AI:
+            self.load_extension(ai)
 
-        for extension in Cogs:
-            try:
-                await self.load_extension(extension)
-                logging.info(f'Loaded extension {extension}.')
-            except Exception as e:
-                logging.error(f'Failed to load extension {extension}.', exc_info=True)
+        logging.info(f"Loaded {len(Commands)} commands, {len(Events)} events, {len(API)} API, and {len(AI)} AI modules")
 
-        for extension in Events:
-            try:
-                await self.load_extension(extension)
-                logging.info(f'Loaded extension {extension}.')
-            except Exception as e:
-                logging.error(f'Failed to load extension {extension}.', exc_info=True)
-
-
-        logging.info("Connected to MongoDB")
-
-        change_status.start()
-
-        logging.info(f"Logged in as {bot.user}")
-
-        await bot.tree.sync()
 
 
 bot = Bot(
@@ -136,44 +85,13 @@ bot = Bot(
     shard_count=1
 )
 
-bot_debug_server = [1152949579407442050]
-bot_shard_channel = 1203343926388330518
+debug_server = int(os.getenv("DEBUG_SERVER"))
+shard_channel = int(os.getenv("SHARD_CHANNEL"))
 
 afk_users = {}
 
-@bot.event
-async def on_shard_ready(shard_id):
-    embed = discord.Embed(
-        title="Shard Connected",
-        description=f"Shard ID `{shard_id}` connected successfully.",
-        color=BLANK_COLOR
-    )
-    await bot.get_channel(bot_shard_channel).send(embed=embed)
-
-@bot.event
-async def on_shard_disconnect(shard_id):
-    embed = discord.Embed(
-        title="Shard Disconnected",
-        description=f"Shard ID `{shard_id}` disconnected.",
-        color=BLANK_COLOR
-    )
-    await bot.get_channel(bot_shard_channel).send(embed=embed)
-
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
-    webhook_link = os.getenv("CYNI_LOGS_WEBHOOK")
-    embed = discord.Embed(
-        title="Command Used",
-        description=f"Command `{ctx.command}` used.",
-        color=BLANK_COLOR
-    )
-    async with aiohttp.ClientSession() as session:
-        async with session.post(webhook_link, json={'embeds': [embed.to_dict()]}) as response:
-            if response.status == 204:
-                return
-            else:
-                logging.error(f"Failed to send webhook. Status: {response.status}")
-
     analytics = await bot.analytics.find_by_id(
         ctx.command.full_parent_name + f"{ctx.command.name}"
     )
@@ -191,33 +109,6 @@ async def AutoDefer(ctx: commands.Context):
                 "uses": analytics["uses"] + 1
             }
         )
-
-@bot.after_invoke
-async def loggingCommand(ctx: commands.Context):
-    logging.info(f"{ctx.author} used {ctx.command} in {ctx.guild}.")
-
-@bot.tree.command()
-async def banappeal(interaction: discord.Interaction):
-    '''
-    Appeal a ban.
-    '''
-    await interaction.response.send_modal(BanAppealModal(bot))
-
-@tasks.loop(hours=1)
-async def change_status():
-    await bot.wait_until_ready()
-    logging.info("Changing status")
-    status = "✨ /about | Cyni v7.4"
-    await bot.change_presence(
-        activity=discord.CustomActivity(name=status)
-    )
-
-up_time = time.time()
-
-class PremiumRequired(commands.CheckFailure):
-    def __init__(self, message="<:declined:1268849944455024671> This server doesn't have Cyni Premium!"):
-        self.message = message
-        super().__init__(self.message)
 
 async def staff_check(bot,guild,member):
     if member.guild_permissions.administrator:
@@ -255,23 +146,6 @@ async def management_check(bot,guild,member):
         return True
     return False
 
-async def staff_or_management_check(bot,guild,member):
-    if member.guild_permissions.administrator:
-        return True
-    if await staff_check(bot,guild,member) or await management_check(bot,guild,member):
-        return True
-    return False
-
-async def premium_check(bot, guild):
-    guild_settings = await bot.settings.get(guild.id)
-    if guild_settings:
-        try:
-            if "premium" in guild_settings.keys():
-                if guild_settings['premium']['enabled']:
-                    return True
-        except KeyError:
-            return False
-
 def is_staff():
     async def predicate(ctx):
         if await staff_check(ctx.bot,ctx.guild,ctx.author):
@@ -286,60 +160,9 @@ def is_management():
         raise commands.MissingPermissions(["Management"])
     return commands.check(predicate)
 
-def is_staff_or_management():
-    async def predicate(ctx):
-        if await staff_or_management_check(ctx.bot,ctx.guild,ctx.author):
-            return True
-        raise commands.MissingPermissions(["Staff or Management"])
-    return commands.check(predicate)
-
-async def fetch_invite(guild_id):
-    guild = bot.get_guild(guild_id)
-    if not guild:
-        raise ValueError("Guild not found.")
-    
-    try:
-        invite = await guild.vanity_invite()
-        return invite.url
-    except discord.Forbidden:
-        pass
-
-    try:
-        invites = await guild.invites()
-        if invites:
-            return invites[0].url
-    except discord.Forbidden:
-        pass
-
-    try:
-        invite = await guild.text_channels[0].create_invite()
-        return invite.url
-    except discord.Forbidden:
-        raise ValueError("Failed to get invite")
-
-def is_premium():
-    async def predicate(ctx):
-        if await premium_check(ctx.bot, ctx.guild):
-            return True
-        raise PremiumRequired()
-    return commands.check(predicate)
-
-if os.getenv("PRODUCTION_TOKEN"):
-    bot_token = os.getenv("PRODUCTION_TOKEN")
-    logging.info("Production Token")
-elif os.getenv("PREMIUM_TOKEN"):
-    bot_token = os.getenv("PREMIUM_TOKEN")
-    logging.info("Using Premium Token")
-else:
-    bot_token = os.getenv("DEV_TOKEN")
-    logging.info("Using Development Token")
-
-
 def run():
-    try:
-        bot.run(bot_token)
-    except Exception as e:
-        logging.error(f"Error: {e}", exc_info=True)
+    bot.run(TOKEN)
+
 
 if __name__ == "__main__":
     run()

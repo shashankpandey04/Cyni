@@ -1,7 +1,4 @@
-from discord.ext import commands
-import discord
-from utils.mongo import Document
-
+from Utility.Mongo import Document
 
 class Settings(Document):
     async def get(self, guild_id: int) -> dict:
