@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import logging
 from cyni import afk_users
+import re
+from datetime import timedelta
 
 class OnMessage(commands.Cog):
     def __init__(self, bot):
@@ -18,6 +20,17 @@ class OnMessage(commands.Cog):
         if message.content == "ping":
             await message.channel.send("🟢 Pong!")
 
+        n_word = re.compile(r'n[i1]gg[aeiou]r?', re.IGNORECASE)
+        if n_word.search(message.content):
+            await message.delete()
+            await message.channel.send(f"{message.author.mention}, you can't say that word here!", delete_after=5)
+            time = discord.utils.utcnow() + timedelta(seconds=5)
+            try:
+                await message.author.edit(timed_out_until=time,reason="N-word usage")
+            except Exception:
+                pass
+            return
+
         if message.author.id in afk_users:
             del afk_users[message.author.id]
             await message.channel.send(
@@ -30,12 +43,11 @@ class OnMessage(commands.Cog):
             await self.bot.afk.delete_by_id(doc)
             try:
                 await message.author.edit(nick=message.author.display_name.replace("[AFK]",""))
-            except discord.Forbidden:
+            except Exception:
                 pass
 
         for mentions in message.mentions:
             if mentions.id in afk_users:
-                #pressence = mentions.status.value
                 await message.channel.send(
                     f"`{mentions} `is currently AFK mode. Reason: {afk_users[mentions.id]}",
                     delete_after=15
