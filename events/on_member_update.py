@@ -60,31 +60,37 @@ class OnMemberUpdate(commands.Cog):
             if role_added:
                 role_added = [role.mention for role in role_added]
                 async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.member_role_update):
-                    return await guild_log_channel.send(
-                        embed = discord.Embed(
-                            title= " ",
-                            description=f"{entry.user.mention} added {', '.join(role_added)} to {before.mention}\n Event Time: {created_at}",
-                            color=YELLOW_COLOR
-                        ).set_author(
-                            name=before,
-                        ).set_footer(
-                            text=f"User ID: {before.id}"
+                    try:
+                        return await guild_log_channel.send(
+                            embed = discord.Embed(
+                                title= " ",
+                                description=f"{entry.user.mention} added {', '.join(role_added)} to {before.mention}\n Event Time: {created_at}",
+                                color=YELLOW_COLOR
+                            ).set_author(
+                                name=before,
+                            ).set_footer(
+                                text=f"User ID: {before.id}"
+                            )
                         )
-                    )
+                    except Exception as e:
+                        pass
             if role_removed:
                 role_removed = [role.mention for role in role_removed]
                 async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.member_role_update):
-                    return await guild_log_channel.send(
-                        embed = discord.Embed(
-                            title= " ",
-                            description=f"{entry.user.mention} removed {', '.join(role_removed)} from {before.mention}\nEvent Time: {created_at}",
-                            color=YELLOW_COLOR
-                        ).set_author(
-                            name=before,
-                        ).set_footer(
-                            text=f"User ID: {before.id}"
+                    try:
+                        return await guild_log_channel.send(
+                            embed = discord.Embed(
+                                title= " ",
+                                description=f"{entry.user.mention} removed {', '.join(role_removed)} from {before.mention}\nEvent Time: {created_at}",
+                                color=YELLOW_COLOR
+                            ).set_author(
+                                name=before,
+                            ).set_footer(
+                                text=f"User ID: {before.id}"
+                            )
                         )
-                    )
+                    except Exception as e:
+                        pass
 
 async def setup(bot):
     await bot.add_cog(OnMemberUpdate(bot))
