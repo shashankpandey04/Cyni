@@ -147,38 +147,38 @@ bot_shard_channel = 1203343926388330518
 
 afk_users = {}
 
-@bot.event
-async def on_shard_ready(shard_id):
-    embed = discord.Embed(
-        title="Shard Connected",
-        description=f"Shard ID `{shard_id}` connected successfully.",
-        color=BLANK_COLOR
-    )
-    await bot.get_channel(bot_shard_channel).send(embed=embed)
+#@bot.event
+#async def on_shard_ready(shard_id):
+#    embed = discord.Embed(
+#        title="Shard Connected",
+#        description=f"Shard ID `{shard_id}` connected successfully.",
+#        color=BLANK_COLOR
+#    )
+#    await bot.get_channel(bot_shard_channel).send(embed=embed)
 
-@bot.event
-async def on_shard_disconnect(shard_id):
-    embed = discord.Embed(
-        title="Shard Disconnected",
-        description=f"Shard ID `{shard_id}` disconnected.",
-        color=BLANK_COLOR
-    )
-    await bot.get_channel(bot_shard_channel).send(embed=embed)
+#@bot.event
+#async def on_shard_disconnect(shard_id):
+#    embed = discord.Embed(
+#        title="Shard Disconnected",
+#        description=f"Shard ID `{shard_id}` disconnected.",
+#        color=BLANK_COLOR
+#    )
+#    await bot.get_channel(bot_shard_channel).send(embed=embed)
 
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
-    webhook_link = os.getenv("CYNI_LOGS_WEBHOOK")
-    embed = discord.Embed(
-        title="Command Used",
-        description=f"Command `{ctx.command}` used.",
-        color=BLANK_COLOR
-    )
-    async with aiohttp.ClientSession() as session:
-        async with session.post(webhook_link, json={'embeds': [embed.to_dict()]}) as response:
-            if response.status == 204:
-                return
-            else:
-                logging.error(f"Failed to send webhook. Status: {response.status}")
+    #webhook_link = os.getenv("CYNI_LOGS_WEBHOOK")
+    #embed = discord.Embed(
+    #    title="Command Used",
+    #    description=f"Command `{ctx.command}` used.",
+    #    color=BLANK_COLOR
+    #)
+    #async with aiohttp.ClientSession() as session:
+    #    async with session.post(webhook_link, json={'embeds': [embed.to_dict()]}) as response:
+    #        if response.status == 204:
+    #            return
+    #        else:
+    #            logging.error(f"Failed to send webhook. Status: {response.status}")
 
     analytics = await bot.analytics.find_by_id(
         ctx.command.full_parent_name + f"{ctx.command.name}"
