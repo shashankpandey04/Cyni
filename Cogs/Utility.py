@@ -26,16 +26,13 @@ class Utility(commands.Cog):
         """
         Get the bot's latency.
         """
-        shard_latency = []
-        for shard_id, shard in self.bot.shards.items():
-            shard_ping = round(shard.latency * 1000)
-            shard_latency.append(f"Shard `{shard_id}`: {shard_ping}ms")
+        latency = round(self.bot.latency * 1000)
         embed = discord.Embed(
             title="Pong!",
-            description=f"Average Latency: {round(self.bot.latency * 1000)}ms\nShard Latency:\n" + "\n".join(shard_latency) + f"\nGuild Shard ID: {ctx.guild.shard_id}",
+            description=f"Latency: {latency}ms",
             color=BLANK_COLOR
         )
-        embed.author(
+        embed.set_author(
             name=f"{ctx.author}",
             icon_url=ctx.author.avatar.url
         )
