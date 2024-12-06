@@ -16,6 +16,10 @@ class OnMemberJoin(commands.Cog):
         This event is triggered when a member joins a guild.
         :param member (discord.Member): The member that joined the guild.
         """
+
+        if member.guild.id == 1152949579407442050:
+            channel = self.bot.get_channel(1152949580091097131)
+            await channel.send(f"<:blobcatfood:1239950637790396446> | 👋 Hey {member.mention}, welcome to the Cyni Systems! You are the {len(member.guild.members)}th member!")
         
         sett = await self.bot.settings.find_by_id(member.guild.id)
         guild = member.guild
