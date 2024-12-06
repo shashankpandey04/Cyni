@@ -29,10 +29,6 @@ class Utility(commands.Cog):
         shard_latency = []
         for shard_id, shard in self.bot.shards.items():
             shard_ping = {round(shard.latency * 1000)}
-            if shard_ping > 50:
-                shard_ping -= 30
-            elif shard_ping > 100:
-                shard_ping = 20
             shard_latency.append(f"Shard {shard_id}: {shard_ping}ms")
         embed = discord.Embed(
             title="Pong!",
@@ -52,10 +48,6 @@ class Utility(commands.Cog):
         Get information about the bot.
         """
         latency = round(self.bot.latency * 1000)
-        if latency > 50:
-            latency -= 30
-        elif latency > 100:
-            latency = 20
         embed = discord.Embed(
             title="Cyni",
             description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** <t:{int(up_time)}:R>\n**Latency:** {latency}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** v7.4",
