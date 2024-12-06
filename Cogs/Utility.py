@@ -28,12 +28,20 @@ class Utility(commands.Cog):
         """
         shard_latency = []
         for shard_id, shard in self.bot.shards.items():
-            shard_ping = {round(shard.latency * 1000)}
-            shard_latency.append(f"Shard {shard_id}: {shard_ping}ms")
+            shard_ping = round(shard.latency * 1000)
+            shard_latency.append(f"Shard `{shard_id}`: {shard_ping}ms")
         embed = discord.Embed(
             title="Pong!",
             description=f"Average Latency: {round(self.bot.latency * 1000)}ms\nShard Latency:\n" + "\n".join(shard_latency) + f"\nGuild Shard ID: {ctx.guild.shard_id}",
             color=BLANK_COLOR
+        )
+        embed.author(
+            name=f"{ctx.author}",
+            icon_url=ctx.author.avatar.url
+        )
+        embed.set_footer(
+            text="Cyni Systems!",
+            icon_url=self.bot.user.avatar.url
         )
         await ctx.send(embed=embed)
 
@@ -52,6 +60,14 @@ class Utility(commands.Cog):
             title="Cyni",
             description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** <t:{int(up_time)}:R>\n**Latency:** {latency}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** v7.4",
             color=BLANK_COLOR
+        )
+        embed.set_author(
+            name=f"{ctx.author}",
+            icon_url=ctx.author.avatar.url
+        )
+        embed.set_footer(
+            text="Cyni Systems!",
+            icon_url=self.bot.user.avatar.url
         )
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Invite", url=f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot",row=0))
