@@ -310,6 +310,14 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
+        if ctx.author.top_role.position <= member.top_role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="You can't kick this user because they have a higher role than you.",
+                    color=RED_COLOR
+                )
+            )
         await member.kick(reason=reason)
         await ctx.send(
             f"{member.mention} has been kicked ✅."
@@ -362,7 +370,14 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        
+        if ctx.author.top_role.position <= member.top_role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="You can't ban this user because they have a higher role than you.",
+                    color=RED_COLOR
+                )
+            )
         await member.ban(reason=reason)
         await ctx.send(
             embed = discord.Embed(
@@ -495,8 +510,15 @@ class Moderation(commands.Cog):
                     color = RED_COLOR
                 )
             )
+        if ctx.author.top_role.position <= member.top_role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="You can't mute this user because they have a higher role than you.",
+                    color=RED_COLOR
+                )
+            )
         time = discord.utils.utcnow() + timedelta(seconds=time)
-        print(time)
         try:
             await member.edit(timed_out_until=time, reason=reason)
         except Exception as e:
@@ -873,6 +895,14 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
+        if ctx.author.top_role.position <= member.top_role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="You can't change this user's nickname because they have a higher role than you.",
+                    color=RED_COLOR
+                )
+            )
 
         await member.edit(nick=nickname)
         await ctx.send(
@@ -917,6 +947,14 @@ class Moderation(commands.Cog):
         Add a role to a user.
         """
         try:
+            if ctx.author.top_role.position <= role.position:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        title="Looks like you can't do that",
+                        description="You can't add this role because it is higher than your top role.",
+                        color=RED_COLOR
+                    )
+                )
             settings = await self.bot.settings.find_by_id(ctx.guild.id)
             if not settings:
                 return await ctx.send(
@@ -984,6 +1022,22 @@ class Moderation(commands.Cog):
         Remove a role from a user.
         """
         try:
+            if ctx.author.top_role.position <= role.position:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        title="Looks like you can't do that",
+                        description="You can't remove this role because it is higher than your top role.",
+                        color=RED_COLOR
+                    )
+                )
+            if ctx.author.top_role.position <= member.top_role.position:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        title="Looks like you can't do that",
+                        description="You can't remove this role because it is higher than your top role.",
+                        color=RED_COLOR
+                    )
+                )
             settings = await self.bot.settings.find_by_id(ctx.guild.id)
             if not settings:
                 return await ctx.send(
@@ -1081,6 +1135,14 @@ class Moderation(commands.Cog):
                 color = YELLOW_COLOR
             )
         )
+        if ctx.author.top_role.position <= role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="You can't add this role because it is higher than your top role.",
+                    color=RED_COLOR
+                )
+            )
 
         for member in ctx.guild.members:
             if role in member.roles:
@@ -1132,6 +1194,22 @@ class Moderation(commands.Cog):
         """
         Softban a user.
         """
+        if ctx.author.top_role.position <= member.top_role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="You can't softban this user because they have a higher role than you.",
+                    color=RED_COLOR
+                )
+            )
+        if ctx.author.top_role.position <= ctx.guild.me.top_role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="I can't softban this user because they have a higher role than me.",
+                    color=RED_COLOR
+                )
+            )
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,f"Softban {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
