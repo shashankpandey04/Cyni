@@ -199,10 +199,11 @@ class Partnership_Log(commands.Cog):
                     color = RED_COLOR
                 )
             )
-        partner_role = ctx.guild.get_role(partnership["partner_role"])
-        representative = ctx.guild.get_member(partnership["representative"])
+        partner_role = ctx.guild.get_role(partnership["partner_role"], default = None)
+        representative = ctx.guild.get_member(partnership["representative"], default = None)
         try:
-            await representative.remove_roles(partner_role, reason = "Partnership Deleted")
+            if partner_role:
+                await representative.remove_roles(partner_role, reason = "Partnership Deleted")
         except:
             pass
         await self.bot.partnership.delete_by_id(f"{ctx.guild.id}_{partnership_id}")
