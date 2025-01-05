@@ -34,6 +34,8 @@ from Datamodels.Erlc_keys import ERLC_Keys
 from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
 
+from Tasks.Uptime import check_uptime
+
 from utils.prc_api import PRC_API_Client
 from decouple import config
 
@@ -127,6 +129,7 @@ class Bot(commands.AutoShardedBot):
         logging.info("Connected to MongoDB")
 
         change_status.start()
+        check_uptime.start()
 
         logging.info(f"Logged in as {bot.user}")
 

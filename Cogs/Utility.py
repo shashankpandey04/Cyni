@@ -40,7 +40,15 @@ class Utility(commands.Cog):
             text="Cyni Systems!",
             icon_url=self.bot.user.avatar.url
         )
-        await ctx.send(embed=embed)
+        view = discord.ui.View()
+        view.add_item(
+            discord.ui.Button(
+                label="CYNI Status Page",
+                url=f"https://cyni.quprdigital.tk/status",
+                row=0
+            )
+        )
+        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="about",
@@ -69,6 +77,8 @@ class Utility(commands.Cog):
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Invite", url=f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot",row=0))
         view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm",row=0))
+        view.add_item(discord.ui.Button(label="Dashboard", url="https://cyni.quprdigital.tk",row=1))
+        view.add_item(discord.ui.Button(label="Status Page", url="https://cyni.quprdigital.tk/status",row=1))
         await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
@@ -353,7 +363,14 @@ class Utility(commands.Cog):
         """
         Get help with the bot.
         """
-        await ctx.send("Join the support server for help: https://discord.gg/J96XEbGNDm")
+        embed = discord.Embed(
+            title="Help",
+            description="Join our Support Server for help with the bot.",
+            color=BLANK_COLOR
+        )
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm"))
+        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="dashboard",
@@ -365,7 +382,13 @@ class Utility(commands.Cog):
         """
         Get the bot's dashboard link.
         """
-        await ctx.send("Cyni Dashboard is under development!\n[Dashboard](https://cyni.quprdigital.tk)")
+        embed = discord.Embed(
+            description="Manage your server with the Cyni Dashboard.",
+            color=BLANK_COLOR
+        )
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Dashboard", url="https://cyni.quprdigital.tk/dashboard"))
+        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="suggest",

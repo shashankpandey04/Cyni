@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center text-light">Status Page</h1>
+    <div class="row mt-4">
+        {% for service, data in service_data.items() %}
+        <div class="col-md-4">
+            <div class="card text-center bg-dark text-light status-card" 
+                style="box-shadow: 10px 10px 10px
+                {{ 'rgba(0, 255, 0, 0.5)' if data.status == 'up' else 'rgba(255, 0, 0, 0.5)' }}">
+                <div class="card-header">
+                    {{ service }} Status
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ 'Online' if data.status == 'up' else 'Offline' }}</h5>
+                    <p class="card-text">{{ service }} is currently {{ 'operational' if data.status == 'up' else 'not operational' }}.</p>
+                    <p class="card-text">Uptime in the last 30 days: {{ data.uptime_percentage }}%</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

@@ -138,6 +138,49 @@ def giveaway(message_id):
 
     return render_template("active_giveaway.html", guild=guild, giveaway=giveaway)
 
+def calculate_uptime_percentage(service_name):
+    thirty_days_ago = datetime.now().timestamp() - 30 * 24 * 60 * 60 
+
+    records = list(mongo_db["uptime"].find({
+        "service_name": service_name,
+        "timestamp": {"$gte": thirty_days_ago}
+    }))
+    
+    total_checks = len(records)
+    up_count = sum(1 for record in records if record["status"] == "up")
+
+    if total_checks == 0:
+        return 0
+    return (up_count / total_checks) * 100
+
+@app.route('/status', methods=["GET"])
+def status():
+    services = ['Bot', 'ERLC API', 'Website']
+    service_data = {}
+
+    for service in services:
+        latest_status_record = mongo_db["uptime"].find_one(
+            {"service_name": service},
+            sort=[("timestamp", -1)]
+        )
+
+        status = latest_status_record["status"] if latest_status_record else "down"
+
+        uptime_percentage = calculate_uptime_percentage(service)
+
+        service_data[service] = {
+            "status": status,
+            "uptime_percentage": uptime_percentage
+        }
+
+    return render_template("status.html", service_data=service_data)
+
+@app.route('/uptime/bot', methods=["GET"])
+def uptime_bot():
+    if not bot.is_ready():
+        return "Bot is not ready.", 503
+    return "Bot is ready.", 200
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -335,8 +378,7 @@ def run_production():
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     print(f"Server running on http://localhost:80 and http://{local_ip}:80")
-    #serve(app, host="0.0.0.0", port=80)
-    app.run(host="0.0.0.0", port=80)
+    serve(app, host="0.0.0.0", port=80)
 
 if __name__ == "__main__":
-    run_production()
+    app.run(host='0.0.0.0',port=80,debug=True)
