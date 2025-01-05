@@ -10,7 +10,7 @@ import socket
 import asyncio
 from waitress import serve
 from bson import ObjectId
-from cyni import bot, fetch_invite
+from cyni import bot, fetch_invite, bot_ready
 
 # Load environment variables
 load_dotenv()
@@ -155,25 +155,20 @@ def calculate_uptime_percentage(service_name):
 
 @app.route('/status', methods=["GET"])
 def status():
-    services = ['Bot', 'ERLC API', 'Website']
-    service_data = {}
-
-    for service in services:
-        latest_status_record = mongo_db["uptime"].find_one(
-            {"service_name": service},
-            sort=[("timestamp", -1)]
-        )
-
-        status = latest_status_record["status"] if latest_status_record else "down"
-
-        uptime_percentage = calculate_uptime_percentage(service)
-
-        service_data[service] = {
-            "status": status,
-            "uptime_percentage": uptime_percentage
-        }
-
-    return render_template("status.html", service_data=service_data)
+    website_link = 'https://cyni.quprdigital.tk'
+    erlc_api = 'https://api.policeroleplay.community/v1/server'
+    bot = bot_ready()
+    website = requests.get(website_link)
+    if website.status_code == 200:
+        website = True
+    else:
+        website = False
+    erlc = requests.get(erlc_api)
+    if erlc.status_code == 403:
+        erlc = True
+    else:
+        erlc = False
+    return render_template("status.html", bot=bot, website=website, erlc=erlc)
 
 @app.route('/uptime/bot', methods=["GET"])
 def uptime_bot():

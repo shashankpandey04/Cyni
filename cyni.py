@@ -129,7 +129,7 @@ class Bot(commands.AutoShardedBot):
         logging.info("Connected to MongoDB")
 
         change_status.start()
-        check_uptime.start()
+        #check_uptime.start()
 
         logging.info(f"Logged in as {bot.user}")
 
@@ -332,6 +332,11 @@ def is_premium():
             return True
         raise PremiumRequired()
     return commands.check(predicate)
+
+def bot_ready():
+    if bot.is_ready():
+        return True
+    return False
 
 if os.getenv("PRODUCTION_TOKEN"):
     bot_token = os.getenv("PRODUCTION_TOKEN")

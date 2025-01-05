@@ -1,26 +1,47 @@
 {% extends "base.html" %}
 
+{% block title %}Status{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <h1 class="text-center text-light">Status Page</h1>
     <div class="row mt-4">
-        {% for service, data in service_data.items() %}
         <div class="col-md-4">
             <div class="card text-center bg-dark text-light status-card" 
-                style="box-shadow: 10px 10px 10px
-                {{ 'rgba(0, 255, 0, 0.5)' if data.status == 'up' else 'rgba(255, 0, 0, 0.5)' }}">
+                style="box-shadow: 10px 10px 10px {{ 'rgba(0, 255, 0, 0.5)' if website else 'rgba(255, 0, 0, 0.5)' }}">
                 <div class="card-header">
-                    {{ service }} Status
+                    Cyni Dashboard
                 </div>
                 <div class="card-body">
-                    <h5 class="card-title">{{ 'Online' if data.status == 'up' else 'Offline' }}</h5>
-                    <p class="card-text">{{ service }} is currently {{ 'operational' if data.status == 'up' else 'not operational' }}.</p>
-                    <p class="card-text">Uptime in the last 30 days: {{ data.uptime_percentage }}%</p>
+                    <h5 class="card-title">{{ 'Online' if website else 'Offline' }}</h5>
+                    <p class="card-text">The Cyni Dashboard is currently {{ 'operational' if website else 'not operational' }}.</p>
                 </div>
             </div>
         </div>
-        {% endfor %}
+        <div class="col-md-4">
+            <div class="card text-center bg-dark text-light status-card" 
+                style="box-shadow: 10px 10px 10px {{ 'rgba(0, 255, 0, 0.5)' if erlc else 'rgba(255, 0, 0, 0.5)' }}">
+                <div class="card-header">
+                    ERLC API Status
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ 'Online' if erlc else 'Offline' }}</h5>
+                    <p class="card-text">The ERLC API is currently {{ 'operational' if erlc else 'not operational' }}.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-dark text-light status-card" 
+                style="box-shadow: 10px 10px 10px {{ 'rgba(0, 255, 0, 0.5)' if bot else 'rgba(255, 0, 0, 0.5)' }}">
+                <div class="card-header">
+                    CYNI Bot
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ 'Online' if bot else 'Offline' }}</h5>
+                    <p class="card-text">The Cyni Bot is currently {{ 'operational' if bot else 'not operational' }}.</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
 {% endblock %}
