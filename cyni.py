@@ -213,7 +213,7 @@ async def banappeal(interaction: discord.Interaction):
 async def change_status():
     await bot.wait_until_ready()
     logging.info("Changing status")
-    status = "✨ /about | Cyni v7.4"
+    status = "Cyni Dashboard"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
     )
