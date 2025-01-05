@@ -378,7 +378,7 @@ def run_production():
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     print(f"Server running on http://localhost:80 and http://{local_ip}:80")
-    serve(app, host="0.0.0.0", port=80)
+    app.run(host='0.0.0.0', port=80)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',port=80,debug=True)
