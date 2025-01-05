@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Active Giveaway | Cyni{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="bg-dark text-light p-3 rounded shadow-sm">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-4 text-center">
+                            <img src="../static/images/giveaway.png" alt="Giveaway" class="img-fluid" style="max-width: 120px;">
+                        </div>
+                        <div class="col-md-8">
+                            <h2 class="mt-2">Active Giveaway</h2>
+                        </div>
+                    </div>
+                    <hr class="bg-light">
+                    <h6 class="font-weight-bold">Title:</h6>
+                    <p class="mb-1">{{ giveaway.title }}</p>
+                    
+                    <h6 class="font-weight-bold">Description:</h6>
+                    <p class="mb-1">{{ giveaway.description }}</p>
+                    
+                    <h6 class="font-weight-bold">Ends In:</h6>
+                    <p id="countdown" class="text-danger mb-1"></p>
+                    
+                    <h6 class="font-weight-bold">Total Winners:</h6>
+                    <p class="mb-1">{{ giveaway.total_winner }}</p>
+                    
+                    <h6 class="font-weight-bold">Participants:</h6>
+                    <p class="mb-1">{{ giveaway.participants | length }}</p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <br><br>
+    <script>
+        // Set the end time from the server
+        const endTime = '{{ giveaway.duration_epoch }}' * 1000;
+        const countdownElement = document.getElementById('countdown');
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = endTime - now;
+
+            // Time calculations for hours, minutes and seconds
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            // Display the result in the countdown element
+            countdownElement.innerHTML = `${hours}h ${minutes}m ${seconds}s`;
+
+            // If the countdown is over, display a message
+            if (distance < 0) {
+                clearInterval(x);
+                countdownElement.innerHTML = "Giveaway has ended!";
+            }
+        }
+
+        // Update the countdown every 1 second
+        const x = setInterval(updateCountdown, 1000);
+    </script>
+{% endblock %}

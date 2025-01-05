@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Cyni{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <h2 class="text-light">Basic Settings</h2>
+            <form method="POST" action="{{ url_for('guild_settings_basics', guild_id=guild.id) }}">
+                <div class="mb-3">
+                    <label for="prefix" class="form-label text-light">Command Prefix</label>
+                    <input type="text" class="form-control" id="prefix" name="prefix" value="{{ guild_data.customization.prefix }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="staff_roles" class="form-label text-light">Staff Roles</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="staffRolesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Select Roles
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="staffRolesDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
+                            {% for role_id, role_name in roles.items() %}
+                                <div class="form-check p-2">
+                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="role_{{ role_id }}" name="staff_roles" {% if role_id in guild_data.basic_settings.staff_roles %}checked{% endif %} onclick="updateSelectedRoles('staffRolesDropdown'); event.stopPropagation();">
+                                    <label class="form-check-label text-light" for="role_{{ role_id }}">
+                                        {{ role_name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="management_roles" class="form-label text-light">Management Roles</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="managementRolesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Select Roles
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="managementRolesDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
+                            {% for role_id, role_name in roles.items() %}
+                                <div class="form-check p-2">
+                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="management_role_{{ role_id }}" name="management_roles" {% if role_id in guild_data.basic_settings.management_roles %}checked{% endif %} onclick="updateSelectedRoles('managementRolesDropdown'); event.stopPropagation();">
+                                    <label class="form-check-label text-light" for="management_role_{{ role_id }}">
+                                        {{ role_name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </main>
+    </div>
+</div>
+
+<script>
+    function updateSelectedRoles(dropdownId) {
+        const dropdownButton = document.getElementById(dropdownId);
+        const checkboxes = dropdownButton.nextElementSibling.querySelectorAll('input[type="checkbox"]');
+        const selectedRoles = Array.from(checkboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.nextElementSibling.textContent.trim());
+
+        dropdownButton.textContent = selectedRoles.length > 0 ? selectedRoles.join(', ') : 'Select Roles';
+    }
+
+    // Call the function to update the dropdown button text on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSelectedRoles('staffRolesDropdown');
+        updateSelectedRoles('managementRolesDropdown');
+    });
+</script>
+{% endblock %}

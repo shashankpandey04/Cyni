@@ -1,53 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cyni | Next Gen Utility Bot</title>
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-  <link href="../static/css/style.css" rel="stylesheet">
-  <link rel="icon" href="../static/images/cyni.png">
-</head>
-<body>
-  <nav class="navbar navbar-expand-lg navbar-dark">
-    <a class="navbar-brand" href="#">
-      <img src="../static/images/cyni.png" alt="Cyni Logo" class="navbar-logo">
-      Cyni
-    </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item active">
-          <a class="nav-link" href="{{ url_for('index') }}">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('docs') }}">Documentation</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('directory') }}">Server Directory</a>
-        </li>
-        {% if 'username' in session %}
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-        </li>
-        {% else %}
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-        </li>
-        {% endif %}
-        <li class="nav-item">
-          <a class="nav-link" href="http://discord.gg/J96XEbGNDm">Support</a>
-        </li>
-      </ul>
-    </div>
-  </nav>
-  
+{% extends "base.html" %}
+
+{% block title %}Home | Cyni{% endblock %}
+
+{% block content %}
+
   <div class="hero">
     {% if session['username'] %}
     <h3 class="animate__animated animate__fadeInDown">Hey {{ session['username'] }} 👋</h3>
@@ -182,50 +138,5 @@
       </div>
     </div>
   </div>
-    
 
-<footer style="background-color: #3d3d3d; padding: 20px;">
-  <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap;">
-    <div style="flex: 1; min-width: 200px; margin-bottom: 20px;">
-      <h4 style="color: #b3b3b3;">Cyni Systems</h4>
-      <p style="color: #b3b3b3;">Providing quality service since 2023. We specialize in delivering the best solutions for your needs.</p>
-    </div>
-    <div style="flex: 1; min-width: 200px; margin-bottom: 20px;">
-      <h4 style="color: #b3b3b3;">Quick Links</h4>
-      <ul style="list-style-type: none; padding: 0;">
-        <li><a href="#" style="color: #007bff; text-decoration: none;">Home</a></li>
-        <li><a href="#" style="color: #007bff; text-decoration: none;">About Us</a></li>
-        <li><a href="#" style="color: #007bff; text-decoration: none;">Documentation</a></li>
-      </ul>
-    </div>
-    <div style="flex: 1; min-width: 200px; margin-bottom: 20px;">
-      <h4 style="color: #b3b3b3;">Contact Us</h4>
-      <p style="color: #6c757d;">Discord |<a href="https://discord.gg/J96XEbGNDm" style="color: #007bff; text-decoration: none;"> Join Now!</a></p>
-    </div>
-  </div>
-  <div style="text-align: center; padding: 10px 0; border-top: 1px solid #dee2e6; color: #6c757d;">
-    <p>&copy; 2024 coding.nerd. All Rights Reserved.</p>
-  </div>
-</footer>
-
-
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.4.3/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script>
-    document.querySelectorAll('.card').forEach(card => {
-      card.addEventListener('mousemove', function(e) {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left - rect.width;
-        const y = e.clientY - rect.top - rect.height;
-
-        card.style.transform = `rotateY(${x / 20}deg) rotateX(${-y / 20}deg)`;
-      });
-
-      card.addEventListener('mouseleave', function() {
-        card.style.transform = 'rotateY(0) rotateX(0)';
-      });
-    });
-  </script>
-</body>
-</html>
+{% endblock %}

@@ -1,8 +1,38 @@
 body {
-  background-color: #2c2f33;
+  background-color: black;
   color: #ffffff;
   scroll-behavior: smooth;
   transition: all 0.25s linear; 
+}
+
+.sidebar {
+  background-color: #1a1a1a; /* Dark sidebar */
+}
+
+.sidebar .nav-link {
+  color: #fff; /* White text for links */
+}
+
+.sidebar .nav-link:hover {
+  color: #f0ad4e; /* Change color on hover */
+}
+
+.list-group {
+  background-color: #000; /* Pure black for list groups */
+  color: #fff; /* White text for list items */
+}
+
+.list-group-item {
+  background-color: #000; /* Pure black for list items */
+  color: #fff; /* White text for list items */
+}
+
+.list-group-item:hover {
+  background-color: #333; /* Slightly lighter on hover */
+}
+
+h1, h2, h3, h4 {
+  color: #fff; /* White text for headings */
 }
 .navbar{
     background-color: #000000;
@@ -13,14 +43,19 @@ body {
     vertical-align: middle;
   }
   
-.footer{
-    background-color: #292f84;
+footer{
+    background-color: black;
+    color: white;
     text-align: center;
-    padding: 10px;
+    padding: 20px;
     left: 0;
     bottom: 0;
     width: 100%;
 }
+footer a {
+    color: #ffffff;
+}
+
 .hero {
   background-image: url(https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSaDTl8kFXubtSpUO35g1V0qyLAvfvuC-Cnsg&s);
   background-size: cover;
@@ -71,6 +106,7 @@ body {
 }
 
 .server_card {
+  box-shadow: 5px 8px 16px rgba(6, 155, 255, 0.532);
   background-color: #000000;
   color: #ffffff;
   padding: 15px 20px;
@@ -100,4 +136,28 @@ body {
 .btn-primary {
   background-color: #7289da;
   border-color: #7289da;
+}
+
+.dropdown-menu {
+  background-color: #1e1e1e;
+  border: 1px solid #444;
+  padding: 0;
+}
+
+.form-check-input {
+  background-color: #1e1e1e;
+  border: 1px solid #444;
+}
+
+.form-check-input:checked {
+  background-color: #f0ad4e;
+  border-color: #f0ad4e;
+}
+
+.form-check-label {
+  color: #ffffff;
+}
+
+.scrollable-dropdown { 
+  max-height: 200px; 
 }

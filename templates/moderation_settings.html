@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Moderation Settings | Cyni{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <h2 class="text-light">Moderation Settings</h2>
+            <form method="POST" action="{{ url_for('moderation_settings', guild_id=guild.id) }}">
+                <div class="mb-3">
+                    <label class="form-label text-light">Enable Moderation Module</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="enabled" name="enabled" {% if guild_data.moderation_module.enabled %}checked{% endif %}>
+                        <label class="form-check-label text-light" for="enabled">
+                            Enable
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="mod_log_channel" class="form-label text-light">Moderation Log Channel</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="modLogChannelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if guild_data.moderation_module.mod_log_channel %}
+                                {{ channels[guild_data.moderation_module.mod_log_channel] }}
+                            {% else %}
+                                Select Channel
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="modLogChannelDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
+                            {% for channel_id, channel_name in channels.items() %}
+                                <div class="form-check p-2">
+                                    <input class="form-check-input" type="radio" name="mod_log_channel" value="{{ channel_id }}" id="mod_log_channel_{{ channel_id }}" {% if channel_id == guild_data.moderation_module.mod_log_channel %}checked{% endif %} onclick="updateSelectedRoles('modLogChannelDropdown'); event.stopPropagation();">
+                                    <label class="form-check-label text-light" for="mod_log_channel_{{ channel_id }}">
+                                        {{ channel_name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="ban_appeal_channel" class="form-label text-light">Ban Appeal Channel</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="banAppealChannelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if guild_data.moderation_module.ban_appeal_channel %}
+                                {{ channels[guild_data.moderation_module.ban_appeal_channel] }}
+                            {% else %}
+                                Select Channel
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="banAppealChannelDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
+                            {% for channel_id, channel_name in channels.items() %}
+                                <div class="form-check p-2">
+                                    <input class="form-check-input" type="radio" name="ban_appeal_channel" value="{{ channel_id }}" id="ban_appeal_channel_{{ channel_id }}" {% if channel_id == guild_data.moderation_module.ban_appeal_channel %}checked{% endif %} onclick="updateSelectedRoles('banAppealChannelDropdown'); event.stopPropagation();">
+                                    <label class="form-check-label text-light" for="ban_appeal_channel_{{ channel_id }}">
+                                        {{ channel_name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="audit_log_channel" class="form-label text-light">Audit Log Channel</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="auditLogChannelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if guild_data.moderation_module.audit_log %}
+                                {{ channels[guild_data.moderation_module.audit_log] }}
+                            {% else %}
+                                Select Channel
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="auditLogChannelDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
+                            {% for channel_id, channel_name in channels.items() %}
+                                <div class="form-check p-2">
+                                    <input class="form-check-input" type="radio" name="audit_log_channel" value="{{ channel_id }}" id="audit_log_channel_{{ channel_id }}" {% if channel_id == guild_data.moderation_module.audit_log %}checked{% endif %} onclick="updateSelectedRoles('auditLogChannelDropdown'); event.stopPropagation();">
+                                    <label class="form-check-label text-light" for="audit_log_channel_{{ channel_id }}">
+                                        {{ channel_name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </main>
+    </div>
+</div>
+{% endblock %}
