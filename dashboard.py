@@ -139,8 +139,8 @@ def giveaway(message_id):
     return render_template("active_giveaway.html", guild=guild, giveaway=giveaway)
 
 def calculate_uptime_percentage(service_name):
-    thirty_days_ago = datetime.now().timestamp() - 30 * 24 * 60 * 60 
-
+    thirty_days_ago = datetime.datetime.now().timestamp() - 30 * 24 * 60 * 60 
+    
     records = list(mongo_db["uptime"].find({
         "service_name": service_name,
         "timestamp": {"$gte": thirty_days_ago}
@@ -235,7 +235,8 @@ def guild(guild_id):
     
     member = guild.get_member(int(session["user_id"]))
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        return "You do not have the required permissions to access this page.", 403
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
     
     return render_template("guild.html", guild=guild)
 
@@ -374,11 +375,21 @@ def moderation_settings(guild_id):
 
     return render_template("moderation_settings.html", guild=guild, guild_data=guild_data, channels=channels)
 
+@app.errorhandler(404)
+def page_not_found(e):
+    flash("Page not found.", "error")
+    return redirect(url_for("index"))
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    flash("Internal server error.", "error")
+    return redirect(url_for("index"))
+
 def run_production():
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     print(f"Server running on http://localhost:80 and http://{local_ip}:80")
-    app.run(host='0.0.0.0', port=80)
+    serve(app, host='0.0.0.0', port=80)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',port=80,debug=True)
