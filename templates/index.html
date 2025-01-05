@@ -4,139 +4,151 @@
 
 {% block content %}
 
-  <div class="hero">
-    {% if session['username'] %}
-    <h3 class="animate__animated animate__fadeInDown">Hey {{ session['username'] }} 👋</h3>
-    {% else %}
-    {% endif %}
-    <h1 class="animate__animated animate__fadeInDown">Welcome to Cyni Bot</h1>
-    <p class="animate__animated animate__fadeInUp" style="font-size: 30px ">The Next Generation Bot for Discord Moderation, Fun, Giveaway, etc to your community.</p>
-    <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" class="btn btn-primary btn-lg animate__animated animate__bounceIn">Add to Discord</a>
-  </div>
+<div class="hero text-center text-white py-5 position-relative overflow-hidden" style="height: 100vh;">
+    <div class="bg-animation position-absolute top-0 start-0 w-100 h-100"></div>
+    <div class="position-relative z-1">
+        {% if session['username'] %}
+        <h3 class="display-5 mb-3">Hey {{ session['username'] }} 👋</h3>
+        {% endif %}
+        <h1 class="display-2 fw-bold mb-4">Welcome to Cyni Bot</h1>
+        <p class="lead fs-4 mb-5">The Next Generation Bot for Discord Moderation, Fun, Giveaway, etc to your community.</p>
+        <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" class="btn btn-primary btn-lg px-4 py-3">Add to Discord</a>
+    </div>
+</div>
 
-    <div id="features" class="container feature">
-        <h1 style="text-align: center;">Features</h1>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card text-center">
-                    <div class="card-border"></div>
-                        <div class="card-content">
-                            <div class="card-body">
-                                <img src="../static/images/moderation.png" class="card-image">
-                                <h5 class="card-title">Moderation</h5>
-                                <p class="card-text">Equip your server's moderation team with over 20 powerful commands, including automated moderation features, all customizable via the config command.
-                                </p>
-                            </div>
-                        </div>
-                </div>
+<!--Features Header-->
+<div style="text-align: center; margin-top: 50px; margin-bottom: 50px; padding: 20px; border-radius: 20px; border-color: aquamarine; border-width: 2px; border-style: solid;">
+    <h2>Features</h2>
+    <p>Discover the features that make Cyni the perfect bot for your server.</p>
+</div>
+<div class="ag-format-container">
+    <div class="ag-courses_box">
+      <div class="ag-courses_item">
+        <a href="#" class="ag-courses-item_link">
+          <div class="ag-courses-item_bg"></div>
+  
+          <div class="ag-courses-item_title">
+            Moderation
+          </div>
+  
+          <div class="ag-courses-item_date-box">
+            Equip your server's moderation team with over 20 powerful commands, including automated moderation features, all customizable via the config command.
+          </div>
+        </a>
+      </div>
+
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+            <div class="ag-courses-item_bg"></div>
+    
+            <div class="ag-courses-item_title">
+                Staff Management
             </div>
-            <div class="col-md-4">
-                <div class="card text-center">
-                <div class="card-border"></div>
-                    <div class="card-content">
-                        <div class="card-body">
-                            <img src="../static/images/staffmanager.png" class="card-image">
-                            <h5 class="card-title">Staff Management</h5>
-                            <p class="card-text">Streamline the management of staff pinfractions and application results with the Staff Management feature, which also tracks message activity for efficient oversight.</p>
-                        </div>
-                    </div>
-                </div>
+    
+            <div class="ag-courses-item_date-box">
+                Streamline the management of staff infractions and application results with the Staff Management feature, which also tracks message activity for efficient oversight.
             </div>
-            <div class="col-md-4">
-                <div class="card text-center">
-                    <div class="card-border"></div>
-                        <div class="card-content">
-                            <div class="card-body">
-                              <img src="../static/images/loa.png" class="card-image">
-                              <h5 class="card-title">Leave Of Absence/Quota Exemption</h5>
-                              <p class="card-text">Simply request LOA from Cyni, approve/decline/extent/void/delete staff LOA or RA according to requirements.
-                              </p>
-                        </div>
-                    </div>
-                </div>
+            </a>
+        </div>
+  
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+                <div class="ag-courses-item_bg"></div>
+  
+            <div class="ag-courses-item_title">
+                Easy Config
             </div>
+  
+            <div class="ag-courses-item_date-box">
+                Customize Cyni to your server's needs with the Cyni Config command and Dashboard, which allows you to change configuration settings easily.
+            </div>
+            </a>
+        </div>
+
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+            <div class="ag-courses-item_bg"></div>
+    
+            <div class="ag-courses-item_title">
+                Server Logging
+            </div>
+        
+            <div class="ag-courses-item_date-box">
+                Ensure comprehensive server event tracking with Cyni Audit Logging, which captures key actions such as member joins, leaves, message deletions, and edits.
+            </div>
+            </a>
+        </div>
+
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+                <div class="ag-courses-item_bg"></div>
+    
+                <div class="ag-courses-item_title">
+                    Ban Appeal Module
+                </div>
+
+                <div class="ag-courses-item_date-box">
+                    Implement a streamlined Ban Appeal module to handle user appeals efficiently, allowing your moderation team to review, manage, and resolve appeals with ease.
+                </div>
+            </a>
+        </div>
+
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+                <div class="ag-courses-item_bg"></div>
+    
+                <div class="ag-courses-item_title">
+                    Utility & Fun Commands
+                </div>
+
+                <div class="ag-courses-item_date-box">
+                    Utilize a variety of utility commands, including 'whois' for user information, and fun commands for displaying random dog and cat images.
+                </div>
+            </a>
+        </div>
+
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+                <div class="ag-courses-item_bg"></div>
+
+                <div class="ag-courses-item_title">
+                    Giveaway
+                </div>
+
+                <div class="ag-courses-item_date-box">
+                    Host giveaways with ease using Cyni's giveaway command, which allows you to create and end giveaways effortlessly.
+                </div>
+            </a>
+        </div>
+
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+                <div class="ag-courses-item_bg"></div>
+    
+                <div class="ag-courses-item_title">
+                    Cyni Logging
+                </div>
+
+                <div class="ag-courses-item_date-box">
+                    Ensure better security with Cyni command logging & Cyni config change log, which will help servers prevent abuse of commands.
+                </div>
+            </a>
+        </div>
+
+        <div class="ag-courses_item">
+            <a href="#" class="ag-courses-item_link">
+                <div class="ag-courses-item_bg"></div>
+        
+                <div class="ag-courses-item_title">
+                    More Soon
+                </div>
+
+                <div class="ag-courses-item_date-box">
+                    We are working on more features to make your server more fun and secure. Stay tuned for more updates.
+                </div>
+            </a>
         </div>
     </div>
-    <div id="features" class="container feature">
-      <div class="row">
-          <div class="col-md-4">
-              <div class="card text-center">
-                  <div class="card-border"></div>
-                      <div class="card-content">
-                          <div class="card-body">
-                              <img src="../static/images/logging.png" class="card-image">
-                              <h5 class="card-title">Server Logging</h5>
-                              <p class="card-text">Ensure comprehensive server event tracking with Cyni Audit Logging, which captures key actions such as member joins, leaves, message deletions, and edits.
-                              </p>
-                          </div>
-                      </div>
-              </div>
-          </div>
-          <div class="col-md-4">
-              <div class="card text-center">
-              <div class="card-border"></div>
-                  <div class="card-content">
-                      <div class="card-body">
-                          <img src="../static/images/banappeal.png" class="card-image">
-                          <h5 class="card-title">Ban Appeal Module</h5>
-                          <p class="card-text">Implement a streamlined Ban Appeal module to handle user appeals efficiently, allowing your moderation team to review, manage, and resolve appeals with ease.</p>
-                      </div>
-                  </div>
-              </div>
-          </div>
-          <div class="col-md-4">
-              <div class="card text-center">
-                  <div class="card-border"></div>
-                      <div class="card-content">
-                          <div class="card-body">
-                            <img src="../static/images/utility.png" class="card-image">
-                            <h5 class="card-title">Utility & Fun Commands</h5>
-                            <p class="card-text">Utilize a variety of utility commands, including 'whois' for user information, and fun commands for displaying random dog and cat images.</p>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
-  </div>
-  <div id="features" class="container feature">
-    <div class="row">
-      <div class="col-md-4">
-          <div class="card text-center">
-              <div class="card-border"></div>
-                  <div class="card-content">
-                      <div class="card-body">
-                          <img src="../static/images/giveaway.png" class="card-image">
-                          <h5 class="card-title">Giveaway</h5>
-                          <p class="card-text">Host giveaways with ease using Cyni's giveaway command, which allows you to create and end giveaways with ease.</p>
-                      </div>
-                  </div>
-          </div>
-      </div>
-        <div class="col-md-4">
-            <div class="card text-center">
-                <div class="card-border"></div>
-                    <div class="card-content">
-                        <div class="card-body">
-                            <img src="../static/images/cynilogs.png" class="card-image">
-                            <h5 class="card-title">Cyni Logging</h5>
-                            <p class="card-text">Ensure better security, with cyni command logging & cyni config change log. Which will help servers to prevent abuse of commands.</p>
-                        </div>
-                    </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card text-center">
-              <div class="card-border"></div>
-                    <div class="card-content">
-                      <div class="card-body">
-                          <img src="../static/images/configuration.png" class="card-image">
-                          <h5 class="card-title ">Easy Config</h5>
-                          <p class="card-text">Customize Cyni to your server's needs with the Cyni Config command, which allows you to change configuration.</p>
-                      </div>
-                    </div>
-              </div>
-      </div>
-    </div>
-  </div>
+</div>
 
 {% endblock %}

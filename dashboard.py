@@ -126,8 +126,8 @@ def logout():
 
 @app.route("/docs")
 def docs():
-    flash("Documentation coming soon.")
-    return redirect(url_for("dashboard"))
+    flash("Documentation coming soon.", "info")
+    return redirect(url_for("index"))
 
 @app.route('/giveaway/<message_id>', methods=["GET"])
 def giveaway(message_id):
@@ -160,6 +160,9 @@ def dashboard():
     user_guilds = []
     bot_guild_ids = {str(guild.id) for guild in bot.guilds}
 
+    official_guild_id = '1152949579407442050'
+    affiliated_guild_ids = list(mongo_db['affiliated_guilds'].find())
+
     for guild in guilds_json:
         permissions = guild.get("permissions", 0)
         has_manage_messages = (permissions & MANAGE_MESSAGES_PERMISSION) == MANAGE_MESSAGES_PERMISSION
@@ -172,7 +175,9 @@ def dashboard():
                 "id": guild["id"],
                 "name": guild["name"],
                 "icon": guild["icon"],
-                "owner": guild["owner"]
+                "owner": guild["owner"],
+                "official": True if guild["id"] == official_guild_id else False,
+                "affiliated": True if guild["id"] in affiliated_guild_ids else False
             })
     
     session["guilds"] = user_guilds
@@ -330,7 +335,8 @@ def run_production():
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     print(f"Server running on http://localhost:80 and http://{local_ip}:80")
-    serve(app, host="0.0.0.0", port=80)
+    #serve(app, host="0.0.0.0", port=80)
+    app.run(host="0.0.0.0", port=80)
 
 if __name__ == "__main__":
     run_production()

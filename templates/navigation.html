@@ -1,0 +1,52 @@
+<nav class="navbar navbar-dark bg-transparent">
+    <div class="container-fluid">
+        <!-- Logo and Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+            <img src="{{ url_for('static', filename='images/cyni.png') }}" 
+                 alt="Cyni Logo" class="navbar-logo me-2" style="max-height: 30px;">
+            <span>Cyni</span>
+        </a>
+
+        <!-- Toggler for modal view -->
+        <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#navbarModal">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+</nav>
+
+<!-- Modal for Navigation -->
+<div class="modal fade" id="navbarModal" tabindex="-1" aria-labelledby="navbarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="navbarModalLabel">Navigation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex flex-column align-items-center justify-content-center">
+                <ul class="list-unstyled text-center">
+                    <li class="mb-3">
+                        <a class="nav-link fs-4 text-white" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="mb-3">
+                        <a class="nav-link fs-4 text-white" href="{{ url_for('docs') }}">Docs</a>
+                    </li>
+                    {% if 'username' in session %}
+                    <li class="mb-3">
+                        <a class="nav-link fs-4 text-white" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="mb-3">
+                        <a class="nav-link fs-4 text-white" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                    {% else %}
+                    <li class="mb-3">
+                        <a class="nav-link fs-4 text-white" href="{{ url_for('login') }}">Login</a>
+                    </li>
+                    {% endif %}
+                    <li class="mb-3">
+                        <a class="nav-link fs-4 text-white" href="http://discord.gg/J96XEbGNDm" target="_blank" rel="noopener noreferrer">Support</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

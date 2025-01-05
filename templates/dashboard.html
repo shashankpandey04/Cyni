@@ -3,35 +3,76 @@
 {% block title %}Dashboard | Cyni{% endblock %}
 
 {% block content %}
-  <div class="hero">
-    {% if session['username'] %}
-    <h3 class="animate__animated animate__fadeInDown">Hey {{ session['username'] }} 👋</h3>
-    {% else %}
-    {% endif %}
-    <h1 class="animate__animated animate__fadeInDown">Welcome to Cyni Bot</h1>
-    <p class="animate__animated animate__fadeInUp" style="font-size: 30px ">The Next Generation Bot for Discord Moderation, Fun, Giveaway, etc to your community.</p>
-    <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" class="btn btn-primary btn-lg animate__animated animate__bounceIn">Add to Discord</a>
-  </div>
-
-  <div class="guild_containers container">
+<div class="container py-5">
     {% if user_id %}
-        <div class="row">
+        <div class="row g-4">
             {% for guild in user_guilds %}
-                <div class="col-md-4 mb-4">
-                    <div class="server_card d-flex align-items-center justify-content-between">
-                        <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" alt="{{ guild.name }}'s icon" class="rounded-circle guild-icon">
-                        <h5 class="mb-0">{{ guild.name }}</h5>
-                        <a href="{{ url_for('guild', guild_id=guild.id) }}" class="btn btn-primary">Dashboard</a>
+                <div class="col-md-4">
+                    <div class="card shadow-lg h-100 text-center" style="animation: fadeIn 0.5s ease-out;">
+                        <div class="card-body">
+                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
+                                 alt="{{ guild.name }}'s icon" 
+                                 class="rounded-circle mb-3" style="width: 80px; height: 80px;">
+                            <h5 class="card-title">{{ guild.name }}</h5>
+                            {% if guild.official %}
+                                <span class="badge bg-primary position-relative" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                      title="This is the official server of Cyni. This tag can't be requested.">💎 Official Server</span>
+                            {% endif %}
+                            {% if guild.affiliated %}
+                                <span class="badge bg-success position-relative" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                      title="This is an affiliated server of Cyni. It uses Cyni's services and gets priority support and other exclusive features.">🤝 Affiliated</span>
+                            {% endif %}
+                            <a href="{{ url_for('guild', guild_id=guild.id) }}" class="btn btn-primary mt-3">Dashboard</a>
+                        </div>
                     </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <a class="btn btn-outline-light" href="{{ url_for('login') }}">Login with Discord</a>
+        <div class="text-center mt-5" style="animation: fadeIn 1s ease;">
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Login with Discord</a>
+        </div>
     {% endif %}
 </div>
 
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        background-color: #262626;
+        border-color: #ff8282 !important;
+    }
+
+    .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        margin-top: 5px;
+        display: block;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
 
 {% endblock %}

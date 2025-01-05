@@ -6,7 +6,7 @@
     <div class="container mt-4">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="bg-dark text-light p-3 rounded shadow-sm">
+                <div class="bg-dark text-light p-3 rounded shadow-sm animate__animated animate__fadeIn">
                     <div class="row align-items-center mb-3">
                         <div class="col-md-4 text-center">
                             <img src="../static/images/giveaway.png" alt="Giveaway" class="img-fluid" style="max-width: 120px;">
@@ -29,7 +29,7 @@
                     <p class="mb-1">{{ giveaway.total_winner }}</p>
                     
                     <h6 class="font-weight-bold">Participants:</h6>
-                    <p class="mb-1">{{ giveaway.participants | length }}</p>
+                    <p class="mb-1 participant-count">{{ giveaway.participants | length }}</p>
 
                 </div>
             </div>
@@ -53,9 +53,10 @@
             // Display the result in the countdown element
             countdownElement.innerHTML = `${hours}h ${minutes}m ${seconds}s`;
 
-            // If the countdown is over, display a message
+            // If the countdown is over, display a message with animation
             if (distance < 0) {
                 clearInterval(x);
+                countdownElement.classList.add('animate__animated', 'animate__fadeOut');
                 countdownElement.innerHTML = "Giveaway has ended!";
             }
         }
@@ -63,4 +64,27 @@
         // Update the countdown every 1 second
         const x = setInterval(updateCountdown, 1000);
     </script>
+
+    <style>
+        /* Adding animation on hover to the participant count and total winner count */
+        .participant-count, .winner-count {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .participant-count:hover, .winner-count:hover {
+            transform: scale(1.1);
+        }
+
+        /* Adding animation to text when the page loads */
+        .animate__animated.animate__fadeIn {
+            animation-duration: 1s;
+        }
+
+        /* Smooth transition for the countdown */
+        #countdown {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+    </style>
+
 {% endblock %}

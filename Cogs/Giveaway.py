@@ -55,6 +55,8 @@ class Giveaway(commands.Cog):
             f"Host: {host.mention}"
         )
 
+        view = discord.ui.View()
+        #add url to the button
         embed = discord.Embed(
             title=f"<:giveaway:1268849874233725000> {title}",
             description=formatted_description,
@@ -63,7 +65,14 @@ class Giveaway(commands.Cog):
         msg = await ctx.send(embed=embed)
         message_id = msg.id
         embed.set_footer(text=f"Giveaway ID: {message_id}")
-        await msg.edit(embed=embed)
+        button = discord.ui.Button(
+            label="View Giveaway",
+            style=discord.ButtonStyle.link,
+            url=f"https://cyni.quprdigital.tk/giveaway/{message_id}",
+            emoji="🎉"
+        )
+        view.add_item(button)
+        await msg.edit(embed=embed, view=view)
         await msg.add_reaction("🎉")
         await self.bot.giveaways.insert_one({
             "message_id": message_id,
