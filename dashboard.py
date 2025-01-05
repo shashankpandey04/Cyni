@@ -227,6 +227,8 @@ def guild_settings_basics(guild_id):
         )
         flash("Settings updated successfully.")
         return redirect(url_for("guild_settings_basics", guild_id=guild_id))
+    
+    prefix_value = guild_data.get("customization", {}).get("prefix", "?")
 
     return render_template("guild_settings_basics.html", guild=guild, guild_data=guild_data, roles=roles)
 
@@ -243,6 +245,7 @@ def anti_ping_settings(guild_id):
         return "You do not have the required permissions to access this page.", 403
     
     guild_data = mongo_db["settings"].find_one({"_id": guild.id})
+    
     roles = {role.id: role.name for role in guild.roles}
     if request.method == "POST":
         affected_roles = request.form.getlist("affected_roles")
@@ -264,6 +267,11 @@ def anti_ping_settings(guild_id):
         )
         flash("Anti-Ping settings updated successfully.")
         return redirect(url_for("anti_ping_settings", guild_id=guild_id))
+    
+    anti_ping_module = guild_data.get("anti_ping_module", {})
+    affected_roles = anti_ping_module.get("affected_roles", [])
+    exempt_roles = anti_ping_module.get("exempt_roles", [])
+    enabled = anti_ping_module.get("enabled", False)
 
     return render_template("anti_ping_settings.html", guild=guild, guild_data=guild_data, roles=roles)
 
@@ -302,6 +310,12 @@ def moderation_settings(guild_id):
         )
         flash("Moderation settings updated successfully.")
         return redirect(url_for("moderation_settings", guild_id=guild_id))
+    
+    moderation_module = guild_data.get("moderation_module", {})
+    enabled = moderation_module.get("enabled", False)
+    mod_log_channel = moderation_module.get("mod_log_channel", None)
+    ban_appeal_channel = moderation_module.get("ban_appeal_channel", None)
+    audit_log_channel = moderation_module.get("audit_log", None)
 
     return render_template("moderation_settings.html", guild=guild, guild_data=guild_data, channels=channels)
 
