@@ -15,7 +15,7 @@
                 <div class="mb-3">
                     <label class="form-label text-light">Enable Anti-Ping Module</label>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="enabled" name="enabled" {% if guild_data.anti_ping_module.enabled %}checked{% endif %}>
+                        <input class="form-check-input" type="checkbox" id="enabled" name="enabled" {% if guild_data.get('anti_ping_module', {}).get('enabled', False) %}checked{% endif %}>
                         <label class="form-check-label text-light" for="enabled">
                             Enable
                         </label>
@@ -30,7 +30,7 @@
                         <div class="dropdown-menu" aria-labelledby="affectedRolesDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
                             {% for role_id, role_name in roles.items() %}
                                 <div class="form-check p-2">
-                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="affected_role_{{ role_id }}" name="affected_roles" {% if role_id in guild_data.anti_ping_module.affected_roles %}checked{% endif %} onclick="updateSelectedRoles('affectedRolesDropdown'); event.stopPropagation();">
+                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="affected_role_{{ role_id }}" name="affected_roles" {% if role_id in guild_data.get('anti_ping_module', {}).get('affected_roles', []) %}checked{% endif %} onclick="updateSelectedRoles('affectedRolesDropdown'); event.stopPropagation();">
                                     <label class="form-check-label text-light" for="affected_role_{{ role_id }}">
                                         {{ role_name }}
                                     </label>
@@ -48,7 +48,7 @@
                         <div class="dropdown-menu" aria-labelledby="exemptRolesDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
                             {% for role_id, role_name in roles.items() %}
                                 <div class="form-check p-2">
-                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="exempt_role_{{ role_id }}" name="exempt_roles" {% if role_id in guild_data.anti_ping_module.exempt_roles %}checked{% endif %} onclick="updateSelectedRoles('exemptRolesDropdown'); event.stopPropagation();">
+                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="exempt_role_{{ role_id }}" name="exempt_roles" {% if role_id in guild_data.get('anti_ping_module', {}).get('exempt_roles', []) %}checked{% endif %} onclick="updateSelectedRoles('exemptRolesDropdown'); event.stopPropagation();">
                                     <label class="form-check-label text-light" for="exempt_role_{{ role_id }}">
                                         {{ role_name }}
                                     </label>

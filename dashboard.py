@@ -202,8 +202,14 @@ def guild_settings_basics(guild_id):
     member = guild.get_member(int(session["user_id"]))
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
         return "You do not have the required permissions to access this page.", 403
-    
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id})
+
+    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+
+    customization = guild_data.get("customization", {})
+    prefix = customization.get("prefix", "?")
+    basic_settings = guild_data.get("basic_settings", {})
+    staff_roles = basic_settings.get("staff_roles", [])
+    management_roles = basic_settings.get("management_roles", [])
 
     roles = {role.id: role.name for role in guild.roles}
 
@@ -216,19 +222,18 @@ def guild_settings_basics(guild_id):
         management_roles = [int(role) for role in management_roles]
 
         mongo_db["settings"].update_one(
-            {"_id": guild.id },
+            {"_id": guild.id},
             {
                 "$set": {
                     "customization.prefix": prefix,
                     "basic_settings.staff_roles": staff_roles,
                     "basic_settings.management_roles": management_roles
                 }
-            }
+            },
+            upsert=True
         )
         flash("Settings updated successfully.")
         return redirect(url_for("guild_settings_basics", guild_id=guild_id))
-    
-    prefix_value = guild_data.get("customization", {}).get("prefix", "?")
 
     return render_template("guild_settings_basics.html", guild=guild, guild_data=guild_data, roles=roles)
 
@@ -244,7 +249,12 @@ def anti_ping_settings(guild_id):
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
         return "You do not have the required permissions to access this page.", 403
     
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id})
+    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+
+    anti_ping_module = guild_data.get("anti_ping_module", {})
+    affected_roles = anti_ping_module.get("affected_roles", [])
+    exempt_roles = anti_ping_module.get("exempt_roles", [])
+    enabled = anti_ping_module.get("enabled", False)
     
     roles = {role.id: role.name for role in guild.roles}
     if request.method == "POST":
@@ -263,15 +273,11 @@ def anti_ping_settings(guild_id):
                     "anti_ping_module.exempt_roles": exempt_roles,
                     "anti_ping_module.enabled": enabled
                 }
-            }
+            },
+            upsert=True
         )
         flash("Anti-Ping settings updated successfully.")
         return redirect(url_for("anti_ping_settings", guild_id=guild_id))
-    
-    anti_ping_module = guild_data.get("anti_ping_module", {})
-    affected_roles = anti_ping_module.get("affected_roles", [])
-    exempt_roles = anti_ping_module.get("exempt_roles", [])
-    enabled = anti_ping_module.get("enabled", False)
 
     return render_template("anti_ping_settings.html", guild=guild, guild_data=guild_data, roles=roles)
 
@@ -287,7 +293,13 @@ def moderation_settings(guild_id):
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
         return "You do not have the required permissions to access this page.", 403
     
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id})
+    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+
+    moderation_module = guild_data.get("moderation_module", {})
+    enabled = moderation_module.get("enabled", False)
+    mod_log_channel = moderation_module.get("mod_log_channel", None)
+    ban_appeal_channel = moderation_module.get("ban_appeal_channel", None)
+    audit_log_channel = moderation_module.get("audit_log", None)
 
     channels = {channel.id: channel.name for channel in guild.channels}
 
@@ -306,16 +318,11 @@ def moderation_settings(guild_id):
                     "moderation_module.ban_appeal_channel": int(ban_appeal_channel) if ban_appeal_channel else None,
                     "moderation_module.audit_log": int(audit_log_channel) if audit_log_channel else None
                 }
-            }
+            },
+            upsert=True
         )
         flash("Moderation settings updated successfully.")
         return redirect(url_for("moderation_settings", guild_id=guild_id))
-    
-    moderation_module = guild_data.get("moderation_module", {})
-    enabled = moderation_module.get("enabled", False)
-    mod_log_channel = moderation_module.get("mod_log_channel", None)
-    ban_appeal_channel = moderation_module.get("ban_appeal_channel", None)
-    audit_log_channel = moderation_module.get("audit_log", None)
 
     return render_template("moderation_settings.html", guild=guild, guild_data=guild_data, channels=channels)
 
