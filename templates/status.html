@@ -6,7 +6,7 @@
 <div class="container mt-5">
     <h1 class="text-center text-light">Status Page</h1>
     <div class="row mt-4">
-        <div class="col-md-4">
+        <div class="col-12 col-md-4 mb-4">
             <div class="card text-center bg-dark text-light status-card" 
                 style="box-shadow: 10px 10px 10px {{ 'rgba(0, 255, 0, 0.5)' if website else 'rgba(255, 0, 0, 0.5)' }}">
                 <div class="card-header">
@@ -18,19 +18,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card text-center bg-dark text-light status-card" 
-                style="box-shadow: 10px 10px 10px {{ 'rgba(0, 255, 0, 0.5)' if erlc else 'rgba(255, 0, 0, 0.5)' }}">
-                <div class="card-header">
-                    ERLC API Status
-                </div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ 'Online' if erlc else 'Offline' }}</h5>
-                    <p class="card-text">The ERLC API is currently {{ 'operational' if erlc else 'not operational' }}.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4 mb-4">
             <div class="card text-center bg-dark text-light status-card" 
                 style="box-shadow: 10px 10px 10px {{ 'rgba(0, 255, 0, 0.5)' if bot else 'rgba(255, 0, 0, 0.5)' }}">
                 <div class="card-header">
@@ -39,6 +27,18 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ 'Online' if bot else 'Offline' }}</h5>
                     <p class="card-text">The Cyni Bot is currently {{ 'operational' if bot else 'not operational' }}.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4 mb-4">
+            <div class="card text-center bg-dark text-light status-card" 
+                style="box-shadow: 10px 10px 10px {{ 'rgba(0, 255, 0, 0.5)' if erlc else 'rgba(255, 0, 0, 0.5)' }}">
+                <div class="card-header">
+                    ERLC API Status
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ 'Online' if erlc else 'Offline' }}</h5>
+                    <p class="card-text">The ERLC API is currently {{ 'operational' if erlc else 'not operational' }}.</p>
                 </div>
             </div>
         </div>

@@ -5,23 +5,31 @@
 {% block content %}
 <div class="container py-5">
     {% if user_id %}
+        <h7 class="text-light">Welcome, {{ session['username'] }}!</h7>
+        <h1 class="display-4 text-light">Guilds</h1>
+        <p class="text-light">Select a guild to manage its settings.</p>
+        <hr class="my-4" style="border-color: #f0ad4e;">
         <div class="row g-4">
             {% for guild in user_guilds %}
                 <div class="col-md-4">
-                    <div class="card shadow-lg h-100 text-center" style="animation: fadeIn 0.5s ease-out;">
-                        <div class="card-body">
+                    <div class="card shadow-lg h-100 text-center" style="animation: fadeIn 0.5s ease-out; background-color: #000;">
+                        <div class="card-body d-flex align-items-center">
                             <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
                                  alt="{{ guild.name }}'s icon" 
-                                 class="rounded-circle mb-3" style="width: 80px; height: 80px;">
-                            <h5 class="card-title">{{ guild.name }}</h5>
-                            {% if guild.official %}
-                                <span class="badge bg-primary position-relative" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                      title="This is the official server of Cyni. This tag can't be requested.">💎 Official Server</span>
-                            {% endif %}
-                            {% if guild.affiliated %}
-                                <span class="badge bg-success position-relative" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                      title="This is an affiliated server of Cyni. It uses Cyni's services and gets priority support and other exclusive features.">🤝 Affiliated</span>
-                            {% endif %}
+                                 class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                            <div class="flex-grow-1 text-start">
+                                <h5 class="card-title mb-0">{{ guild.name }}</h5>
+                                <div class="tags">
+                                    {% if guild.official %}
+                                        <span class="badge bg-primary position-relative tag" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="This is the official server of Cyni. This tag can't be requested.">💎 Official</span>
+                                    {% endif %}
+                                    {% if guild.affiliated %}
+                                        <span class="badge bg-success position-relative tag" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="This is an affiliated server of Cyni. It uses Cyni's services and gets priority support and other exclusive features.">🤝 Affiliated</span>
+                                    {% endif %}
+                                </div>
+                            </div>
                             <a href="{{ url_for('guild', guild_id=guild.id) }}" class="btn btn-primary mt-3">Dashboard</a>
                         </div>
                     </div>
@@ -50,7 +58,6 @@
     .card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        background-color: #262626;
         border-color: #ff8282 !important;
     }
 
@@ -59,10 +66,18 @@
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     }
 
-    .badge {
-        font-size: 0.9rem;
+    .tags {
         margin-top: 5px;
-        display: block;
+    }
+
+    .tag {
+        font-size: 0.9rem;
+        margin-right: 5px;
+        transition: transform 0.2s ease;
+    }
+
+    .tag:hover {
+        transform: scale(1.1);
     }
 </style>
 

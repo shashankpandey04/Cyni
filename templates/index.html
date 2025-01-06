@@ -4,13 +4,13 @@
 
 {% block content %}
 
-<div class="hero text-center text-white py-5 position-relative overflow-hidden" style="height: 100vh;">
+<div class="hero text-center text-white py-5 position-relative overflow-hidden" style="height: 100vh; font-family: 'Poppins', sans-serif;">
     <div class="bg-animation position-absolute top-0 start-0 w-100 h-100"></div>
     <div class="position-relative z-1">
         {% if session['username'] %}
         <h3 class="display-5 mb-3">Hey {{ session['username'] }} 👋</h3>
         {% endif %}
-        <h1 class="display-2 fw-bold mb-4">Welcome to Cyni Bot</h1>
+        <h1 class="display-2 fw-bold mb-4">Welcome to CYNI Bot</h1>
         <p class="lead fs-4 mb-5">The Next Generation Bot for Discord Moderation, Fun, Giveaway, etc to your community.</p>
         <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" class="btn btn-primary btn-lg px-4 py-3">Add to Discord</a>
     </div>
