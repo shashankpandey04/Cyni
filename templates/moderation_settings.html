@@ -25,7 +25,7 @@
                     <label for="mod_log_channel" class="form-label text-light">Moderation Log Channel</label>
                     <div class="dropdown">
                         <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="modLogChannelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            {% if guild_data.moderation_module.mod_log_channel %}
+                            {% if guild_data.moderation_module is defined and guild_data.moderation_module.mod_log_channel %}
                                 {{ channels[guild_data.moderation_module.mod_log_channel] }}
                             {% else %}
                                 Select Channel
@@ -48,7 +48,7 @@
                     <label for="ban_appeal_channel" class="form-label text-light">Ban Appeal Channel</label>
                     <div class="dropdown">
                         <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="banAppealChannelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            {% if guild_data.moderation_module.ban_appeal_channel %}
+                            {% if guild_data.moderation_module is defined and guild_data.moderation_module.ban_appeal_channel %}
                                 {{ channels[guild_data.moderation_module.ban_appeal_channel] }}
                             {% else %}
                                 Select Channel
@@ -71,7 +71,7 @@
                     <label for="audit_log_channel" class="form-label text-light">Audit Log Channel</label>
                     <div class="dropdown">
                         <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="auditLogChannelDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            {% if guild_data.moderation_module.audit_log %}
+                            {% if guild_data.moderation_module is defined and guild_data.moderation_module.audit_log %}
                                 {{ channels[guild_data.moderation_module.audit_log] }}
                             {% else %}
                                 Select Channel
