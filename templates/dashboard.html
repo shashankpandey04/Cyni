@@ -10,6 +10,11 @@
         <p class="text-light">Select a guild to manage its settings.</p>
         <hr class="my-4" style="border-color: #f0ad4e;">
         <div class="row g-4">
+            {% if user_guilds|length == 0 %}
+                <div class="alert alert-warning" role="alert">
+                    You are not a member of any guilds.
+                </div>
+            {% endif %}
             {% for guild in user_guilds %}
                 <div class="col-md-4">
                     <div class="card shadow-lg h-100 text-center" style="animation: fadeIn 0.5s ease-out; background-color: #000;">

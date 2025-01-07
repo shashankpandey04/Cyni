@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Applications | Cyni{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h4 class="h4 text-light">Manage Applications</h4>
+            </div>
+
+            <h2 class="text-light mt-4">Existing Applications</h2>
+            {% if applications|length == 0 %}
+            <div class="alert alert-warning" role="alert">
+                No applications found.
+            </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for application in applications %}
+                            <tr>
+                                <td>{{ application.name }}</td>
+                                <td>
+                                    <a href="{{ url_for('manage_application',guild_id=guild.id, application_id=application._id) }}" 
+                                    class="btn btn-primary">Manage</a>
+                                    <button class="btn btn-secondary copy-btn" 
+                                            data-link="https://cyni.quprigital.tk/applications/apply/{{ guild.id}}/{{ application._id }}">
+                                        Copy Link
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Add event listeners for copy buttons
+        const copyButtons = document.querySelectorAll('.copy-btn');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const link = button.getAttribute('data-link');
+                navigator.clipboard.writeText(link).then(() => {
+                    // Notify user of successful copy
+                    alert('Link copied to clipboard.');
+                }).catch(err => {
+                    // Notify user of error
+                    console.error('Failed to copy link: ', err);
+                    alert('Failed to copy link.');
+                });
+            });
+        });
+    });
+</script>
+
+{% endblock %}

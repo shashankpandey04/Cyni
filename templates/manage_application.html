@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Application | Cyni{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h4 class="h4 text-light">Manage Application: {{ application.name }}</h4>
+            </div>
+
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="application_name" class="form-label text-light">Application Name</label>
+                    <input type="text" class="form-control" id="application_name" name="application_name" value="{{ application.name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="application_description" class="form-label text-light">Application Description</label>
+                    <textarea class="form-control" id="application_description" name="application_description" rows="3" required>{{ application.description }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="required_roles" class="form-label text-light">Required Roles (IDs)</label>
+                    <input type="text" class="form-control" id="required_roles" name="required_roles" value="{{ application.required_roles | join(', ') }}" placeholder="Comma-separated role IDs">
+                </div>
+                <div class="mb-3">
+                    <label for="application_channel" class="form-label text-light">Application Channel ID</label>
+                    <input type="number" class="form-control" id="application_channel" name="application_channel" value="{{ application.application_channel }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="pass_role" class="form-label text-light">Pass Role ID</label>
+                    <input type="number" class="form-control" id="pass_role" name="pass_role" value="{{ application.pass_role }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="fail_role" class="form-label text-light">Fail Role ID</label>
+                    <input type="number" class="form-control" id="fail_role" name="fail_role" value="{{ application.fail_role }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="status" class="form-label text-light">Status</label>
+                    <select class="form-select" id="status" name="status" required>
+                        <option value="open" {% if application.status == 'open' %}selected{% endif %}>Active</option>
+                        <option value="close" {% if application.status == 'close' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+
+                <h5 class="text-light">Questions</h5>
+                <div id="questions-container">
+                    {% for question in application.questions %}
+                    <div class="mb-3 question-item">
+                        <input type="text" class="form-control" name="question" value="{{ question.question }}" placeholder="Question" required>
+                        <button type="button" class="btn btn-danger remove-question mt-2">Remove Question</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-primary" id="add-question">Add Question</button>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">Update Application</button>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+
+<script>
+    document.getElementById('add-question').addEventListener('click', function() {
+        const container = document.getElementById('questions-container');
+        const questionItem = document.createElement('div');
+        questionItem.className = 'mb-3 question-item';
+        questionItem.innerHTML = `
+            <input type="text" class="form-control" name="question" placeholder="Question" required>
+            <button type="button" class="btn btn-danger remove-question mt-2">Remove Question</button>
+        `;
+        container.appendChild(questionItem);
+    });
+
+    document.getElementById('questions-container').addEventListener('click', function(e){
+         if (e.target.classList.contains('remove-question')) {
+            e.target.parentElement.remove();
+        }
+    });
+</script>
+{% endblock %}

@@ -108,8 +108,15 @@ class Bot(commands.AutoShardedBot):
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
+        EXT_EXTENSIONS = ["utils.api"]
 
-   
+
+        for extension in EXT_EXTENSIONS:
+            try:
+                await self.load_extension(extension)
+                logging.info(f'Loaded extension {extension}.')
+            except Exception as e:
+                logging.error(f'Failed to load extension {extension}.', exc_info=True)
 
         for extension in Cogs:
             try:
@@ -124,6 +131,10 @@ class Bot(commands.AutoShardedBot):
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
                 logging.error(f'Failed to load extension {extension}.', exc_info=True)
+
+        #await self.load_extension("jishaku")
+
+        logging.info("Loaded all extensions.")
 
 
         logging.info("Connected to MongoDB")

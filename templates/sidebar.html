@@ -22,5 +22,26 @@
                 </li>
             </ul>
         </div>
+        <h6 class="mt-3 text-light" data-toggle="collapse" data-target="#applicationNav" aria-expanded="false" aria-controls="applicationNav" style="cursor: pointer;">
+            Applications
+        </h6>
+        <div class="collapse" id="applicationNav">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-light" href="{{url_for('create_application', guild_id=guild.id)}}">Create Application</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-light" href="{{url_for('applications', guild_id=guild.id)}}">Manage Applications</a>
+                </li>
+                <!--
+                <li class="nav-item">
+                    <a class="nav-link text-light" href="#">Application Settings</a>
+                </li>
+                -->
+                <li class="nav-item">
+                    <a class="nav-link text-light" href='{{url_for("application_logs", guild_id=guild.id)}}'>Application Logs</a>
+                </li>
+            </ul>
+        </div>
     </div>
 </nav>

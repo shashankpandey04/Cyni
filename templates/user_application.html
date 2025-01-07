@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}User Application | Cyni{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h4 class="h4 text-light">Application for {{ user_application.name }}</h4>
+            </div>
+
+            <!-- Application Details Card -->
+            <div class="card mb-4" style="background-color: #1a1a1a; border: 1px solid #f0ad4e;">
+                <div class="card-body">
+                    <h5 class="text-light">Application Details</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item" style="background-color: #1a1a1a; color: white;">
+                            <strong>Application Name:</strong> {{ application.name }}
+                        </li>
+                        <li class="list-group-item" style="background-color: #1a1a1a; color: white;">
+                            <strong>Description:</strong> {{ application.description }}
+                        </li>
+                        <li class="list-group-item" style="background-color: #1a1a1a; color: white;">
+                            <strong>Status:</strong> 
+                            {% if user_application.status == 'accepted' %}
+                                <span class="badge bg-success">Accepted</span>
+                            {% elif user_application.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Questions and Answers Card -->
+            <div class="card mb-4" style="background-color: #1a1a1a; border: 1px solid #f0ad4e;">
+                <div class="card-body">
+                    <h5 class="text-light">Questions and Answers</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for question in application.questions %}
+                        <li class="list-group-item" style="background-color: #1a1a1a; color: white;">
+                            <strong>Question:</strong> {{ question.question }}<br>
+                            <strong>Answer:</strong> {{ user_application.answers[loop.index0].answer }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Form for Adding Note and Updating Status -->
+            <form method="POST" class="mb-4">
+                <div class="mb-3">
+                    <label for="note" class="form-label text-light">Add a Note</label>
+                    <input type="text" name="note" class="form-control" placeholder="Add a note" required id="note">
+                </div>
+                <input type="hidden" name="application_id" value="{{ user_application.application_id }}">
+                <div class="mb-3">
+                    <label for="status" class="form-label text-light">Change Status</label>
+                    <select class="form-select" id="status" name="status" required>
+                        <option value="accepted">Accept</option>
+                        <option value="rejected">Reject</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">Update Status</button>
+            </form>
+        </main>
+    </div>
+</div>
+
+<!-- Style -->
+<style>
+    /* General card styling */
+    .card {
+        border-radius: 10px;
+        transition: none !important; /* Disable hover effects */
+    }
+
+    /* Styling for list items */
+    .list-group-item {
+        border: none;
+        padding: 0.75rem 1.25rem; /* Ensure consistent padding */
+    }
+
+    /* Badge styling for statuses */
+    .badge {
+        padding: 0.5em 1em; /* Add padding for better visibility */
+        font-size: 0.875rem; /* Ensure consistent size */
+    }
+
+    /* Button styling */
+    .btn-success {
+        background-color: #28a745;
+        border: none;
+        transition: background-color 0.3s;
+    }
+    .btn-success:hover {
+        background-color: #218838;
+    }
+
+    /* Ensure no hover transform for cards */
+    .card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+</style>
+{% endblock %}
