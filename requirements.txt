@@ -13,3 +13,5 @@ waitress
 requests
 python-decouple
 roblox
+fastapi
+uvicorn
