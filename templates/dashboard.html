@@ -5,9 +5,8 @@
 {% block content %}
 <div class="container py-5">
     {% if user_id %}
-        <h7 class="text-light">Welcome, {{ session['username'] }}!</h7>
-        <h1 class="display-4 text-light">Guilds</h1>
-        <p class="text-light">Select a guild to manage its settings.</p>
+        <h1 class="text-light">Hey there, @{{ session['username'] }}! 👋</h1>
+        <p class="text-light">Here are the guilds you are a member of:</p>
         <hr class="my-4" style="border-color: #f0ad4e;">
         <div class="row g-4">
             {% if user_guilds|length == 0 %}
@@ -16,27 +15,52 @@
                 </div>
             {% endif %}
             {% for guild in user_guilds %}
-                <div class="col-md-4">
-                    <div class="card shadow-lg h-100 text-center" style="animation: fadeIn 0.5s ease-out; background-color: #000;">
-                        <div class="card-body d-flex align-items-center">
-                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
-                                 alt="{{ guild.name }}'s icon" 
-                                 class="rounded-circle me-3" style="width: 60px; height: 60px;">
-                            <div class="flex-grow-1 text-start">
-                                <h5 class="card-title mb-0">{{ guild.name }}</h5>
-                                <div class="tags">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-lg h-100 text-center" style="animation: fadeIn 0.5s ease-out; background-color: #121212; border: 1px solid #444;">
+                        <div class="card-body d-flex align-items-center justify-content-between">
+                            <div class="d-flex flex-column align-items-start">
+                                <h5 class="card-title text-light">{{ guild.name }}</h5>
+                                <div class="tags mb-3">
                                     {% if guild.official %}
-                                        <span class="badge bg-primary position-relative tag" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="This is the official server of Cyni. This tag can't be requested.">💎 Official</span>
+                                        <div class="tag" data-bs-toggle="tooltip">
+                                            💎 Official
+                                            <div class="tag-popover">
+                                                <strong>Official Server</strong>
+                                                <p>CYNI Verified Community</p>
+                                                <p>
+                                                    This server has been thoroughly verified by the CYNI team and meets our highest standards of quality and trust.
+                                                </p>
+                                                <ul>
+                                                    <li>
+                                                        Official CYNI Verified Community
+                                                    </li>
+                                                    <li>
+                                                        Verified by CYNI & meets our highest standards of quality and trust
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
                                     {% endif %}
                                     {% if guild.affiliated %}
-                                        <span class="badge bg-success position-relative tag" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="This is an affiliated server of Cyni. It uses Cyni's services and gets priority support and other exclusive features.">🤝 Affiliated</span>
+                                        <div class="tag" data-bs-toggle="tooltip">
+                                            🤝 Affiliated
+                                            <div class="tag-popover">
+                                                <strong>Affiliated Server</strong>
+                                                <p>This is an affiliated server of Cyni.</p>
+                                                <ul>
+                                                    <li>Uses Cyni's services</li>
+                                                    <li>Gets priority support and exclusive features</li>
+                                                </ul>
+                                            </div>
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
-                            <a href="{{ url_for('guild', guild_id=guild.id) }}" class="btn btn-primary mt-3">Dashboard</a>
+                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
+                                alt="{{ guild.name }}'s icon" 
+                                class="rounded-circle" style="width: 80px; height: 80px;">
                         </div>
+                        <a href="{{ url_for('guild', guild_id=guild.id) }}" class="btn btn-primary mt-3">Dashboard</a>
                     </div>
                 </div>
             {% endfor %}
@@ -62,27 +86,71 @@
 
     .card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        border-color: #ff8282 !important;
+        border-radius: 12px;
     }
 
     .card:hover {
         transform: scale(1.05);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 10px 20px rgba(255, 255, 255, 0.2);
     }
-
-    .tags {
-        margin-top: 5px;
-    }
-
     .tag {
         font-size: 0.9rem;
         margin-right: 5px;
-        transition: transform 0.2s ease;
+        cursor: pointer;
+        color: #000000;
+        background-color: #ffff7d;
+        padding: 5px 10px;
+        border-radius: 12px;
+        display: inline-block;
+        position: relative;
+        transition: all 0.2s ease;
     }
 
     .tag:hover {
-        transform: scale(1.1);
+        background-color: #fffaa2;
+    }
+
+    .tag-popover {
+        position: absolute;
+        bottom: 130%; /* Position above the tag */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #1f1f1f;
+        color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        padding: 10px;
+        width: 280px;
+        font-size: 0.9rem;
+        z-index: 10;
+        display: none; /* Initially hidden */
+    }
+
+    /* Arrow for popover */
+    .tag-popover::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 8px;
+        border-style: solid;
+        border-color: #1f1f1f transparent transparent transparent;
+    }
+
+    /* Show popover on hover */
+    .tag:hover .tag-popover {
+        display: block;
+    }
+
+    .btn {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .btn:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
     }
 </style>
 

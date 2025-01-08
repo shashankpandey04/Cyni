@@ -6,12 +6,18 @@ import uvicorn
 import asyncio
 import logging
 from typing import Annotated
+import os
+from dotenv import load_dotenv
+
+# Load the environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 # Define the FastAPI app
 api = FastAPI()
 
+bot_token = os.getenv("PRODUCTION_TOKEN")
 
 # Data Model for Application Status
 class ApplicationStatus(BaseModel):
@@ -28,7 +34,7 @@ class ApplicationStatus(BaseModel):
 # Authorization validation function
 async def validate_authorization(bot, token: str):
     """Validate the authorization token."""
-    static_token = "YOUR_STATIC_TOKEN_HERE"
+    static_token = bot_token
     if token == static_token:
         return True
     return False

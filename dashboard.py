@@ -41,7 +41,8 @@ Session(app)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = 'Please log in to access this page.'
+
+bot_token = os.getenv("PRODUCTION_TOKEN")
 
 # User class
 class User(UserMixin):
@@ -637,7 +638,7 @@ def user_application(guild_id, application_id, user_id):
 
         response = requests.post(
             "http://127.0.0.1:5000/notify_user/",
-            headers={"Authorization": "YOUR_STATIC_TOKEN_HERE"},
+            headers={"Authorization": bot_token},
             json={
                 "guild_id": int(guild_id),
                 "user_id": int(user_id),
