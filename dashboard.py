@@ -1,4 +1,4 @@
-from flask import Flask, session, render_template, request, redirect, url_for, flash
+from flask import Flask, session, render_template, request, redirect, url_for, flash, jsonify
 from flask_session import Session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 import requests
@@ -12,6 +12,7 @@ from functools import wraps
 from waitress import serve
 from bson import ObjectId, Int64
 from cyni import bot, fetch_invite, bot_ready
+from utils.erm_api import *
 
 # Load environment variables
 load_dotenv()
@@ -21,6 +22,8 @@ DISCORD_API_BASE_URL = "https://discord.com/api"
 OAUTH_SCOPE = "identify guilds"
 MANAGE_MESSAGES_PERMISSION = 0x2000
 ADMINISTRATOR_PERMISSION = 0x8
+
+ERM_API_BASE_URL = "https://core.ermbot.xyz/"
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -41,8 +44,10 @@ Session(app)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message = "Logged in successfully."
+login_manager.login_message_category = "info"
 
-bot_token = os.getenv("PRODUCTION_TOKEN")
+bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
 
 # User class
 class User(UserMixin):
@@ -198,7 +203,9 @@ def dashboard():
                 "icon": guild["icon"],
                 "owner": guild["owner"],
                 "official": True if guild["id"] == official_guild_id else False,
-                "affiliated": True if guild["id"] in affiliated_guild_ids else False
+                "affiliated": True if guild["id"] in affiliated_guild_ids else False,
+                "admin": is_admin,
+                "moderator": has_manage_messages
             })
     
     session["guilds"] = user_guilds
@@ -530,9 +537,10 @@ def apply(guild_id, application_id):
             flash("You have already applied for this application.", "error")
             return redirect(url_for("dashboard"))
         
-        answers = request.form.getlist("answer")
+        answers = [request.form.get(f"answer_{i}") for i in range(1, len(application["questions"]) + 1)]
+        print(len(answers), len(application["questions"]))
         if len(answers) != len(application["questions"]):
-            flash("Please answer all the questions.", "error")
+            flash("Please answer all questions.", "error")
             return redirect(url_for("apply", guild_id=guild_id, application_id=application_id))
         
         application_data = {
@@ -636,20 +644,19 @@ def user_application(guild_id, application_id, user_id):
             {"$set": {"status": new_status}}
         )
 
-        response = requests.post(
-            "http://127.0.0.1:5000/notify_user/",
-            headers={"Authorization": bot_token},
-            json={
-                "guild_id": int(guild_id),
-                "user_id": int(user_id),
-                "application_name": application.get("name"),
-                "new_status": new_status,
-                "pass_role": application.get("pass_role"),
-                "fail_role": application.get("fail_role"),
-                "result_channel": application.get("application_channel"),
-                "note": request.form.get("note")
-            }
-        )
+        data = {
+            "guild_id": int(guild_id),
+            "user_id": str(user_id),
+            "application_name": application.get("name"),
+            "new_status": new_status,
+            "pass_role": application.get("pass_role"),
+            "fail_role": application.get("fail_role"),
+            "result_channel": application.get("application_channel"),
+            "note": request.form.get("note")
+        }
+        headers = {"Authorization": bot_token}
+        URL = 'http://127.0.0.1:5000/notify_user'
+        response = requests.post(URL, headers=headers, json=data)
 
         if response.status_code == 200:
             flash("Application status updated successfully.")
@@ -658,8 +665,127 @@ def user_application(guild_id, application_id, user_id):
 
         flash("Application status updated successfully.")
         return redirect(url_for("application_logs", guild_id=guild_id))
+    
+@app.route('/notifications/<guild_id>/<user_id>', methods=["GET"])
+@login_required
+def notifications(guild_id, user_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        return jsonify({"error": "Guild not found."}), 404
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
 
+    if str(user_id) != str(session["user_id"]):
+        return jsonify({
+            "title": "Unauthorized",
+            "message": "You are not authorized to view notifications for this user.",
+            "created_at": datetime.datetime.now().timestamp(),
+            "from": "System"
+        }), 403
+    
 
+    user_notifications = list(mongo_db["notifications"].find({
+        "user_id": str(user_id)
+    }))
+
+    notification_list = []
+    for notification in user_notifications:
+        notification_list.append({
+            "title": "Notification",
+            "message": notification["message"],
+            "created_at": notification["created_at"],
+            "from": notification.get("from", "System")
+        })
+
+    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+    if any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+        erm_api_key = sett.get("erm_api_key", None)
+        if erm_api_key:
+            all_shifts = get_all_shifts(erm_api_key, guild_id)
+            ongoing_shifts = ongoing_shifts_over_4_hours(all_shifts)
+            
+            if ongoing_shifts:
+                for user in ongoing_shifts:
+                    notification_list.append({
+                        "title": "Shift Grinding Alert",
+                        "message": f"{user['nickname']} is having a shift longer than 4 hours.",
+                        "created_at": datetime.datetime.now().timestamp(),
+                        "from": "ERM"
+                    })
+    return jsonify(notification_list)
+    
+@app.route('/erm/<guild_id>', methods=["GET"])
+@login_required
+def erm(guild_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+    if not any(role in [role.id for role in member.roles] for role in management_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
+    return render_template("erm.html", guild=guild)
+
+@app.route('/erm/authenticate/<guild_id>', methods=["GET", "POST"])
+@login_required
+def erm_authenticate(guild_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+    if not any(role in [role.id for role in member.roles] for role in management_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
+    if request.method == "GET":
+        return render_template("erm_authenticate.html", guild=guild)
+    
+    if request.method == "POST":
+            api_key = request.form.get("api_key")
+            url = "https://core.ermbot.xyz/api/v1/leaves"
+            headers = {
+                "Authorization": str(api_key),
+                "Guild": guild_id
+            }
+            print(headers)
+            response = requests.request("GET", url, headers=headers)
+            print(response.json())
+
+            if response.status_code == 200:
+                flash("Authentication successful.")
+                mongo_db["settings"].update_one(
+                    {"_id": guild.id},
+                    {"$set": {"erm_api_key": api_key}},
+                    upsert=True
+                )
+            else:
+                flash("Authentication failed.", "error")
+            return redirect(url_for("dashboard", guild_id=guild_id))
+
+    
+@app.route('/modpanel/<guild_id>', methods=["GET"])
+@login_required
+def mod_panel(guild_id):
+    flash("Moderation panel coming soon.", "info")
+    return redirect(url_for("dashboard", guild_id=guild_id))
+    
 @app.errorhandler(404)
 def page_not_found(e):
     flash("Page not found.", "error")

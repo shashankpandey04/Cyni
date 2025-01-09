@@ -8,6 +8,9 @@ import logging
 from typing import Annotated
 import os
 from dotenv import load_dotenv
+import datetime
+import pymongo
+import motor.motor_asyncio
 
 # Load the environment variables
 load_dotenv()
@@ -17,7 +20,14 @@ logger = logging.getLogger(__name__)
 # Define the FastAPI app
 api = FastAPI()
 
-bot_token = os.getenv("PRODUCTION_TOKEN")
+bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
+
+mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
+db = mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") else mongo["dev"]
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 # Data Model for Application Status
 class ApplicationStatus(BaseModel):
@@ -93,9 +103,14 @@ class APIRoutes:
         request: Request
     ):
         """Notify a user about their application status."""
+        logger.debug("Received POST request to notify user about application status.")
+        
         if not authorization:
+            logger.warning("Authorization header is missing.")
             raise HTTPException(status_code=401, detail="Invalid authorization")
-        if not await validate_authorization(self.bot, authorization):
+
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
             raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
 
         json_data = await request.json()
@@ -103,20 +118,23 @@ class APIRoutes:
 
         guild = self.bot.get_guild(status.guild_id)
         if not guild:
+            logger.error(f"Guild not found for ID: {status.guild_id}")
             raise HTTPException(status_code=404, detail="Guild not found")
 
         member = guild.get_member(status.user_id)
         if not member:
-            raise HTTPException(status_code=404, detail="User not found")
+            logger.error(f"User  not found for ID: {status.user_id} in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="User  not found")
 
         pass_role = guild.get_role(status.pass_role)
         fail_role = guild.get_role(status.fail_role)
 
         try:
             if status.new_status == "accepted" and pass_role:
-                await member.add_roles(pass_role, reason="Application accepted.")
+                logger.info(f"Notifying user {member.name} about application acceptance.")
                 embed = discord.Embed(
                     title="✅ Application Accepted",
+                    description=f"Congratulations! Your application has been accepted in **{guild.name}**.",
                     color=discord.Color.green(),
                 )
 
@@ -124,40 +142,54 @@ class APIRoutes:
                 embed.add_field(name="Note", value=status.note, inline=False)
                 embed.set_footer(text="Thank you for your application!", icon_url=guild.icon.url if guild.icon else "")
 
-                await member.send(
-                    embed=embed
-                )
+                await member.send(embed=embed)
+                logger.debug(f"Sent acceptance message to {member.name}.")
+
                 result_channel = guild.get_channel(status.result_channel)
                 if result_channel:
-                    await result_channel.send(
-                        f"{member.mention}",
-                        embed=embed
-                    )
+                    await result_channel.send(f"{member.mention}", embed=embed)
+                    logger.debug(f"Sent acceptance notification to result channel: {result_channel.name}.")
+                else:
+                    logger.warning(f"Result channel not found for ID: {status.result_channel}")
+
             elif status.new_status == "rejected" and fail_role:
-                await member.add_roles(fail_role, reason="Application rejected.")
+                logger.info(f"Notifying user {member.name} about application rejection.")
                 embed = discord.Embed(
                     title="❌ Application Rejected",
+                    description=f"Your application has been rejected in **{guild.name}**.",
                     color=discord.Color.red(),
                 )
 
                 embed.add_field(name="Application Name", value=status.application_name, inline=False)
                 embed.add_field(name="Note", value=status.note, inline=False)
                 embed.set_footer(text="Thank you for your application!", icon_url=guild.icon.url if guild.icon else "")
-                await member.send(
-                    embed=embed
-                )
+                await member.send(embed=embed)
+                logger.debug(f"Sent rejection message to {member.name}.")
+
                 result_channel = guild.get_channel(status.result_channel)
                 if result_channel:
-                    await result_channel.send(
-                        f"{member.mention}",
-                        embed=embed
-                    )
-            else:
-                raise HTTPException(status_code=400, detail="Invalid application status")
-        except Exception as e:
-            logger.error(f"Failed to notify user: {e}")
-            raise HTTPException(status_code=500, detail="Failed to process notification")
+                    await result_channel.send(f"{member.mention}", embed=embed)
+                    logger.debug(f"Sent rejection notification to result channel: {result_channel.name}.")
+                else:
+                    logger.warning(f"Result channel not found for ID: {status.result_channel}")
 
+            else:
+                logger.error("Invalid application status received.")
+                raise HTTPException(status_code=400, detail="Invalid application status")
+
+        except Exception as e:
+            logger.error(f"Failed to notify user: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to process notification")
+        
+        
+        notification_data = {
+            "user_id": status.user_id,
+            "title" : "Application Status Update",
+            "message": f"Your application for {status.application_name} has been {status.new_status} in {guild.name}.",
+            "created_at": str(datetime.datetime.now()),
+            "from": f"{guild.name}",
+        }
+        await db.notifications.insert_one(notification_data)
         return {"message": "Notification sent successfully"}
 
 

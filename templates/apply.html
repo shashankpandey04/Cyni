@@ -20,7 +20,7 @@
                 {% for question in application.questions %}
                     <div class="form-group mb-3">
                         <label class="text-light">{{ question.question }}</label>
-                        <input type="text" class="form-control" name="answer_{{ loop.index0 }}" required>
+                        <input type="text" class="form-control" name="answer_{{loop.index}}" required>
                     </div>
                 {% endfor %}
                 

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Authenticate ERM - {{ guild.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex align-items-center mb-4">
+                <img src="https://dbl-static.usercontent.prism.gg/avatars/978662093408591912/9927443fdcceaacb41684747a58bae7d.png?size=256" alt="ERM Logo" class="img-fluid rounded-circle me-3" style="max-height: 80px;">
+                <h1 class="text-light">Authenticate ERM for {{ guild.name }}</h1>
+            </div>
+            <p class="text-muted">Please enter your API key to authenticate with the ERM service.</p>
+
+            <form method="POST" class="bg-dark text-light p-4 rounded no-hover">
+                <div class="form-group">
+                    <label for="api_key" class="text-light">API Key</label>
+                    <input type="text" id="api_key" name="api_key" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-success mt-3">Authenticate</button>
+            </form>
+
+            <div class="mt-4">
+                <a href="{{ url_for('erm', guild_id=guild.id) }}" class="btn btn-secondary">Back to ERM</a>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}ERM x CYNI {% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex align-items-center mb-4">
+                <img src="https://dbl-static.usercontent.prism.gg/avatars/978662093408591912/9927443fdcceaacb41684747a58bae7d.png?size=256" alt="ERM Logo" class="img-fluid rounded-circle me-3" style="max-height: 80px;">
+                <h1 class="text-light">ERM for {{ guild.name }}</h1>
+            </div>
+            <p class="text-muted">Welcome to the ERM page for your guild. Here you can manage your settings and view important information.</p>
+            
+            <div class="card bg-dark text-light no-hover">
+                <div class="card-header">
+                    <h5>Guild Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Guild ID:</strong> {{ guild.id }}</p>
+                    <p><strong>Guild Owner:</strong> {{ guild.owner.name }}</p>
+                    <p><strong>Member Count:</strong> {{ guild.member_count }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="{{ url_for('erm_authenticate', guild_id=guild.id) }}" class="btn btn-primary">Authenticate ERM</a>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
