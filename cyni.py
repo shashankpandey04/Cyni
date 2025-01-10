@@ -120,6 +120,8 @@ class Bot(commands.AutoShardedBot):
 
         for extension in Cogs:
             try:
+                if extension == "Cogs.Applications":
+                    continue
                 await self.load_extension(extension)
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
