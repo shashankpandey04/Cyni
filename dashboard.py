@@ -778,7 +778,46 @@ def erm_authenticate(guild_id):
             else:
                 flash("Authentication failed.", "error")
             return redirect(url_for("dashboard", guild_id=guild_id))
-
+    
+@app.route('/erm/shifts/<guild_id>', methods=["GET"])
+@login_required
+def erm_shifts(guild_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+    if not any(role in [role.id for role in member.roles] for role in management_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
+    erm_api_key = sett.get("erm_api_key", None)
+    if not erm_api_key:
+        flash("Please authenticate with ERM first.", "error")
+        return redirect(url_for("erm_authenticate", guild_id=guild_id))
+    
+    all_shifts = get_all_shifts(erm_api_key, guild_id)
+    data = {}
+    for shift in all_shifts['data']:
+        username = shift['username']
+        if username not in data:
+            user_id = shift['user_id']
+            data[username] = {
+                'username': username,
+                'nickname': shift['nickname'],
+                'user_id': user_id,
+                'total_shift_time': total_shift_time(username, all_shifts),
+                'alert': ongoing_shift_more_than4h(username, all_shifts),
+                'thumbnail': get_roblox_thumbnail(user_id)
+            }
+    return render_template("erm_shifts.html", guild=guild, data=data)
     
 @app.route('/modpanel/<guild_id>', methods=["GET"])
 @login_required

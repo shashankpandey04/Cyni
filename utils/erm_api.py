@@ -117,3 +117,57 @@ def ongoing_shifts_over_1_minute(data):
                 })
 
     return ongoing_users
+
+def ongoing_shift_more_than4h(username: str, data: dict) -> bool:
+    """
+    Check if there are any ongoing shifts longer than 4 hours.
+    :param username: The username of the user.
+    :param data: The data containing the shifts.
+    :return: True if there is any ongoing shift longer than 4 hours, False otherwise.
+    """
+    for shift in data['data']:
+        if shift['username'] == username and shift['end_epoch'] == 0:
+            duration = time.time() - shift['start_epoch']
+            if duration > 14400:
+                return f"{username} has been working for {format_duration(duration)}."
+
+    return f"No Alert for {username}."
+
+def total_shift_time(username: str, data: dict) -> str:
+    """
+    Calculate the total shift time for a given user.
+    :param username: The username of the user.
+    :param data: The data containing the shifts.
+    :return: The total shift time in the format 'X hours Y minutes'.
+    """
+    total_duration = 0
+
+    for shift in data['data']:
+        if shift['username'] == username and shift['end_epoch'] != 0:
+            total_duration += shift['end_epoch'] - shift['start_epoch']
+
+    return format_duration(total_duration)
+
+def get_roblox_thumbnail(user_id: str) -> str:
+    """
+    Get the Roblox thumbnail URL for a user.
+    """
+    try:
+        response = requests.get(f'https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds={user_id}&size=420x420&format=Png&isCircular=true')
+        response.raise_for_status()
+
+        data = response.json()
+        print(data)
+        
+        if 'data' in data and len(data['data']) > 0:
+            image_url = data['data'][0]['imageUrl']
+            return image_url
+        else:
+            URL = 'https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=1&size=420x420&format=Png&isCircular=true'
+            imageURL = requests.get(URL).json()['data'][0]['imageUrl']
+            return imageURL
+
+    except requests.exceptions.RequestException as e:
+        return f"An error occurred: {e}"
+    except (IndexError, KeyError) as e:
+        return "An unexpected error occurred while processing the response."

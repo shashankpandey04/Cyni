@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}ERM Shifts | CYNI {% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h4 class="h4 text-light">ERM Shifts</h4>
+            </div>
+
+            <div class="row">
+                {% if data %}
+                    {% for username, user_data in data.items() %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px;">
+                            <div class="card-body position-relative">
+                                <img src="{{ user_data.thumbnail }}" alt="Thumbnail" 
+                                     class="position-absolute rounded-circle" 
+                                     style="width: 60px; height: 60px; top: 10px; right: 10px; border: 2px solid #f0ad4e;">
+            
+                                <h5 class="card-title">{{ user_data.nickname }}</h5>
+                                <p class="card-text">
+                                    <strong>Username:</strong> {{ user_data.username }}<br>
+                                    <strong>User ID:</strong> {{ user_data.user_id }}<br>
+                                    <strong>Total Shift Time:</strong> {{ user_data.total_shift_time }}<br>
+                                    <strong>Alert:</strong> 
+                                    {% if user_data.alert %}
+                                        <span class="badge bg-danger">Ongoing Shift > 4h</span>
+                                    {% else %}
+                                        <span class="badge bg-success">No Alerts</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-light">No user shift data available.</p>
+                {% endif %}
+            </div>
+            
+        </main>
+    </div>
+</div>
+{% endblock %}
