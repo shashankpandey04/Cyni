@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Moderation Panel | Cyni{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'mod_sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <!-- Animated Header -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom animate__animated animate__fadeIn">
+                <h4 class="h4 text-light">Moderation Panel</h4>
+            </div>
+
+            <!-- Animated Cards Section -->
+            <div class="row animate__animated animate__fadeInUp">
+                <div class="col-md-4 mb-4">
+                    <div class="card bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px;">
+                        <div class="card-body text-center">
+                            <i class="bi bi-people-fill text-warning mb-3" style="font-size: 2rem;"></i>
+                            <h5 class="card-title">Manage Members</h5>
+                            <p class="card-text">View guild members.</p>
+                            <a href="{{url_for('view_members',guild_id=guild.id)}}" class="btn btn-outline-warning">View Members</a>
+                        </div>
+                    </div>
+                </div>
+                <!--
+                <div class="col-md-4 mb-4">
+                    <div class="card bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px;">
+                        <div class="card-body text-center">
+                            <i class="bi bi-shield-fill-check text-success mb-3" style="font-size: 2rem;"></i>
+                            <h5 class="card-title">Roles & Permissions</h5>
+                            <p class="card-text">Set and update role permissions.</p>
+                            <a href="#" class="btn btn-outline-success">Manage Roles</a>
+                        </div>
+                    </div>
+                </div>
+                -->
+                <div class="col-md-4 mb-4">
+                    <div class="card bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px;">
+                        <div class="card-body text-center">
+                            <i class="bi bi-hammer text-danger mb-3" style="font-size: 2rem;"></i>
+                            <h5 class="card-title">Moderation Logs</h5>
+                            <p class="card-text">Review moderation activity.</p>
+                            <a href="{{url_for('mod_logs',guild_id=guild.id)}}" class="btn btn-outline-danger">View Logs</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

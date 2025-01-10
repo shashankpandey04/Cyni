@@ -37,7 +37,6 @@ app.config['SESSION_TYPE'] = 'mongodb'
 app.config['SESSION_MONGODB'] = mongo_client
 app.config['SESSION_MONGODB_DB'] = mongo_db.name
 app.config['SESSION_USE_SIGNER'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(hours=48)  # Set session lifetime to 48 hours
 Session(app)
 
 # Initialize Flask-Login
@@ -759,14 +758,13 @@ def erm_authenticate(guild_id):
     
     if request.method == "POST":
             api_key = request.form.get("api_key")
-            url = "https://core.ermbot.xyz/api/v1/leaves"
+            url = "https://core.ermbot.xyz/api/v1/shifts"
             headers = {
                 "Authorization": str(api_key),
                 "Guild": guild_id
             }
-            print(headers)
             response = requests.request("GET", url, headers=headers)
-            print(response.json())
+            #print(response.json())
 
             if response.status_code == 200:
                 flash("Authentication successful.")
@@ -818,13 +816,233 @@ def erm_shifts(guild_id):
                 'thumbnail': get_roblox_thumbnail(user_id)
             }
     return render_template("erm_shifts.html", guild=guild, data=data)
+
+@app.route('/erm/shifts/<guild_id>/<username>', methods=["GET"])
+@login_required
+def erm_user_shifts(guild_id, username):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild.", "error")
+        return redirect(url_for("dashboard"))
     
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+    if not any(role in [role.id for role in member.roles] for role in management_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
+    erm_api_key = sett.get("erm_api_key", None)
+    if not erm_api_key:
+        flash("Please authenticate with ERM first.", "error")
+        return redirect(url_for("erm_authenticate", guild_id=guild_id))
+    
+    user_shifts = get_user_shifts(username, guild_id, erm_api_key)
+    data = format_shift_data(user_shifts)
+    return render_template("erm_user_shifts.html", guild=guild, data=data)
+
+
 @app.route('/modpanel/<guild_id>', methods=["GET"])
 @login_required
 def mod_panel(guild_id):
-    flash("Moderation panel coming soon.", "info")
-    return redirect(url_for("dashboard", guild_id=guild_id))
+    sett = mongo_db["settings"].find_one({"_id": int(guild_id)}) or {}
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
     
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
+    if not any(role in [role.id for role in member.roles] for role in staff_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+
+    return render_template("mod_panel.html", guild=guild, users=guild.members)
+
+@app.route('/modpanel/<guild_id>/modlogs', methods=["GET", "POST"])
+@login_required
+def mod_logs(guild_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    if not any(role in [role.id for role in member.roles] for role in staff_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
+    # Pagination logic
+    page = int(request.args.get("page", 1))  # Default to page 1
+    per_page = 10  # Number of logs per page
+    logs_cursor = list(mongo_db["warnings"].find({"guild_id": int(guild_id)}))
+    total_logs = len(logs_cursor)  # Total number of logs
+    total_pages = (total_logs + per_page - 1) // per_page  # Calculate total pages
+    
+    # Get logs for the current page
+    logs = logs_cursor[(page - 1) * per_page: page * per_page]
+    
+    if request.method == "GET":
+        return render_template(
+            "mod_logs.html", 
+            guild=guild, 
+            logs=logs, 
+            total_pages=total_pages, 
+            current_page=page
+        )
+    
+    if request.method == "POST":
+        user_id = request.form.get("user_id")
+        reason = request.form.get("reason")
+        case_id = request.form.get("case_id")
+        
+        if not user_id or not reason:
+            flash("Please provide a user ID and reason.", "error")
+            return redirect(url_for("mod_logs", guild_id=guild_id))
+        
+        doc = mongo_db['warnings'].find_one(
+            {
+                "guild_id": int(guild_id),
+                "user_id": user_id,
+                "case_id": int(case_id)
+            }
+        )
+        if doc:
+            if status == 'void':
+                doc['active'] = False
+                doc['void'] = True
+            else:
+                doc['active'] = True
+                doc['void'] = False
+            mongo_db['warnings'].update_one(
+                {"_id": doc["_id"]},
+                {"$set": doc}
+            )
+            flash("Warning updated successfully.")
+        else:
+            flash("Warning not found.", "error")
+        
+        return redirect(url_for("mod_logs", guild_id=guild_id))
+
+from flask import request
+
+@app.route('/modpanel/<guild_id>/members', methods=["GET", "POST"])
+@login_required
+def view_members(guild_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
+    
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild.", "error")
+        return redirect(url_for("dashboard"))
+
+    if not any(role in [role.id for role in member.roles] for role in staff_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+
+    members = guild.members
+
+    # Apply filtering if POST request
+    if request.method == "POST":
+        search_query = request.form.get("search_query", "")
+        access_filter = request.form.get("access_filter", "all")
+
+        # Filter by username or user ID
+        if search_query:
+            members = [m for m in members if search_query.lower() in m.name.lower() or search_query in str(m.id)]
+
+        # Filter by role
+        if access_filter != "all":
+            members = [m for m in members if any(role.name.lower() == access_filter.lower() for role in m.roles)]
+
+    # Pagination - 10 members per page
+    page = request.args.get('page', 1, type=int)
+    members_per_page = 10
+    members_paginated = members[(page - 1) * members_per_page:page * members_per_page]
+
+    return render_template("view_members.html", guild=guild, members=members_paginated, total_pages=(len(members) // members_per_page) + 1, current_page=page)
+
+@app.route('/view_profile/<guild_id>/<user_id>', methods=["GET"])
+@login_required
+def view_profile(guild_id, user_id):
+    # Get the guild object
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
+
+    # Get the member object from the guild
+    member = guild.get_member(int(user_id))
+    if not member:
+        flash("User not found in this guild.", "error")
+        return redirect(url_for("view_members", guild_id=guild_id))  # Redirect to member list if not found
+    
+    if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in staff_roles):
+        flash("You do not have the required permissions to view this profile.", "error")
+        return redirect(url_for("view_members", guild_id=guild_id))
+
+    member_roles = [role.name for role in member.roles]
+    join_date = member.joined_at.strftime('%Y-%m-%d')
+
+    return render_template("view_profile.html", guild=guild, member=member, roles=member_roles, join_date=join_date)
+
+@app.route('/modpanel/<guild_id>/<user_id>/modlogs/update', methods=["POST"])
+@login_required
+def update_mod_log(guild_id):
+
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        return jsonify({"success": False, "error": "Guild not found."})
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        return jsonify({"success": False, "error": "You are not a member of this guild."})
+    
+    if not any(role in [role.id for role in member.roles] for role in staff_roles):
+        return jsonify({"success": False, "error": "You do not have the required permissions to access this page."})
+    
+    data = request.json
+    log_id = data.get("log_id")
+    reason = data.get("reason")
+    status = data.get("status")
+    
+    if not log_id or not reason or status not in ["active", "void"]:
+        return jsonify({"success": False, "error": "Invalid data"})
+    
+    log = mongo_db["warnings"].find_one({"_id": ObjectId(log_id), "guild_id": int(guild_id)})
+    if not log:
+        return jsonify({"success": False, "error": "Log not found"})
+    
+    log["reason"] = reason
+    log["active"] = (status == "active")
+    mongo_db["warnings"].update_one({"_id": log["_id"]}, {"$set": log})
+    
+    return jsonify({"success": True})
+
 @app.errorhandler(404)
 def page_not_found(e):
     flash("Page not found.", "error")

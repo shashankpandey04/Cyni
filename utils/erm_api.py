@@ -1,5 +1,6 @@
 import requests
 import time
+from datetime import datetime
 
 GET_ALL_SHIFTS = 'https://core.ermbot.xyz/api/v1/shifts'
 SEARCH_SHIFTS = 'https://core.ermbot.xyz/api/v1/shifts/search'
@@ -11,7 +12,15 @@ def format_duration(seconds: int) -> str:
     """
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
-    return f"{hours} hours {minutes} minutes"
+    second = int(seconds % 60)
+    time_string = ""
+    if hours > 0:
+        time_string += f"{hours} hours "
+    if minutes > 0:
+        time_string += f"{minutes} minutes "
+    if second > 0:
+        time_string += f"{second} seconds"
+    return time_string
 
 def get_user_shifts(username: str, guild_id: str, erm_token: str) -> dict:
     headers = {
@@ -129,9 +138,9 @@ def ongoing_shift_more_than4h(username: str, data: dict) -> bool:
         if shift['username'] == username and shift['end_epoch'] == 0:
             duration = time.time() - shift['start_epoch']
             if duration > 14400:
-                return f"{username} has been working for {format_duration(duration)}."
+                return True
 
-    return f"No Alert for {username}."
+    return False
 
 def total_shift_time(username: str, data: dict) -> str:
     """
@@ -157,17 +166,42 @@ def get_roblox_thumbnail(user_id: str) -> str:
         response.raise_for_status()
 
         data = response.json()
-        print(data)
         
         if 'data' in data and len(data['data']) > 0:
             image_url = data['data'][0]['imageUrl']
             return image_url
         else:
-            URL = 'https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=1&size=420x420&format=Png&isCircular=true'
-            imageURL = requests.get(URL).json()['data'][0]['imageUrl']
-            return imageURL
+            return 'https://tr.rbxcdn.com/180DAY-f37f4fe7dbc6d6a1511c556b1c962a95/420/420/Image/Webp/noFilter'
 
     except requests.exceptions.RequestException as e:
         return f"An error occurred: {e}"
     except (IndexError, KeyError) as e:
         return "An unexpected error occurred while processing the response."
+
+
+def format_shift_data(user_shifts):
+    """
+    Format the user shifts data into the desired example format.
+    Each entry contains total_duration, total_moderations, and shift_type.
+    """
+    formatted_data = []
+
+    for shift in user_shifts['data']:
+        if shift['end_epoch'] != 0:
+            duration_seconds = shift['end_epoch'] - shift['start_epoch']
+            total_duration = format_duration(duration_seconds)
+        else:
+            total_duration = "Ongoing"
+
+        total_moderations = len(shift['moderations'])
+
+        formatted_data.append({
+            'username': shift['username'],
+            'user_id': shift['user_id'],
+            'total_duration': total_duration,
+            'total_moderations': total_moderations,
+            'shift_type': shift['type_'],
+            'thumbnail': get_roblox_thumbnail(shift['user_id']),
+        })
+
+    return formatted_data

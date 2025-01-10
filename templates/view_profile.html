@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile | Cyni{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'mod_sidebar.html' %}
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h4 class="h4 text-light">User Profile: {{ member.name }}</h4>
+            </div>
+
+            <!-- Profile Information -->
+            <div class="card bg-dark text-light mb-4" style="border: 1px solid #f0ad4e; border-radius: 10px;">
+                <div class="card-header">
+                    <h5 class="card-title">Profile Details</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>User ID:</strong> {{ member.id }}</p>
+                    <p><strong>Username:</strong> {{ member.name }}</p>
+                    <p><strong>Join Date:</strong> {{ join_date }}</p>
+                    <p><strong>Roles:</strong></p>
+                    <ul>
+                        {% for role in roles %}
+                            <li>{{ role }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- More Profile Actions (if needed) -->
+            <div class="text-center">
+                <a href="{{ url_for('view_members', guild_id=guild.id) }}" class="btn btn-outline-warning">Back to Members List</a>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

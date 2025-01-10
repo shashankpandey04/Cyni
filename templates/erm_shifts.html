@@ -35,6 +35,7 @@
                                     {% else %}
                                         <span class="badge bg-success">No Alerts</span>
                                     {% endif %}
+                                    <a href="{{ url_for('erm_user_shifts', guild_id=guild.id, username=user_data.username) }}" class="btn btn-sm btn-outline-warning float-end">View Shifts</a>
                                 </p>
                             </div>
                         </div>

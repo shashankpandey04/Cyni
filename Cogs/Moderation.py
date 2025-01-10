@@ -36,10 +36,7 @@ class Moderation(commands.Cog):
                     color = RED_COLOR
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -54,46 +51,55 @@ class Moderation(commands.Cog):
                     color = RED_COLOR
                 )
             )
-        user_warnings = await self.warnings.find_by_id(f"{ctx.guild.id}-{member.id}")
-        if not user_warnings:
-            user_warnings = warning.copy()
-            user_warnings["_id"] = f"{ctx.guild.id}-{member.id}"
 
-        user_warnings["warnings"].append({
-            "reason": reason,
-            "moderator": ctx.author.id,
-            "timestamp": f"{ctx.message.created_at}"
-        })
-        user_warnings["_id"] = f"{ctx.guild.id}-{member.id}"
-        await self.warnings.update_by_id(user_warnings)
+        total_warnings = await self.warnings.find(
+            {
+                'guild_id': ctx.guild.id,
+            }
+        )
+        total_warnings = len(total_warnings)
+
+        doc ={
+            'guild_id': ctx.guild.id,
+            'user_id': member.id,
+            'reason': reason,
+            'moderator_id': ctx.author.id,
+            'timestamp': datetime.now().timestamp(),
+            'case_id': total_warnings + 1,
+            'active': True,
+            'void': False,
+            'type': 'warn',
+        }            
+
+        await self.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
-                description = f"<:moderation:1268850116798844969> {member.mention} has been warned for `{reason}`.\nCase ID: {len(user_warnings['warnings'])}",
+                description = f"<:moderation:1268850116798844969> {member.mention} has been warned for `{reason}`.\nCase ID: {total_warnings + 1}",
                 color = GREEN_COLOR
             )
         )
         await member.send(
             embed = discord.Embed(
-                title = f"You have been warned in {ctx.guild.name}",
-                description = f"Reason: {reason}\n",
-                color = GREEN_COLOR
+                description = f"You have been warned in **{ctx.guild.name}**\n\n**Case ID:** {total_warnings + 1}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                color = RED_COLOR
             )
         )
-        try:
-            log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            log_channel = None
-        if log_channel:
+        log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if log_channel != 0:
             await log_channel.send(
                 embed = discord.Embed(
-                    title = "Warning",
-                    description = f"**User:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
+                    title = f"Case {total_warnings + 1} | Warn",
+                    description = f"**User:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
                     color = GREEN_COLOR
                 )
             )
         else:
+            embed = discord.Embed(
+                description = "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command.",
+                color = RED_COLOR
+            )
             await ctx.channel.send(
-                "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command."
+                embed = embed
             )
 
     @commands.hybrid_command(
@@ -112,114 +118,53 @@ class Moderation(commands.Cog):
             return await ctx.send(
                 embed = discord.Embed(
                     description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
-        module_enabled = settings["moderation_module"]["enabled"]
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
                     description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
-        user_warnings = await self.warnings.find_by_id(f"{ctx.guild.id}-{member.id}")
+        user_warnings = await self.warnings.find_one(
+            {
+                'guild_id': ctx.guild.id,
+                'user_id': member.id,
+            }
+        )
         if not user_warnings:
             return await ctx.send(
                 embed = discord.Embed(
                     description = f"<:moderation:1268850116798844969> {member.mention} has no warnings.",
-                    color = discord.Color.green()
+                    color = GREEN_COLOR
                 )
             )
         embed = discord.Embed(
-            title = f"Warnings for {member}",
-            color = discord.Color.blurple()
+            title = f"{member.name}'s Warnings",
+            description=" ",
+            color = RED_COLOR
         )
-        for index, warning in enumerate(user_warnings["warnings"]):
-            embed.add_field(
-                name = f"Case {index + 1}",
-                value = f"Reason: {warning['reason']}\nModerator: <@{warning['moderator']}>\nTimestamp: {warning['timestamp']}",
-                inline = False
-            )
+        for warning in user_warnings["warnings"]:
+            embed.description += f"**Case ID:** {warning['case_id']}\n> **Reason:** {warning['reason']}\n> **Moderator:** <@{warning['moderator_id']}>\n> **Type:** {warning['type']}\n> **Timestamp:** <t:{int(warning['timestamp'])}:R>\n\n"
+
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(
-        name="clearwarns",
-        aliases=["cw"],
+        name="void",
+        aliases=["v"],
         extras={"category": "Moderation"}
     )
     @commands.guild_only()
     @is_staff_or_management()
-    async def clearwarns(self, ctx, member: discord.Member):
-        """
-        Clear the warnings for a user.
-        """
-        if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Clear warnings for {member}")
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if not settings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
-                )
-            )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
-        if not module_enabled:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
-                    color = discord.Color.red()
-                )
-            )
-        user_warnings = await self.warnings.find_by_id(f"{ctx.guild.id}-{member.id}")
-        if not user_warnings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = f"<:moderation:1268850116798844969> {member.mention} has no warnings.",
-                    color = discord.Color.green()
-                )
-            )
-        await self.warnings.delete_by_id(f"{ctx.guild.id}-{member.id}")
-        await ctx.send(
-            embed = discord.Embed(
-                description = f"<:moderation:1268850116798844969> {member.mention}'s warnings have been cleared.",
-                color = discord.Color.green()
-            )
-        )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
-            await mod_log_channel.send(
-                embed = discord.Embed(
-                    title = "Warnings Cleared",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}",
-                    color = discord.Color.green()
-                )
-            )
-        else:
-            await ctx.channel.send(
-                "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command."
-            )
-
-    @commands.hybrid_command(
-        name="delwarn",
-        aliases=["dw"],
-        extras={"category": "Moderation"}
-    )
-    @commands.guild_only()
-    @is_staff_or_management()
-    async def delwarn(self, ctx, member: discord.Member, case: int):
+    async def delwarn(self, ctx, case: int):
         """
         Delete a warning for a user.
         """
         if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Delete warning {case} for {member}")
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Cleared warning {case}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -228,55 +173,51 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
                     description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
-        user_warnings = await self.warnings.find_by_id(f"{ctx.guild.id}-{member.id}")
-        if not user_warnings:
+        user_warning = await self.warnings.find_one(
+            {
+                'guild_id': ctx.guild.id,
+                'case_id': case,
+            }
+        )
+        if not user_warning:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = f"{member.mention} has no warnings.",
-                    color = discord.Color.green()
+                    description = f"<:moderation:1268850116798844969> Warning with case ID {case} not found.",
+                    color = GREEN_COLOR
                 )
             )
-        if case > len(user_warnings["warnings"]):
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = f"<:moderation:1268850116798844969> {member.mention} has no warning with case ID {case}.",
-                    color = discord.Color.red()
-                )
-            )
-        user_warnings["warnings"].pop(case - 1)
-        await self.warnings.update_by_id(user_warnings)
+        user_warning['active'] = False
+        user_warning['void'] = True
+        await self.warnings.update_by_id(user_warning)
         await ctx.send(
             embed = discord.Embed(
-                description = f"Warning {case} for {member.mention} has been deleted.",
-                color = discord.Color.green()
+                description = f"<:moderation:1268850116798844969> Warning with case ID {case} has been voided.",
+                color = GREEN_COLOR
             )
         )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
+        mod_log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "Warning Deleted",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Case ID:** {case}",
-                    color = discord.Color.green()
+                    title = "Case ID: {case} | Warning Voided",
+                    description = f"**User ID:** <@{user_warning['user_id']}>\n> **Moderator:** {ctx.author.mention}\n> **Reason:** Warning voided\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                    color = GREEN_COLOR
                 )
             )
         else:
             await ctx.channel.send(
-                "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command."
+                embed=discord.Embed(
+                    description = "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
             )
 
     @commands.hybrid_command(
@@ -299,15 +240,12 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
                     description = "Moderation module is not enabled.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
         if ctx.author.top_role.position <= member.top_role.position:
@@ -318,19 +256,40 @@ class Moderation(commands.Cog):
                     color=RED_COLOR
                 )
             )
+
+        total_warnings = await self.warnings.count(
+            {
+                'guild_id': ctx.guild.id,
+            }
+        )
+        
+        doc = {
+            'guild_id': ctx.guild.id,
+            'user_id': member.id,
+            'reason': reason,
+            'moderator_id': ctx.author.id,
+            'timestamp': datetime.now().timestamp(),
+            'case_id': total_warnings + 1,
+            'active': True,
+            'void': False,
+            'type': 'kick',
+        }
+        await self.warnings.insert_one(doc)
+
         await member.kick(reason=reason)
         await ctx.send(
-            f"{member.mention} has been kicked ✅."
+            embed = discord.Embed(
+                title=f"Case ID: {total_warnings + 1}",
+                description = f"{member.mention} has been kicked for `{reason}`.",
+                color = GREEN_COLOR
+            )
         )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
+        mod_log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "User Kicked",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
+                    title = "Case ID: {total_warnings + 1} | User Kicked",
+                    description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
                     color = discord.Color.red()
                 )
             )
@@ -359,14 +318,11 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
+                    description = f"Moderation module is not enabled.\nPlease set up the bot using the `/config` command.",
                     color = discord.Color.red()
                 )
             )
@@ -379,38 +335,66 @@ class Moderation(commands.Cog):
                 )
             )
         await member.ban(reason=reason)
+        
+        total_warnings = await self.warnings.count(
+            {
+                'guild_id': ctx.guild.id,
+            }
+        )
+
+        doc = {
+            'guild_id': ctx.guild.id,
+            'user_id': member.id,
+            'reason': reason,
+            'moderator_id': ctx.author.id,
+            'timestamp': datetime.now().timestamp(),
+            'case_id': total_warnings + 1,
+            'active': True,
+            'void': False,
+            'type': 'ban',
+        }
+        await self.warnings.insert_one(doc)
+
         await ctx.send(
             embed = discord.Embed(
+                title=f"Case ID: {total_warnings + 1}",
                 description = f"{member.mention} has been banned for `{reason}`.",
                 color = discord.Color.green()
             )
         )
 
         try:
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(
+                style=discord.ButtonStyle.link,
+                label="Appeal",
+                url=f"https://cyni.quprdigital.tk/banappeal/{ctx.guild.id}"
+            ))
             await member.send(
                 embed = discord.Embed(
                     title = f"You have been banned in {ctx.guild.name}",
-                    description = f"**Moderator:** {ctx.author.mention}\n**Reason:** {reason}\n**Guild ID:** {ctx.guild.id}",
-                    color = discord.Color.red()
-                )
+                    description = f"**Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                    color = RED_COLOR
+                ),
+                view=view
             )
         except discord.Forbidden:
             pass
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
+        mod_log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "User Banned",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
+                    title = "Case ID: {total_warnings + 1} | User Banned",
+                    description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
                     color = discord.Color.red()
                 )
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                embed=discord.Embed(
+                    description = "Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color = discord.Color.red()
+                )
             )
 
     @commands.hybrid_command(
@@ -419,7 +403,7 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
-    async def unban(self, ctx, userid:str, *, reason: str):
+    async def unban(self, ctx, userid:str, *, reason: str = "No reason provided."):
         """
         Unban a user.
         """
@@ -433,10 +417,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -447,27 +428,48 @@ class Moderation(commands.Cog):
         userid = int(userid)
         member = discord.Object(id=userid)
         await ctx.guild.unban(member, reason=reason)
+
+        total_warnings = await self.warnings.count(
+            {
+                'guild_id': ctx.guild.id,
+            }
+        )
+
+        doc = {
+            'guild_id': ctx.guild.id,
+            'user_id': userid,
+            'reason': reason,
+            'moderator_id': ctx.author.id,
+            'timestamp': datetime.now().timestamp(),
+            'case_id': total_warnings + 1,
+            'active': True,
+            'void': False,
+            'type': 'unban',
+        }
+        await self.warnings.insert_one(doc)
+
         await ctx.send(
             embed = discord.Embed(
+                title=f"Case ID: {total_warnings + 1}",
                 description = f"{member.mention} has been unbanned for `{reason}`.",
-                color = discord.Color.green()
+                color = GREEN_COLOR
             )
         )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
+        mod_log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "User Unbanned",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
-                    color = discord.Color.green()
+                    title = f"Case ID: {total_warnings + 1} | User Unbanned",
+                    description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                    color = GREEN_COLOR
                 )
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                embed=discord.Embed(
+                    description = "Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
             )
 
     @commands.hybrid_command(
@@ -491,15 +493,12 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
                     description = "Moderation module is not enabled.",
-                    color = discord.Color.red()
+                    color = RED_COLOR
                 )
             )
         time = parse_duration(self,time)
@@ -531,32 +530,51 @@ class Moderation(commands.Cog):
                     value=str(e)
                 )
             )
+        total_warnings = await self.warnings.count(
+            {
+                'guild_id': ctx.guild.id,
+            }
+        )
+        doc = {
+            'guild_id': ctx.guild.id,
+            'user_id': member.id,
+            'reason': reason,
+            'moderator_id': ctx.author.id,
+            'timestamp': datetime.now().timestamp(),
+            'case_id': total_warnings + 1,
+            'active': True,
+            'void': False,
+            'type': 'mute',
+        }
+
+        await self.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
+                title=f"Case ID: {total_warnings + 1}",
                 description = f"{member.mention} has been muted for `{reason}`.\nTime: {time}",
                 color = GREEN_COLOR
             )
         )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
+        mod_log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "User Muted",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
+                    title = f"Case ID: {total_warnings + 1} | User Muted",
+                    description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
                     color = RED_COLOR
                 )
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                embed=discord.Embed(
+                    description = "Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
             )
         return await member.send(
             embed = discord.Embed(
                 title = f"You have been muted in {ctx.guild.name}",
-                description = f"Reason: {reason}\nTime: {time}",
+                description = f"**Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
                 color = RED_COLOR
             )
         )
@@ -581,10 +599,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -601,27 +616,45 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
+        total_warnings = await self.warnings.count(
+            {
+                'guild_id': ctx.guild.id,
+            }
+        )
+        doc = {
+            'guild_id': ctx.guild.id,
+            'user_id': member.id,
+            'reason': reason,
+            'moderator_id': ctx.author.id,
+            'timestamp': datetime.now().timestamp(),
+            'case_id': total_warnings + 1,
+            'active': True,
+            'void': False,
+            'type': 'unmute',
+        }
+        await self.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
+                title=f"Case ID: {total_warnings + 1}",
                 description = f"{member.mention} has been unmuted for `{reason}`.",
-                color = discord.Color.green()
+                color = GREEN_COLOR
             )
         )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
+        mod_log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "User Unmuted",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
-                    color = discord.Color.green()
+                    title = f"Case ID: {total_warnings + 1} | User Unmuted",
+                    description = f"*User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                    color = GREEN_COLOR
                 )
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                embed=discord.Embed(
+                    description = "Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
             )
 
 
@@ -1220,10 +1253,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -1241,28 +1271,54 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
+        total_warnings = await self.warnings.count(
+            {
+                'guild_id': ctx.guild.id,
+            }
+        )
+        doc = {
+            'guild_id': ctx.guild.id,
+            'user_id': member.id,
+            'reason': reason,
+            'moderator_id': ctx.author.id,
+            'timestamp': datetime.now().timestamp(),
+            'case_id': total_warnings + 1,
+            'active': True,
+            'void': False,
+            'type': 'softban',
+        }
+        await self.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
+                title=f"Case ID: {total_warnings + 1}",
                 description = f"{member.mention} has been softbanned for `{reason}`.",
-                color = discord.Color.green()
+                color = GREEN_COLOR
             )
         )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
+        mod_log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "User Softbanned",
-                    description = f"**User ID:** {member.mention}\n**Moderator:** {ctx.author.mention}\n**Reason:** {reason}",
+                    title = f"Case ID: {total_warnings + 1} | User Softbanned",
+                    description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
                     color = discord.Color.red()
                 )
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                embed=discord.Embed(
+                    description = "Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
             )
+
+        await member.send(
+            embed = discord.Embed(
+                title = f"You have been softbanned in {ctx.guild.name}",
+                description = f"**Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                color = RED_COLOR
+            )
+        )
 
     @commands.hybrid_group(
         name="appeal",
