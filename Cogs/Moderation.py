@@ -257,11 +257,12 @@ class Moderation(commands.Cog):
                 )
             )
 
-        total_warnings = await self.warnings.count(
+        total_warnings = await self.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
         )
+        total_warnings = len(total_warnings)
         
         doc = {
             'guild_id': ctx.guild.id,
@@ -336,11 +337,12 @@ class Moderation(commands.Cog):
             )
         await member.ban(reason=reason)
         
-        total_warnings = await self.warnings.count(
+        total_warnings = await self.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
         )
+        total_warnings = len(total_warnings)
 
         doc = {
             'guild_id': ctx.guild.id,
@@ -429,11 +431,12 @@ class Moderation(commands.Cog):
         member = discord.Object(id=userid)
         await ctx.guild.unban(member, reason=reason)
 
-        total_warnings = await self.warnings.count(
+        total_warnings = await self.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
         )
+        total_warnings = len(total_warnings)
 
         doc = {
             'guild_id': ctx.guild.id,
@@ -530,11 +533,12 @@ class Moderation(commands.Cog):
                     value=str(e)
                 )
             )
-        total_warnings = await self.warnings.count(
+        total_warnings = await self.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
         )
+        total_warnings = len(total_warnings)
         doc = {
             'guild_id': ctx.guild.id,
             'user_id': member.id,
@@ -616,11 +620,12 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        total_warnings = await self.warnings.count(
+        total_warnings = await self.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
         )
+        total_warnings = len(total_warnings)
         doc = {
             'guild_id': ctx.guild.id,
             'user_id': member.id,
@@ -1271,11 +1276,12 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        total_warnings = await self.warnings.count(
+        total_warnings = await self.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
         )
+        total_warnings = len(total_warnings)
         doc = {
             'guild_id': ctx.guild.id,
             'user_id': member.id,
