@@ -221,6 +221,52 @@ class Moderation(commands.Cog):
             )
 
     @commands.hybrid_command(
+        name='case',
+        extras={"category": "Moderation"}
+    )
+    @commands.guild_only()
+    @is_staff_or_management()
+    async def case(self, ctx, case: int):
+        """
+        Get the details of a case.
+        """
+        settings = await self.bot.settings.find_by_id(ctx.guild.id)
+        if not settings:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "No settings found.\nPlease set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
+            )
+        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
+        if not module_enabled:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
+                    color = RED_COLOR
+                )
+            )
+        user_warning = await self.warnings.find_one(
+            {
+                'guild_id': ctx.guild.id,
+                'case_id': case,
+            }
+        )
+        if not user_warning:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = f"<:moderation:1268850116798844969> Warning with case ID {case} not found.",
+                    color = GREEN_COLOR
+                )
+            )
+        embed = discord.Embed(
+            title = f"Case ID: {case}",
+            description = f"**User:** <@{user_warning['user_id']}>\n> **Reason:** {user_warning['reason']}\n> **Moderator:** <@{user_warning['moderator_id']}>\n> **Type:** {user_warning['type']}\n> **Timestamp:** <t:{int(user_warning['timestamp'])}:R>",
+            color = YELLOW_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(
         name="kick",
         extras={"category": "Moderation"}
     )
