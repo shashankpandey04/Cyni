@@ -272,7 +272,141 @@ class APIRoutes:
         }
         await db.notifications.insert_one(notification_data)
         return {"message": "Notification sent successfully"}
+    
+    async def POST_loa_request(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Notify a user about their application status."""
+        logger.debug("Received POST request for LOA request.")
+        
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
 
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        json_data = await request.json()
+        user_id = json_data.get("user_id")
+        guild_id = json_data.get("guild_id")
+        loa_reason = json_data.get("loa_reason")
+        loa_start = json_data.get("loa_start")
+        loa_end = json_data.get("loa_end")
+
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            logger.error(f"Guild not found for ID: {guild_id}")
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        member = guild.get_member(user_id)
+        if not member:
+            logger.error(f"User  not found for ID: {user_id} in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="User  not found")
+
+        doc = await db.settings.find_one({"_id": guild_id})
+        if not doc:
+            logger.error(f"Settings not found for guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="Settings not found")
+        loa_channel = guild.get_channel(doc.get("loa_channel",{}).get("channel", None))
+        if loa_channel is None:
+            logger.error(f"LOA channel not found in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="LOA channel not found")
+        loa_start = datetime.datetime.strptime(loa_start, "%Y-%m-%d").timestamp()
+        loa_end = datetime.datetime.strptime(loa_end, "%Y-%m-%d").timestamp()
+        loa_doc = {
+            "user_id": user_id,
+            "guild_id": guild_id,
+            "loa_reason": loa_reason,
+            "loa_start": loa_start,
+            "loa_end": loa_end,
+            "status": "pending",
+            "approved_by": None,
+            "created_at": str(datetime.datetime.now()),
+        }
+        embed = discord.Embed(
+            title="Leave of Absence Request",
+            description=f"**{member.name}** has requested a leave of absence.",
+            color=discord.Color.blurple(),
+        )
+
+        embed.add_field(name="Reason", value=loa_reason, inline=False)
+        embed.add_field(name="Start Date", value=loa_start, inline=True)
+        embed.add_field(name="End Date", value=loa_end, inline=True)
+        embed.set_footer(text="Please review the request and take necessary actions.", icon_url=guild.icon.url if guild.icon else "")
+
+        await loa_channel.send(embed=embed)
+        logger.debug(f"Sent LOA request to {loa_channel.name}.")
+
+        return {"message": "LOA request sent successfully."}
+
+    async def POST_change_loa_status(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Change the status of a LOA request."""
+        logger.debug("Received POST request to change LOA status.")
+        
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        json_data = await request.json()
+        user_id = json_data.get("user_id")
+        guild_id = json_data.get("guild_id")
+        status = json_data.get("status")
+        approved_by = json_data.get("approved_by")
+
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            logger.error(f"Guild not found for ID: {guild_id}")
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        member = guild.get_member(user_id)
+        if not member:
+            logger.error(f"User  not found for ID: {user_id} in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="User  not found")
+
+        doc = await db.settings.find_one({"_id": guild_id})
+        if not doc:
+            logger.error(f"Settings not found for guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="Settings not found")
+        loa_channel = guild.get_channel(doc.get("loa_channel",{}).get("channel", None))
+        if loa_channel is None:
+            logger.error(f"LOA channel not found in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="LOA channel not found")
+        loa_doc = await db.loa.find_one({"user_id": user_id, "guild_id": guild_id, "status": "pending"})
+        if not loa_doc:
+            logger.error(f"LOA request not found for user: {member.name}")
+            raise HTTPException(status_code=404, detail="LOA request not found")
+        if status == "approved":
+            await db.loa.update_one({"user_id": user_id, "guild_id": guild_id, "status": "pending"}, {"$set": {"status": "approved", "approved_by": approved_by}})
+            
+            embed = discord.Embed(
+                title=f"LOA Approved in {guild.name}",
+                description=f"Your leave of absence request has been approved by {approved_by}.",
+                color=discord.Color.green(),
+            )
+            await member.send(embed=embed)
+
+        elif status == "rejected":
+            await db.loa.update_one({"user_id": user_id, "guild_id": guild_id, "status": "pending"}, {"$set": {"status": "rejected", "approved_by": approved_by}})
+            embed = discord.Embed(
+                title=f"LOA Rejected in {guild.name}",
+                description=f"Your leave of absence request has been rejected by {approved_by}.",
+                color=discord.Color.red(),
+            )
+            #send message to user
+            await member.send(embed=embed)
+
+        return {"message": "LOA status updated successfully."}
 
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):
