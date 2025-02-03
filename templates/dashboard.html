@@ -1,155 +1,196 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block title %}Dashboard | Cyni{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    {% if user_id %}
-        <h1 class="text-light">Hey there, @{{ session['username'] }}! 👋</h1>
-        <p class="text-light">Here are the guilds you are a member of:</p>
-        <hr class="my-4" style="border-color: #f0ad4e;">
-        <div class="row g-4">
-            {% if user_guilds|length == 0 %}
-                <div class="alert alert-warning" role="alert">
-                    You are not a member of any guilds.
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .welcome-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            color: linear-gradient(90deg, #7289da, #a855f7);
+        }
+
+        .welcome-text h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            color: linear-gradient(90deg, #7289da, #a855f7);
+        }
+
+        .login-cta {
+            text-align: center;
+            padding: 4rem 0;
+        }
+
+        .login-button {
+            background: linear-gradient(135deg, #7289da, #a855f7);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .login-button:hover {
+            transform: scale(1.05);
+        }
+
+        .guilds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .guild-card {
+            background-color: #1e1e1e;
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #2a2a2a;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .guild-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        .guild-card-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            background: linear-gradient(145deg, #2a2a2a, #1e1e1e);
+        }
+
+        .guild-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid #7289da;
+            object-fit: cover;
+        }
+
+        .guild-card-body {
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .guild-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .guild-tags {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 0 0.3rem;
+        }
+
+        .official-tag {
+            background-color: #ffd700;
+            color: #121212;
+        }
+
+        .affiliated-tag {
+            background-color: #4fc3f7;
+            color: #121212;
+        }
+
+        .guild-actions {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .dashboard-btn {
+            background-color: #7289da;
+            color: white;
+        }
+
+        .modpanel-btn {
+            background-color: #4a4a4a;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if user_id %}
+            <div class="welcome-header">
+                <div class="welcome-text">
+                    <h1>Hey there, @{{ session['username'] }}! 👋</h1>
+                    <p>Here are the guilds you're a part of</p>
                 </div>
-            {% endif %}
-            {% for guild in user_guilds %}
-                <div class="col-md-6 col-lg-4">
-                    <div class="card guild-card shadow-lg" style="animation: fadeIn 0.5s ease-out;">
-                        <div class="guild-card-header text-center" style="background-color: #121212;">
+            </div>
+
+            <div class="guilds-grid">
+                {% if user_guilds|length == 0 %}
+                    <div class="alert alert-warning">
+                        You are not a member of any guilds.
+                    </div>
+                {% endif %}
+
+                {% for guild in user_guilds %}
+                    <div class="guild-card">
+                        <div class="guild-card-header">
                             <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
                                  alt="{{ guild.name }}'s icon" 
-                                 class="rounded-circle guild-icon">
+                                 class="guild-icon">
                         </div>
-                        <div class="card-body">
-                            <h5 class="card-title text-center text-light">{{ guild.name }}</h5>
-                            <div class="tags text-center">
+                        <div class="guild-card-body">
+                            <div class="guild-name">{{ guild.name }}</div>
+                            <div class="guild-tags">
                                 {% if guild.official %}
-                                    <span class="badge official-tag">💎 Official</span>
+                                    <span class="tag official-tag">💎 Official</span>
                                 {% endif %}
                                 {% if guild.affiliated %}
-                                    <span class="badge affiliated-tag">🤝 Affiliated</span>
+                                    <span class="tag affiliated-tag">🤝 Affiliated</span>
                                 {% endif %}
                             </div>
-                            <div class="buttons mt-3 d-flex justify-content-center">
+                            <div class="guild-actions">
                                 {% if guild.admin %}
-                                    <a href="{{ url_for('guild', guild_id=guild.id) }}" class="btn btn-primary me-2">Dashboard</a>
-                                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="btn btn-secondary">Mod Panel</a>
+                                    <a href="{{ url_for('guild', guild_id=guild.id) }}" class="action-btn dashboard-btn">Dashboard</a>
+                                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="action-btn modpanel-btn">Mod Panel</a>
                                 {% elif guild.moderator %}
-                                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="btn btn-secondary">Mod Panel</a>
+                                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="action-btn modpanel-btn">Mod Panel</a>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="text-center mt-5" style="animation: fadeIn 1s ease;">
-            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Login with Discord</a>
-        </div>
-    {% endif %}
-</div>
-
-<style>
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .guild-card {
-        border-radius: 12px;
-        overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        background-color: #1a1a1a;
-        border: 1px solid #444;
-    }
-
-    .guild-card:hover {
-        transform: scale(1.05);
-        box-shadow: 0 10px 20px rgba(255, 255, 255, 0.2);
-    }
-
-    .guild-card-header {
-        padding: 20px;
-        background-color: #2c2c2c;
-    }
-
-    .guild-icon {
-        width: 100px;
-        height: 100px;
-        border: 3px solid #f0ad4e;
-    }
-
-    .card-title {
-        font-weight: bold;
-    }
-
-    .tags {
-        margin-top: 10px;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 5px 10px;
-        font-size: 0.9rem;
-        border-radius: 12px;
-        margin-right: 5px;
-        text-align: center;
-    }
-
-    .official-tag {
-        background-color: #ffe580;
-        color: #1a1a1a;
-    }
-
-    .affiliated-tag {
-        background-color: #80d4ff;
-        color: #1a1a1a;
-    }
-
-    .buttons .btn {
-        width: 45%;
-        border-radius: 20px;
-        font-weight: bold;
-    }
-
-    .btn-primary {
-        background-color: #007bff;
-        border-color: #007bff;
-    }
-
-    .btn-primary:hover {
-        background-color: #0056b3;
-        border-color: #0056b3;
-    }
-
-    .btn-secondary {
-        background-color: #6c757d;
-        border-color: #6c757d;
-    }
-
-    .btn-secondary:hover {
-        background-color: #565e64;
-        border-color: #565e64;
-    }
-</style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-            new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-    });
-</script>
-
-
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="login-cta">
+                <a href="{{ url_for('login') }}" class="login-button">Login with Discord</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
 {% endblock %}

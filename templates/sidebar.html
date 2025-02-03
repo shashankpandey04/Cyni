@@ -1,82 +1,117 @@
-<nav class="col-md-3 col-lg-2 d-md-block sidebar" style="background-color: #000; border-right: 1px solid #f0ad4e;">
+<nav class="col-md-3 col-lg-2 d-md-block sidebar" style="background-color: black; border-right: 1px solid #f0ad4e; padding-top: 20px;">
     <div class="position-sticky">
-        <div class="d-flex align-items-center mt-3">
+        <div class="d-flex align-items-center mt-3 mb-4">
             {% if 'username' in session %}
-            <button class="btn btn-outline-light me-2" id="notificationButton" onclick="fetchNotifications(); $('#notificationModal').modal('show');">
+            <button class="btn btn-outline-warning me-2" id="notificationButton" onclick="fetchNotifications(); $('#notificationModal').modal('show');">
                 <i class="fas fa-bell"></i>
             </button>
-            <span class="text-light">Notifications</span>
+            <span class="text-warning">Notifications</span>
             {% endif %}
         </div>
-        <p class="text-light text-left mt-3">
-            <a href="{{ url_for('dashboard') }}" class="text-light">Dashboard</a>
+        <p class="text-light mb-2">
+            <a href="{{ url_for('dashboard') }}" class="text-warning hover-link">Dashboard</a>
         </p>
-        <h6 class="mt-3 text-light" data-toggle="collapse" data-target="#modulesNav" aria-expanded="false" aria-controls="modulesNav" style="cursor: pointer;">
-            Modules Navigation
+        <p class="text-light mb-2">
+            <a class="text-warning hover-link" href="{{url_for('guild', guild_id=guild.id)}}">Guild Overview</a>
+        </p>
+        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#modulesNav" aria-expanded="false" aria-controls="modulesNav">
+            <i class="fas fa-cogs me-2"></i> Modules Navigation
         </h6>
         <div class="collapse" id="modulesNav">
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link text-light" href="{{url_for('guild', guild_id=guild.id)}}">Guild Overview</a>
+                    <a class="nav-link text-light hover-link" href="{{url_for('guild_settings_basics', guild_id=guild.id)}}">Basic Settings</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-light" href="{{url_for('guild_settings_basics', guild_id=guild.id)}}">Basic Settings</a>
+                    <a class="nav-link text-light hover-link" href="{{ url_for('anti_ping_settings', guild_id=guild.id) }}">Anti Ping</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-light" href="{{ url_for('anti_ping_settings', guild_id=guild.id) }}">Anti Ping</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light" href="{{ url_for('moderation_settings', guild_id=guild.id) }}">Moderation</a>
+                    <a class="nav-link text-light hover-link" href="{{ url_for('moderation_settings', guild_id=guild.id) }}">Moderation</a>
                 </li>
             </ul>
         </div>
-        <h6 class="mt-3 text-light" data-toggle="collapse" data-target="#applicationNav" aria-expanded="false" aria-controls="applicationNav" style="cursor: pointer;">
-            Applications
+
+        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#applicationNav" aria-expanded="false" aria-controls="applicationNav">
+            <i class="fas fa-file-alt me-2"></i> Applications
         </h6>
         <div class="collapse" id="applicationNav">
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link text-light" href="{{url_for('create_application', guild_id=guild.id)}}">Create Application</a>
+                    <a class="nav-link text-light hover-link" href="{{url_for('create_application', guild_id=guild.id)}}">Create Application</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-light" href="{{url_for('applications', guild_id=guild.id)}}">Manage Applications</a>
+                    <a class="nav-link text-light hover-link" href="{{url_for('applications', guild_id=guild.id)}}">Manage Applications</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-light" href='{{url_for("application_logs", guild_id=guild.id)}}'>Application Logs</a>
+                    <a class="nav-link text-light hover-link" href='{{url_for("application_logs", guild_id=guild.id)}}'>Application Logs</a>
                 </li>
             </ul>
         </div>
-        <h6 class="mt-3 text-light" data-toggle="collapse" data-target="#ERMNav" aria-expanded="false" aria-controls="ERMNav" style="cursor: pointer;">
-            ERM Panel
+
+        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#ERMNav" aria-expanded="false" aria-controls="ERMNav">
+            <i class="fas fa-user-lock me-2"></i> ERM Panel
         </h6>
         <div class="collapse" id="ERMNav">
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link text-light" href='{{url_for("erm_shifts", guild_id=guild.id)}}'>ERM Shifts</a>
+                    <a class="nav-link text-light hover-link" href='{{url_for("erm_shifts", guild_id=guild.id)}}'>ERM Shifts</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-light" href="{{url_for('erm_authenticate', guild_id=guild.id)}}">Authenticate ERM</a>
+                    <a class="nav-link text-light hover-link" href="{{url_for('erm_authenticate', guild_id=guild.id)}}">Authenticate ERM</a>
                 </li>
             </ul>
         </div>
+    <!--
+        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#CADNav" aria-expanded="false" aria-controls="CADNav">
+            <i class="fas fa-clipboard-list me-2"></i> CYNI CAD
+        </h6>
+        <div class="collapse" id="CADNav">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-light hover-link" href='#'>CAD Panel</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-light hover-link" href="#">Manage CAD</a>
+                </li>
+            </ul>
+        </div>
+    -->
     </div>
 </nav>
 
 <!-- Notification Modal -->
 <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" style="background-color: #000; color: #f0ad4e;">
-            <div class="modal-header">
-                <h5 class="modal-title" id="notificationModalLabel">Notifications</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-bottom border-secondary">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-bell-fill text-warning me-3" style="font-size: 1.5rem;"></i>
+                    <h5 class="modal-title" id="notificationModalLabel">Notifications</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <ul id="notificationList" class="list-unstyled"></ul>
+                <ul id="notificationList" class="list-group list-group-flush bg-dark">
+                    <!-- Notifications will be dynamically populated here -->
+                    <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>New Message</strong>
+                            <p class="text-muted mb-0">You have a new message from Support</p>
+                        </div>
+                        <span class="badge bg-warning text-dark rounded-pill">New</span>
+                    </li>
+                </ul>
+                <div id="noNotificationsMessage" class="text-center text-muted py-4 d-none">
+                    <i class="bi bi-inbox-fill" style="font-size: 3rem;"></i>
+                    <p class="mt-3">No notifications at the moment</p>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-outline-light" id="clearNotificationsBtn">Clear All</button>
             </div>
         </div>
     </div>
 </div>
-
 <script>
 function fetchNotifications() {
     const guildId = '{{ guild.id }}';
@@ -105,7 +140,7 @@ function fetchNotifications() {
             notificationList.innerHTML = ''; // Clear previous notifications
 
             if (data.length === 0) {
-                notificationList.innerHTML = '<li>No new notifications</li>';
+                notificationList.innerHTML = '<li class="text-warning">No new notifications</li>';
             } else {
                 data.forEach(notification => {
                     const listItem = document.createElement('li');
@@ -122,13 +157,21 @@ function fetchNotifications() {
 </script>
 
 <style>
+    .hover-link {
+        text-decoration: none;
+        color: #f0ad4e;
+    }
+    .hover-link:hover {
+        color: #ffcc00;
+    }
+
     .dropdown-content {
         position: absolute;
-        background-color: #000; /* Black background for the dropdown */
+        background-color: black;
         min-width: 160px;
         box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
         z-index: 1;
-        border-radius: 5px; /* Optional: rounded corners */
+        border-radius: 5px;
     }
     .dropdown-content ul {
         list-style-type: none;
@@ -136,16 +179,13 @@ function fetchNotifications() {
         margin: 0;
     }
     .dropdown-content li {
-        padding: 12px 16px; /* Increased padding for better spacing */
+        padding: 12px 16px;
         text-decoration: none;
         display: block;
-        border: 1px solid #f0ad4e; /* Gold border for each notification */
-        margin: 5px 0; /* Space between notifications */
-        background-color: #000; /* Ensure background is black */
-        color: #f0ad4e; /* Gold text color */
-        border-radius: 5px ; /* Optional: rounded corners for notifications */
-    }
-    .dropdown-content li:hover {
-        background-color: #333; /* Darker background on hover */
+        border: 1px solid #f0ad4e;
+        margin: 5px 0;
+        background-color: black;
+        color: #f0ad4e;
+        border-radius: 5px;
     }
 </style>

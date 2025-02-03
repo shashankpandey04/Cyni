@@ -4,7 +4,7 @@
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
             <img src="{{ url_for('static', filename='images/cyni.png') }}" 
                  alt="Cyni Logo" class="navbar-logo me-2" style="max-height: 30px;">
-            <span>CYNI</span>
+            <span class="fs-4">CYNI</span>
         </a>
 
         <!-- Toggler for modal view -->
@@ -17,36 +17,105 @@
 <!-- Modal for Navigation -->
 <div class="modal fade" id="navbarModal" tabindex="-1" aria-labelledby="navbarModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
-        <div class="modal-content bg-dark text-white">
+        <div class="modal-content bg-dark text-white border-0 rounded-3">
             <div class="modal-header border-0">
                 <h5 class="modal-title" id="navbarModalLabel">Navigation</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body d-flex flex-column align-items-center justify-content-center">
-                <ul class="list-unstyled text-center">
-                    <li class="mb-3">
-                        <a class="nav-link fs-4 text-white" href="{{ url_for('index') }}">Home</a>
-                    </li>
-                    <li class="mb-3">
-                        <a class="nav-link fs-4 text-white" href="{{ url_for('docs') }}">Docs</a>
-                    </li>
-                    {% if 'username' in session %}
-                    <li class="mb-3">
-                        <a class="nav-link fs-4 text-white" href="{{ url_for('dashboard') }}">Dashboard</a>
-                    </li>
-                    <li class="mb-3">
-                        <a class="nav-link fs-4 text-white" href="{{ url_for('logout') }}">Logout</a>
-                    </li>
-                    {% else %}
-                    <li class="mb-3">
-                        <a class="nav-link fs-4 text-white" href="{{ url_for('login') }}">Login</a>
-                    </li>
-                    {% endif %}
-                    <li class="mb-3">
-                        <a class="nav-link fs-4 text-white" href="http://discord.gg/J96XEbGNDm" target="_blank" rel="noopener noreferrer">Support</a>
-                    </li>
-                </ul>
+            <div class="modal-body">
+                <div class="d-flex flex-column align-items-center justify-content-center">
+                    <ul class="list-unstyled w-100 text-center p-0">
+                        <li class="mb-3">
+                            <a class="nav-link fs-3 text-light p-2" href="{{ url_for('index') }}">
+                                <i class="fas fa-home me-2"></i> Home
+                            </a>
+                        </li>
+                        <li class="mb-3">
+                            <a class="nav-link fs-3 text-light p-2" href="{{ url_for('docs') }}">
+                                <i class="fas fa-book me-2"></i> Docs
+                            </a>
+                        </li>
+                        {% if 'username' in session %}
+                        <li class="mb-3">
+                            <a class="nav-link fs-3 text-light p-2" href="{{ url_for('dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="mb-3">
+                            <a class="nav-link fs-3 text-light p-2" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="mb-3">
+                            <a class="nav-link fs-3 text-light p-2" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt me-2"></i> Login
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="mb-3">
+                            <a class="nav-link fs-3 text-light p-2" href="http://discord.gg/J96XEbGNDm" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-life-ring me-2"></i> Support
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Custom styles for the modal -->
+<style>
+    .modal-content {
+        background: #212529;
+        border-radius: 10px;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #f0ad4e;
+    }
+    
+    .nav-link {
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link:hover {
+        color: #f0ad4e;
+        background-color: rgba(240, 173, 78, 0.1);
+    }
+
+    .navbar-logo {
+        max-height: 30px;
+    }
+
+    .modal-body {
+        padding: 40px 20px;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .list-unstyled {
+        padding: 0;
+    }
+
+    .list-unstyled li {
+        width: 100%;
+    }
+
+    .btn-close-white {
+        color: #f0ad4e;
+    }
+
+    .btn-close-white:hover {
+        color: #fff;
+    }
+
+    .nav-link i {
+        font-size: 1.2rem;
+    }
+</style>

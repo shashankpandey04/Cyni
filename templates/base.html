@@ -39,21 +39,7 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.4.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script>
-      document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('mousemove', function(e) {
-          const rect = card.getBoundingClientRect();
-          const x = e.clientX - rect.left - rect.width;
-          const y = e.clientY - rect.top - rect.height;
-  
-          card.style.transform = `rotateY(${x / 20}deg) rotateX(${-y / 20}deg)`;
-        });
-  
-        card.addEventListener('mouseleave', function() {
-          card.style.transform = 'rotateY(0) rotateX(0)';
-        });
-      });
-    </script>
+
     <script>
       document.addEventListener('DOMContentLoaded', function () {
           const dropdowns = document.querySelectorAll('.dropdown-toggle');
