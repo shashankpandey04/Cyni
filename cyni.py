@@ -255,8 +255,6 @@ async def staff_check(bot,guild,member):
             elif isinstance(guild_settings["basic_settings"]["staff_roles"], int):
                 if guild_settings["basic_settings"]["staff_roles"] in [role.id for role in member.roles]:
                     return True
-    if member.guild_permissions.administrator:
-        return True
     return False
 
 async def management_check(bot,guild,member):
@@ -273,8 +271,50 @@ async def management_check(bot,guild,member):
             elif isinstance(guild_settings["basic_settings"]["management_roles"], int):
                 if guild_settings["basic_settings"]["management_roles"] in [role.id for role in member.roles]:
                     return True
+    return False
+
+async def cad_access_check(bot,guild,member):
+    guild_settings = await bot.settings.get(guild.id)
+    if guild_settings:
+        if "cad_access_roles" in guild_settings["basic_settings"].keys():
+            if guild_settings["basic_settings"]["cad_access_roles"] != []:
+                if isinstance(guild_settings["basic_settings"]["cad_access_roles"], list):
+                    for role in guild_settings["basic_settings"]["cad_access_roles"]:
+                        if role in [role.id for role in member.roles]:
+                            return True
+            elif isinstance(guild_settings["basic_settings"]["cad_access_roles"], int):
+                if guild_settings["basic_settings"]["cad_access_roles"] in [role.id for role in member.roles]:
+                    return True
+    return False
+
+async def cad_operator_check(bot,guild,member):
+    guild_settings = await bot.settings.get(guild.id)
+    if guild_settings:
+        if "cad_operator_roles" in guild_settings["basic_settings"].keys():
+            if guild_settings["basic_settings"]["cad_operator_roles"] != []:
+                if isinstance(guild_settings["basic_settings"]["cad_operator_roles"], list):
+                    for role in guild_settings["basic_settings"]["cad_operator_roles"]:
+                        if role in [role.id for role in member.roles]:
+                            return True
+            elif isinstance(guild_settings["basic_settings"]["cad_operator_roles"], int):
+                if guild_settings["basic_settings"]["cad_operator_roles"] in [role.id for role in member.roles]:
+                    return True
+    return False
+
+async def cad_administrator_check(bot,guild,member):
+    guild_settings = await bot.settings.get(guild.id)
     if member.guild_permissions.administrator:
         return True
+    elif guild_settings:
+        if "cad_administrator_roles" in guild_settings["basic_settings"].keys():
+            if guild_settings["basic_settings"]["cad_administrator_roles"] != []:
+                if isinstance(guild_settings["basic_settings"]["cad_administrator_roles"], list):
+                    for role in guild_settings["basic_settings"]["cad_administrator_roles"]:
+                        if role in [role.id for role in member.roles]:
+                            return True
+            elif isinstance(guild_settings["basic_settings"]["cad_administrator_roles"], int):
+                if guild_settings["basic_settings"]["cad_administrator_roles"] in [role.id for role in member.roles]:
+                    return True
     return False
 
 async def staff_or_management_check(bot,guild,member):
