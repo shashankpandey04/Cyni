@@ -160,9 +160,15 @@
                 {% for guild in user_guilds %}
                     <div class="guild-card">
                         <div class="guild-card-header">
-                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
-                                 alt="{{ guild.name }}'s icon" 
-                                 class="guild-icon">
+                            {% if guild.icon %}
+                                <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
+                                     alt="{{ guild.name }}'s icon" 
+                                     class="guild-icon">
+                            {% else %}
+                                <img src="https://archive.org/download/discordprofilepictures/discordblue.png" 
+                                     alt="{{ guild.name }}'s icon" 
+                                     class="guild-icon">
+                            {% endif %}
                         </div>
                         <div class="guild-card-body">
                             <div class="guild-name">{{ guild.name }}</div>
