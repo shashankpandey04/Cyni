@@ -14,49 +14,35 @@
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h4 class="h4 text-light">Guild Members</h4>
             </div>
-            
-            <!-- Search and Filter Form -->
+
+            <!-- Search Form -->
             <form method="POST" class="mb-4">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <input type="text" class="form-control" name="search_query" placeholder="Search by username or user ID" value="{{ request.form.get('search_query', '') }}">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <select name="access_filter" class="form-select">
-                            <option value="all" {% if request.form.get('access_filter') == 'all' %}selected{% endif %}>All Access</option>
-                            <option value="member" {% if request.form.get('access_filter') == 'member' %}selected{% endif %}>Member</option>
-                            <option value="moderator" {% if request.form.get('access_filter') == 'moderator' %}selected{% endif %}>Moderator</option>
-                            <option value="admin" {% if request.form.get('access_filter') == 'admin' %}selected{% endif %}>Admin</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <button type="submit" class="btn btn-warning w-100">Filter</button>
-                    </div>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search_query" placeholder="Search by username or user ID" value="{{ request.form.get('search_query', '') }}">
+                    <button type="submit" class="btn btn-warning">Search</button>
                 </div>
             </form>
 
             <!-- Members List -->
-            <div id="members-container">
+            <div class="row">
                 {% if members|length == 0 %}
                 <div class="alert alert-warning" role="alert">
                     No members found.
                 </div>
                 {% else %}
-                    <div class="list-group">
-                        {% for member in members %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center bg-dark text-light mb-3" style="border: 1px solid #f0ad4e; border-radius: 10px;">
-                            <div>
-                                <strong>{{ member.name }}</strong><br>
+                    {% for member in members %}
+                    <div class="col-md-4 mb-4">
+                        <div class="list-group-item d-flex align-items-center bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px; transition: transform 0.2s, box-shadow 0.2s;">
+                            <img src="{{ member.avatar.url }}" class="rounded-circle me-3" alt="Avatar" style="width: 50px; height: 50px;">
+                            <div class="flex-grow-1" style="padding-right: 10px; padding-left: 10px;"> <!-- Added padding here -->
+                                <h5 class="mb-1">{{ member.name }}</h5>
                                 <small>User ID: {{ member.id }}</small><br>
-                                <small>Joined: {{ member.joined_at.strftime('%Y-%m-%d') }}</small><br>
-                                <span class="badge bg-info">{{ member.roles[-1].name if member.roles else 'No Role' }}</span>
+                                <small>Joined: {{ member.joined_at.strftime('%Y-%m-%d') }}</small>
                             </div>
-                            <div>
-                                <a href="{{ url_for('view_profile', guild_id=guild.id, user_id=member.id) }}" class="btn btn-outline-warning btn-sm">View Profile</a>
-                            </div>
+                            <a href="{{ url_for('view_profile', guild_id=guild.id, user_id=member.id) }}" class="btn btn-outline-warning btn-sm">View Profile</a>
                         </div>
-                        {% endfor %}
                     </div>
+                    {% endfor %}
                 {% endif %}
             </div>
 
@@ -87,4 +73,45 @@
         </main>
     </div>
 </div>
+
+<style>
+    .list-group-item {
+        transition: transform 0.2s, box-shadow 0.2s;
+        padding: 10px; /* Add padding for better spacing */
+    }
+
+    .list-group-item:hover {
+        box-shadow: 0 4px 15px rgba(152, 250, 255, 0.5);
+    }
+
+    .badge {
+        transition: background-color 0.3s;
+    }
+
+    .badge:hover {
+        background-color: #17a2b8;
+        color: #fff;
+    }
+
+    .pagination .page-item.active .page -link {
+        background-color: #f0ad4e;
+        border-color: #f0ad4e;
+    }
+
+    .pagination .page-link {
+        color: #f0ad4e;
+    }
+
+    .pagination .page-link:hover {
+        background-color: #f0ad4e;
+        color: white;
+    }
+
+    @media (max-width: 768px) {
+        .list-group-item {
+            flex-direction: column; /* Stack items vertically on small screens */
+            align-items: flex-start; /* Align items to the start */
+        }
+    }
+</style>
 {% endblock %}

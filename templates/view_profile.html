@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}User Profile | Cyni{% endblock %}
+{% block title %}User  Profile | Cyni{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-5">
@@ -12,24 +12,29 @@
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h4 class="h4 text-light">User Profile: {{ member.name }}</h4>
+                <h4 class="h4 text-light">User  Profile: {{ member.name }}</h4>
             </div>
 
             <!-- Profile Information -->
-            <div class="card bg-dark text-light mb-4" style="border: 1px solid #f0ad4e; border-radius: 10px;">
-                <div class="card-header">
+            <div class="card profile-card mb-4">
+                <div class="card-header text-center">
                     <h5 class="card-title">Profile Details</h5>
                 </div>
-                <div class="card-body">
-                    <p><strong>User ID:</strong> {{ member.id }}</p>
-                    <p><strong>Username:</strong> {{ member.name }}</p>
-                    <p><strong>Join Date:</strong> {{ join_date }}</p>
-                    <p><strong>Roles:</strong></p>
-                    <ul>
-                        {% for role in roles %}
-                            <li>{{ role }}</li>
-                        {% endfor %}
-                    </ul>
+                <div class="card-body d-flex align-items-center">
+                    <img src="{{ member.avatar.url }}" alt="Avatar" class="rounded-circle me-4" style="width: 150px; height: 150px; border: 2px solid #f0ad4e;">
+                    <div class="profile-details">
+                        <p><strong>User ID:</strong> {{ member.id }}</p>
+                        <p><strong>Username:</strong> {{ member.name }}</p>
+                        <p><strong>Join Date:</strong> {{ join_date }}</p>
+                        <p><strong>Roles:</strong></p>
+                        <div class="d-flex flex-wrap">
+                            {% for role in roles %}
+                                <span class="badge bg-warning text-dark m-1" style="cursor: pointer; transition: background-color 0.3s;" title="{{ role }}">
+                                    {{ role }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -40,4 +45,32 @@
         </main>
     </div>
 </div>
+
+<style>
+    .profile-card {
+        margin: 10px;
+        background: linear-gradient(135deg, #6e7dff, #a8c0ff);
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .profile-card:hover {
+        box-shadow: 0 8px 30px rgba(174, 255, 240, 0.562);
+    }
+
+    .profile-details {
+        padding: 20px;
+        color: #fff;
+    }
+
+    .badge {
+        transition: background-color 0.3s;
+    }
+
+    .badge:hover {
+        background-color: #f0ad4e;
+        color: #fff;
+    }
+</style>
 {% endblock %}

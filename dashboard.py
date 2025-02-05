@@ -974,7 +974,7 @@ def view_members(guild_id):
 
     # Pagination - 10 members per page
     page = request.args.get('page', 1, type=int)
-    members_per_page = 10
+    members_per_page = 12
     members_paginated = members[(page - 1) * members_per_page:page * members_per_page]
 
     return render_template("view_members.html", guild=guild, members=members_paginated, total_pages=(len(members) // members_per_page) + 1, current_page=page)
@@ -982,7 +982,6 @@ def view_members(guild_id):
 @app.route('/view_profile/<guild_id>/<user_id>', methods=["GET"])
 @login_required
 def view_profile(guild_id, user_id):
-    # Get the guild object
     guild = bot.get_guild(int(guild_id))
     if not guild:
         flash("Guild not found.", "error")
@@ -991,11 +990,10 @@ def view_profile(guild_id, user_id):
     sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
     staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
 
-    # Get the member object from the guild
     member = guild.get_member(int(user_id))
     if not member:
         flash("User not found in this guild.", "error")
-        return redirect(url_for("view_members", guild_id=guild_id))  # Redirect to member list if not found
+        return redirect(url_for("view_members", guild_id=guild_id))
     
     if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in staff_roles):
         flash("You do not have the required permissions to view this profile.", "error")

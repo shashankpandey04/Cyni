@@ -35,7 +35,7 @@ class OnMessage(commands.Cog):
             del afk_users[message.author.id]
             await message.channel.send(
                 f"Welcome back {message.author.mention}! I removed your AFK status.",
-                delete_after=5
+                delete_after=2
                 )
             doc = {
                 "_id" : message.author.id
@@ -56,20 +56,15 @@ class OnMessage(commands.Cog):
         settings = await self.bot.settings.get(message.guild.id)
         if not settings:
             return
+        anti_ping_module = settings.get("anti_ping_module", {})
 
         try:
-            anti_ping_module = settings["anti_ping_module"]
-        except KeyError:
-            anti_ping_module = None
-        
-        try:
-            if anti_ping_module and anti_ping_module["enabled"]:
+            if anti_ping_module and anti_ping_module.get("enabled", False):
                 if message.mentions:
                     for role in message.mentions[0].roles:
-                        if role.id in anti_ping_module["affected_roles"]:
-                            for role in message.author.roles:
-                                if role.id in anti_ping_module["exempt_roles"]:
-                                    return
+                        if role.id in anti_ping_module.get("affected_roles", []):
+                            if any(role.id in anti_ping_module.get("exempt_roles", []) for role in message.author.roles):
+                                return
                             await message.channel.send(
                                 embed=discord.Embed(
                                     title="Anti-Ping Warning",
@@ -82,47 +77,39 @@ class OnMessage(commands.Cog):
                             )
         except KeyError:
             pass
-        try:
-            if not settings["basic_settings"]["staff_roles"] or not settings["basic_settings"]["management_roles"]:
-                return
-        except KeyError:
+        if not settings.get('basic_settings', {}).get('staff_roles') or not settings.get('basic_settings', {}).get('management_roles'):
             return
-        try:
-            staff_roles = settings["basic_settings"]["staff_roles"]
-            #management_roles = settings["basic_settings"]["management_roles"]
-        except KeyError:
-            return
+        staff_roles = settings.get("basic_settings", {}).get("staff_roles", [])
 
-        for role in message.author.roles:
-            if role.id in staff_roles:
-                staff = await self.bot.staff_activity.find_by_id(message.guild.id)
-                if not staff:
-                    await self.bot.staff_activity.insert(
-                        {
-                            "_id": message.guild.id,
-                            "staff": [
-                                {
-                                    "_id": message.author.id,
-                                    "messages": 1
-                                }
-                            ]
-                        }
-                    )
-                else:
-                    for member in staff["staff"]:
-                        if member["_id"] == message.author.id:
-                            await self.bot.staff_activity.upsert(
-                                {
-                                    "_id": message.guild.id,
-                                    "staff": [
-                                        {
-                                            "_id": message.author.id,
-                                            "messages": member["messages"] + 1
-                                        }
-                                    ]
-                                }
-                            )
-                return
+        if any(role.id in staff_roles for role in message.author.roles):
+            staff = await self.bot.staff_activity.find_by_id(message.guild.id)
+            if not staff:
+                await self.bot.staff_activity.insert(
+                    {
+                        "_id": message.guild.id,
+                        "staff": [
+                            {
+                                "_id": message.author.id,
+                                "messages": 1
+                            }
+                        ]
+                    }
+                )
+            else:
+                for member in staff["staff"]:
+                    if member["_id"] == message.author.id:
+                        await self.bot.staff_activity.upsert(
+                            {
+                                "_id": message.guild.id,
+                                "staff": [
+                                    {
+                                        "_id": message.author.id,
+                                        "messages": member["messages"] + 1
+                                    }
+                                ]
+                            }
+                        )
+            return
 
 async def setup(bot):
     await bot.add_cog(OnMessage(bot))
