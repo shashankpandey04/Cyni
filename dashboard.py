@@ -876,71 +876,66 @@ def mod_logs(guild_id):
     if not guild:
         flash("Guild not found.", "error")
         return redirect(url_for("dashboard"))
-    
+
     sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
     staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
     member = guild.get_member(int(session["user_id"]))
     if not member:
         flash("You are not a member of this guild.", "error")
         return redirect(url_for("dashboard"))
-    
+
     if not any(role in [role.id for role in member.roles] for role in staff_roles):
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
-    
+
     # Pagination logic
     page = int(request.args.get("page", 1))  # Default to page 1
-    per_page = 10  # Number of logs per page
+    per_page = 10  # Logs per page
     logs_cursor = list(mongo_db["warnings"].find({"guild_id": int(guild_id)}))
-    total_logs = len(logs_cursor)  # Total number of logs
-    total_pages = (total_logs + per_page - 1) // per_page  # Calculate total pages
-    
-    # Get logs for the current page
+    total_logs = len(logs_cursor)
+    total_pages = (total_logs + per_page - 1) // per_page
     logs = logs_cursor[(page - 1) * per_page: page * per_page]
-    
-    if request.method == "GET":
-        return render_template(
-            "mod_logs.html", 
-            guild=guild, 
-            logs=logs, 
-            total_pages=total_pages, 
-            current_page=page
-        )
-    
-    if request.method == "POST":
-        user_id = request.form.get("user_id")
-        reason = request.form.get("reason")
-        case_id = request.form.get("case_id")
-        
-        if not user_id or not reason:
-            flash("Please provide a user ID and reason.", "error")
-            return redirect(url_for("mod_logs", guild_id=guild_id))
-        
-        doc = mongo_db['warnings'].find_one(
-            {
-                "guild_id": int(guild_id),
-                "user_id": user_id,
-                "case_id": int(case_id)
-            }
-        )
-        if doc:
-            if status == 'void':
-                doc['active'] = False
-                doc['void'] = True
-            else:
-                doc['active'] = True
-                doc['void'] = False
-            mongo_db['warnings'].update_one(
-                {"_id": doc["_id"]},
-                {"$set": doc}
-            )
-            flash("Warning updated successfully.")
-        else:
-            flash("Warning not found.", "error")
-        
-        return redirect(url_for("mod_logs", guild_id=guild_id))
 
-from flask import request
+    if request.method == "POST":
+        data = request.json
+        log_id = data.get("log_id")
+        reason = data.get("reason")
+        status = data.get("status")
+
+        if not log_id or not reason or status not in ["active", "void"]:
+            print("Invalid data received.")
+            return jsonify({"success": False, "error": "Invalid data received."})
+
+        try:
+            object_id = ObjectId(log_id)  # Ensure ObjectId conversion
+        except Exception as e:
+            print(e)
+            return jsonify({"success": False, "error": "Invalid log ID."})
+
+        log = mongo_db["warnings"].find_one({"_id": object_id, "guild_id": int(guild_id)})
+        
+        if not log:
+            print("Log not found.")
+            return jsonify({"success": False, "error": "Log not found."})
+
+        update_result = mongo_db["warnings"].update_one(
+            {"_id": object_id},
+            {"$set": {"reason": reason, "active": status == "active"}}
+        )
+
+        if update_result.modified_count == 0:
+            print("No changes made.")
+            return jsonify({"success": False, "error": "No changes made."})
+
+        return jsonify({"success": True})
+
+    return render_template(
+        "mod_logs.html",
+        guild=guild,
+        logs=logs,
+        total_pages=total_pages,
+        current_page=page,
+    )
 
 @app.route('/modpanel/<guild_id>/members', methods=["GET", "POST"])
 @login_required
@@ -1010,41 +1005,6 @@ def view_profile(guild_id, user_id):
     join_date = member.joined_at.strftime('%Y-%m-%d')
 
     return render_template("view_profile.html", guild=guild, member=member, roles=member_roles, join_date=join_date)
-
-@app.route('/modpanel/<guild_id>/<user_id>/modlogs/update', methods=["POST"])
-@login_required
-def update_mod_log(guild_id):
-
-    guild = bot.get_guild(int(guild_id))
-    if not guild:
-        return jsonify({"success": False, "error": "Guild not found."})
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
-    member = guild.get_member(int(session["user_id"]))
-    if not member:
-        return jsonify({"success": False, "error": "You are not a member of this guild."})
-    
-    if not any(role in [role.id for role in member.roles] for role in staff_roles):
-        return jsonify({"success": False, "error": "You do not have the required permissions to access this page."})
-    
-    data = request.json
-    log_id = data.get("log_id")
-    reason = data.get("reason")
-    status = data.get("status")
-    
-    if not log_id or not reason or status not in ["active", "void"]:
-        return jsonify({"success": False, "error": "Invalid data"})
-    
-    log = mongo_db["warnings"].find_one({"_id": ObjectId(log_id), "guild_id": int(guild_id)})
-    if not log:
-        return jsonify({"success": False, "error": "Log not found"})
-    
-    log["reason"] = reason
-    log["active"] = (status == "active")
-    mongo_db["warnings"].update_one({"_id": log["_id"]}, {"$set": log})
-    
-    return jsonify({"success": True})
 
 @app.errorhandler(404)
 def page_not_found(e):
