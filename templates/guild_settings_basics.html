@@ -4,11 +4,11 @@
 
 {% block content %}
 <style>
-    .custom-dropdown {
+    .multi-select-dropdown {
         position: relative;
         width: 100%;
     }
-    .custom-dropdown-header {
+    .multi-select-dropdown .dropdown-header {
         background-color: #495057;
         color: white;
         padding: 10px;
@@ -18,13 +18,13 @@
         justify-content: space-between;
         align-items: center;
     }
-    .custom-dropdown-list {
+    .multi-select-dropdown .dropdown-list {
         display: none;
         position: absolute;
         top: 100%;
         left: 0;
         width: 100%;
-        max-height: 200px;
+        max-height: 300px;
         overflow-y: auto;
         background-color: #343a40;
         border: 1px solid #495057;
@@ -32,80 +32,83 @@
         border-radius: 4px;
         margin-top: 5px;
     }
-    .custom-dropdown-list.show {
+    .multi-select-dropdown .dropdown-list.show {
         display: block;
     }
-    .dropdown-item {
+    .multi-select-dropdown .dropdown-item {
         padding: 8px;
         cursor: pointer;
         display: flex;
         align-items: center;
     }
-    .dropdown-item:hover {
+    .multi-select-dropdown .dropdown-item:hover {
         background-color: #495057;
     }
-    .dropdown-item input {
+    .multi-select-dropdown .dropdown-item input {
         margin-right: 10px;
+    }
+    .multi-select-dropdown .search-input {
+        width: 100%;
+        padding: 8px;
+        background-color: #343a40;
+        color: white;
+        border: 1px solid #495057;
+        margin-bottom: 5px;
     }
 </style>
 <div class="container-fluid mt-5">
     <div class="row">
-        <!-- Side Navbar -->
         {% include 'sidebar.html' %}
-
-        <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
             <h2 class="text-light">Basic Settings</h2>
             <form method="POST" action="{{ url_for('guild_settings_basics', guild_id=guild.id) }}" id="settingsForm">
                 <div class="card bg-dark" style="border-radius: 10px; padding: 20px; margin: 10px; border: 1px solid #f0ad4e;">
                     <label for="guild_name" class="form-label text-light">Command Prefix</label>
-                    <p>
-                        <small class="text-muted">The prefix that the bot will respond to. Default is <code>?</code>.</small>
-                    </p>
+                    <p><small class="text-muted">The prefix that the bot will respond to. Default is <code>?</code>.</small></p>
                     <div class="mb-3">
                         <input type="text" class="form-control" id="prefix" name="prefix" value="{{ guild_data.get('customization', {}).get('prefix', '?') }}" required>
                     </div>
                 </div>
-                <!--Card Structure-->
                 <div class="card bg-dark" style="border-radius: 10px; padding: 20px; margin: 10px; border: 1px solid #f0ad4e;">
                     <div class="mb-3">
                         <label for="staff_roles" class="form-label text-light">Staff Roles</label>
-                        <p>
-                            <small class="text-muted">These roles will have access to moderation commands.</small>
-                        </p>
-                        <div id="staffRolesDropdown" class="custom-dropdown">
-                            <div class="custom-dropdown-header">Select Roles ▼</div>
-                            <div class="custom-dropdown-list">
-                                {% for role_id, role_name in roles.items() %}
-                                    <div class="dropdown-item">
-                                        <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="role_{{ role_id }}" name="staff_roles" {% if role_id in guild_data.get('basic_settings', {}).get('staff_roles', []) %}checked{% endif %}>
-                                        <label class="form-check-label text-light" for="role_{{ role_id }}">
-                                            {{ role_name }}
-                                        </label>
-                                    </div>
-                                {% endfor %}
+                        <p><small class="text-muted">These roles will have access to moderation commands.</small></p>
+                        <div id="staffRolesDropdown" class="multi-select-dropdown">
+                            <div class="dropdown-header">Select Roles ▼</div>
+                            <div class="dropdown-list">
+                                <input type="text" class="search-input" placeholder="Search roles...">
+                                <div class="dropdown-options">
+                                    {% for role_id, role_name in roles.items() %}
+                                        <div class="dropdown-item">
+                                            <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="role_{{ role_id }}" name="staff_roles" {% if role_id in guild_data.get('basic_settings', {}).get('staff_roles', []) %}checked{% endif %}>
+                                            <label class="form-check-label text-light" for="role_{{ role_id }}">
+                                                {{ role_name }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!--Card Structure-->
                 <div class="card bg-dark" style="border-radius: 10px; padding: 20px; margin: 10px; border: 1px solid #f0ad4e;">
                     <div class="mb-3">
                         <label for="management_roles" class="form-label text-light">Management Roles</label>
-                        <p>
-                            <small class="text-muted">These roles will have access to management commands.</small>
-                        </p>
-                        <div id="managementRolesDropdown" class="custom-dropdown">
-                            <div class="custom-dropdown-header">Select Roles ▼</div>
-                            <div class="custom-dropdown-list">
-                                {% for role_id, role_name in roles.items() %}
-                                    <div class="dropdown-item">
-                                        <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="management_role_{{ role_id }}" name="management_roles" {% if role_id in guild_data.get('basic_settings', {}).get('management_roles', []) %}checked{% endif %}>
-                                        <label class="form-check-label text-light" for="management_role_{{ role_id }}">
-                                            {{ role_name }}
-                                        </label>
-                                    </div>
-                                {% endfor %}
+                        <p><small class="text-muted">These roles will have access to management commands.</small></p>
+                        <div id="managementRolesDropdown" class="multi-select-dropdown">
+                            <div class="dropdown-header">Select Roles ▼</div>
+                            <div class="dropdown-list">
+                                <input type="text" class="search-input" placeholder="Search roles...">
+                                <div class="dropdown-options">
+                                    {% for role_id, role_name in roles.items() %}
+                                        <div class="dropdown-item">
+                                            <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="management_role_{{ role_id }}" name="management_roles" {% if role_id in guild_data.get('basic_settings', {}).get('management_roles', []) %}checked{% endif %}>
+                                            <label class="form-check-label text-light" for="management_role_{{ role_id }}">
+                                                {{ role_name }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -116,61 +119,64 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        function initCustomDropdown(dropdownId) {
-            const dropdown = document.getElementById(dropdownId);
-            const header = dropdown.querySelector('.custom-dropdown-header');
-            const list = dropdown.querySelector('.custom-dropdown-list');
-            const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+document.addEventListener('DOMContentLoaded', function() {
+    function initMultiSelectDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        const header = dropdown.querySelector('.dropdown-header');
+        const list = dropdown.querySelector('.dropdown-list');
+        const searchInput = dropdown.querySelector('.search-input');
+        const checkboxes = list.querySelectorAll('input[type="checkbox"]');
 
-            // Toggle dropdown
-            header.addEventListener('click', function(e) {
-                list.classList.toggle('show');
-                e.stopPropagation();
-            });
-
-            // Prevent list from closing when clicking inside
-            list.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function() {
-                list.classList.remove('show');
-            });
-
-            // Handle checkbox changes
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    updateSelectedItems(dropdown);
-                    document.getElementById('settingsForm').submit();
-                });
-            });
-
-            // Initial update
-            updateSelectedItems(dropdown);
-        }
-
-        function updateSelectedItems(dropdown) {
-            const header = dropdown.querySelector('.custom-dropdown-header');
-            const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
-            
-            const selectedItems = Array.from(checkboxes)
-                .map(checkbox => checkbox.nextElementSibling.textContent.trim());
-            
-            header.innerHTML = selectedItems.length > 0 
-                ? `${selectedItems.join(', ')} <span>▼</span>`
-                : 'Select Roles <span>▼</span>';
-        }
-
-        // Initialize both dropdowns
-        initCustomDropdown('staffRolesDropdown');
-        initCustomDropdown('managementRolesDropdown');
-
-        // Auto-save prefix
-        document.getElementById('prefix').addEventListener('input', function() {
-            document.getElementById('settingsForm').submit();
+        header.addEventListener('click', function(e) {
+            list.classList.toggle('show');
+            e.stopPropagation();
         });
+
+        list.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        document.addEventListener('click', function() {
+            list.classList.remove('show');
+        });
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            checkboxes.forEach(checkbox => {
+                const label = checkbox.nextElementSibling;
+                const match = label.textContent.toLowerCase().includes(searchTerm);
+                checkbox.closest('.dropdown-item').style.display = match ? 'flex' : 'none';
+            });
+        });
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedItems(dropdown);
+                document.getElementById('settingsForm').submit();
+            });
+        });
+
+        updateSelectedItems(dropdown);
+    }
+
+    function updateSelectedItems(dropdown) {
+        const header = dropdown.querySelector('.dropdown-header');
+        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+        
+        const selectedItems = Array.from(checkboxes)
+            .map(checkbox => checkbox.nextElementSibling.textContent.trim());
+        
+        header.innerHTML = selectedItems.length > 0 
+            ? `${selectedItems.join(', ')} <span>▼</span>`
+            : 'Select Roles <span>▼</span>';
+    }
+
+    initMultiSelectDropdown('staffRolesDropdown');
+    initMultiSelectDropdown('managementRolesDropdown');
+
+    document.getElementById('prefix').addEventListener('input', function() {
+        document.getElementById('settingsForm').submit();
     });
+});
 </script>
 {% endblock %}
