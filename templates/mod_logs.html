@@ -5,60 +5,66 @@
 {% block content %}
 <div class="container-fluid mt-5">
     <div class="row">
-        <!-- Side Navbar -->
         {% include 'mod_sidebar.html' %}
         <hr class="my-4" style="border-color: #f0ad4e;">
         
-        <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h4 class="h4 text-light">Moderation Logs</h4>
             </div>
-            
-            <!-- Logs Section -->
+
             <div id="logs-container">
                 {% if logs|length == 0 %}
-                <div class="alert alert-warning" role="alert">
-                    No logs found.
-                </div>
+                <div class="alert alert-warning" role="alert">No logs found.</div>
                 {% endif %}
+
                 {% for log in logs %}
-                <div class="card bg-dark text-light mb-3" style="border: 1px solid #f0ad4e; border-radius: 10px;">
+                <div class="card bg-dark text-light mb-3 shadow-sm" style="border: 1px solid #f0ad4e; border-radius: 12px;">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Case ID: {{ log.case_id }} | User ID: {{ log.user_id }}</span>
-                        <button class="btn btn-sm btn-warning toggle-btn" data-bs-toggle="collapse" data-bs-target="#log-{{ log._id }}">View Details</button>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-text-fill text-warning me-2"></i>
+                            <strong>Case #{{ log.case_id }}</strong> | User ID: {{ log.user_id }}
+                        </div>
+                        <button class="btn btn-sm btn-outline-warning toggle-btn" data-bs-toggle="collapse" data-bs-target="#log-{{ log._id }}">
+                            <i class="bi bi-eye-fill"></i> View Details
+                        </button>
                     </div>
                     <div id="log-{{ log._id }}" class="collapse">
                         <div class="card-body">
-                            <p><strong>Reason:</strong> {{ log.reason }}</p>
-                            <p><strong>Status:</strong> 
-                                {% if log.active %}
-                                    <span class="badge bg-success">Active</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Voided</span>
-                                {% endif %}
-                            </p>
-                            <form class="update-log-form" data-log-id="{{ log._id }}" action="#">
+                            <div class="d-flex justify-content-between">
+                                <p class="reason-text"><strong>Reason:</strong> {{ log.reason }}</p>
+                                <p>
+                                    <strong>Status:</strong> 
+                                    {% if log.active %}
+                                        <span class="badge bg-success status-badge"><i class="bi bi-check-circle-fill"></i> Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger status-badge"><i class="bi bi-x-circle-fill"></i> Voided</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <hr class="border-warning">
+                            <form class="update-log-form" data-log-id="{{ log._id }}">
                                 <div class="mb-3">
                                     <label for="reason-{{ log._id }}" class="form-label">Update Reason</label>
-                                    <input type="text" class="form-control" id="reason-{{ log._id }}" name="reason" value="{{ log.reason }}">
+                                    <input type="text" class="form-control bg-dark text-light border-warning" id="reason-{{ log._id }}" name="reason" value="{{ log.reason }}">
                                 </div>
                                 <div class="mb-3">
                                     <label for="status-{{ log._id }}" class="form-label">Change Status</label>
-                                    <select class="form-select" id="status-{{ log._id }}" name="status">
+                                    <select class="form-select bg-dark text-light border-warning" id="status-{{ log._id }}" name="status">
                                         <option value="active" {% if log.active %}selected{% endif %}>Active</option>
                                         <option value="void" {% if not log.active %}selected{% endif %}>Void</option>
                                     </select>
                                 </div>
-                                <button type="submit" class="btn btn-outline-warning">Update</button>
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-save"></i> Save Changes</button>
+                                </div>
                             </form>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-            
-            <!-- Pagination -->
+
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center">
                     {% for page_num in range(1, total_pages + 1) %}
@@ -71,41 +77,46 @@
         </main>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const forms = document.querySelectorAll(".update-log-form");
-        forms.forEach(form => {
-            form.addEventListener("submit", (e) => {
-                e.preventDefault();
-                const logId = form.dataset.logId;
-                const reason = form.querySelector(`[name="reason"]`).value;
-                const status = form.querySelector(`[name="status"]`).value;
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".update-log-form").forEach(form => {
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            
+            const logId = form.dataset.logId;
+            const reason = form.querySelector(`[name="reason"]`).value;
+            const status = form.querySelector(`[name="status"]`).value;
+            const guild_id = "{{ guild.id }}";
+            console.log(logId, reason, status, guild_id);
 
-                // AJAX Request
-                fetch(`/modpanel/{{ guild.id }}/{{ session[user_id] }}/modlogs/update`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ log_id: logId, reason, status })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert("Log updated successfully!");
-                    } else {
-                        alert("Failed to update log. Please try again.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    alert("An error occurred. Please try again.");
-                });
+            fetch(`/modpanel/${guild_id}/modlogs`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ log_id: logId, reason: reason.trim(), status })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Log updated successfully!");
+                    const statusBadge = document.querySelector(`#log-${logId} .status-badge`);
+                    statusBadge.className = status === "active" ? "badge bg-success status-badge" : "badge bg-danger status-badge";
+                    statusBadge.innerHTML = status === "active" ? '<i class="bi bi-check-circle-fill"></i> Active' : '<i class="bi bi-x-circle-fill"></i> Voided';
+
+                    document.querySelector(`#log-${logId} .reason-text`).textContent = `Reason: ${reason.trim()}`;
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("An error occurred. Please try again.");
             });
         });
     });
+});
 </script>
+
 {% endblock %}

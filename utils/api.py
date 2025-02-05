@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import datetime
 import pymongo
 import motor.motor_asyncio
+from cyni import cad_access_check, cad_administrator_check, cad_operator_check
 
 # Load the environment variables
 load_dotenv()
@@ -39,6 +40,25 @@ class ApplicationStatus(BaseModel):
     fail_role: int
     result_channel: int
     note: str | None = "Not provided."
+
+class CAD_Team(BaseModel):
+    guild_id: int
+    team: str
+    owner_id: int
+    co_owners: list[int] = []
+    members: list[int]
+    pending_members: list[int]
+    blacklist: list[int]
+    icon_url: str | None = None
+    created_at: int
+
+class CAD_Log(BaseModel):
+    guild_id: int
+    created_by: int
+    team: str
+    punishment: str
+    reason: str | None = None
+    created_at: int
 
 
 # Authorization validation function
@@ -407,6 +427,7 @@ class APIRoutes:
             await member.send(embed=embed)
 
         return {"message": "LOA status updated successfully."}
+    
 
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):
