@@ -733,6 +733,12 @@ def ban_appeal(guild_id):
     if not guild:
         flash("Guild not found.", "error")
         return redirect(url_for("dashboard"))
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+    user_roles = [role.id for role in guild.get_member(int(session["user_id"])).roles]
+    if not any(role in user_roles for role in management_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
     
     if request.method == "GET":
         if mongo_db["ban_appeals"].find_one(
@@ -745,14 +751,6 @@ def ban_appeal(guild_id):
             flash("You have already appealed your ban.", "error")
             return redirect(url_for("dashboard"))
 
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-        user_roles = [role.id for role in guild.get_member(int(session["user_id"])).roles]
-        if not any(role in user_roles for role in management_roles):
-            flash("You do not have the required permissions to access this page.", "error")
-            return redirect(url_for("dashboard"))
-        
-        # Fetch or set default appeal questions
         appeal_application = mongo_db["appeal_applications"].find_one({"guild_id": int(guild_id)}) or {
             "questions": [
                 {"question": "Why were you banned?"},
@@ -798,14 +796,10 @@ def ban_appeal(guild_id):
     URL = 'http://127.0.0.1:5000/notify_ban_appeal'
     
     try:
-        response = requests.post(URL, headers=headers, json=data)
-        if response.status_code == 200:
-            flash("Ban appeal submitted successfully.")
-        else:
-            flash("Failed to notify staff about your ban appeal.", "error")
+        requests.post(URL, headers=headers, json=data)
+        flash("Ban appeal submitted successfully.")
     except requests.RequestException:
         flash("Failed to notify staff about your ban appeal.", "error")
-    
     return redirect(url_for("dashboard"))
         
 @app.route('/banappeal/logs/<guild_id>', methods=["GET"])
@@ -826,64 +820,52 @@ def ban_appeal_logs(guild_id):
 @app.route('/banappeal/logs/<guild_id>/<appeal_id>', methods=["GET", "POST"])
 @login_required
 def ban_appeal_log(guild_id, appeal_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+    if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
     if request.method == "GET":
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            flash("Guild not found.", "error")
-            return redirect(url_for("dashboard"))
-        
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-            flash("You do not have the required permissions to access this page.", "error")
-            return redirect(url_for("dashboard"))
-        
         appeal = mongo_db["ban_appeals"].find_one({"appeal_id": appeal_id})
         if not appeal:
             flash("Ban appeal not found.", "error")
             return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
         return render_template("ban_appeal_log.html", guild=guild, appeal=appeal)
     
-    if request.method == "POST":
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            flash("Guild not found.", "error")
-            return redirect(url_for("dashboard"))
-        
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-            flash("You do not have the required permissions to access this page.", "error")
-            return redirect(url_for("dashboard"))
-        
-        appeal_document = mongo_db["ban_appeals"].find_one({"appeal_id": appeal_id})
-        if not appeal_document:
-            flash("Ban appeal not found.", "error")
-            return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
+    appeal_document = mongo_db["ban_appeals"].find_one({"appeal_id": appeal_id})
+    if not appeal_document:
+        flash("Ban appeal not found.", "error")
+        return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
 
-        new_status = request.form.get("status")
-        mongo_db["ban_appeals"].update_one(
-            {"appeal_id": appeal_id},
-            {"$set": {"status": new_status}}
-        )
-        data = {
-            "user_id": appeal_document["user_id"],
-            "guild_id": int(guild_id),
-            "appeal_id": appeal_id,
-            "status": new_status,
-        }
-        headers = {"Authorization": bot_token}
-        URL = 'http://127.0.0.1:5000/notify_ban_appeal_status'
-        response = requests.post(URL, headers=headers, json=data)
-        if response.status_code == 200:
-            if new_status == "accepted":
-                flash("Ban appeal approved successfully.")
-            elif new_status == "denied":
-                flash("Ban appeal denied successfully.")
-            return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
-        else:
-            flash("Failed to notify user")
-            return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
+    new_status = request.form.get("status")
+    mongo_db["ban_appeals"].update_one(
+        {"appeal_id": appeal_id},
+        {"$set": {"status": new_status}}
+    )
+    data = {
+        "user_id": appeal_document["user_id"],
+        "guild_id": int(guild_id),
+        "appeal_id": appeal_id,
+        "status": new_status,
+    }
+    headers = {"Authorization": bot_token}
+    URL = 'http://127.0.0.1:5000/notify_ban_appeal_status'
+    response = requests.post(URL, headers=headers, json=data)
+    if response.status_code == 200:
+        if new_status == "accepted":
+            flash("Ban appeal approved successfully.")
+        elif new_status == "denied":
+            flash("Ban appeal denied successfully.")
+        return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
+    else:
+        flash("Failed to notify user")
+        return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
     
 @app.route('/notifications/<guild_id>/<user_id>', methods=["GET"])
 @login_required
