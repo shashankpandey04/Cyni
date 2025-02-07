@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Ban Appeal | {{ guild.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card appeal-card">
+        <div class="card-body">
+            <h2 class="text-warning text-center mb-4"><i class="bi bi-person-fill-exclamation"></i> Ban Appeal Form</h2>
+
+            <div class="alert alert-info text-center">
+                <strong>Note:</strong> Please provide detailed and honest answers to increase your chances of being unbanned.
+            </div>
+
+            <form method="POST" action="{{ url_for('ban_appeal', guild_id=guild.id) }}">
+                {% for question in appeal_application.questions %}
+                <div class="form-group mb-3">
+                    <label class="text-light fw-bold">{{ question.question }}</label>
+                    <textarea class="form-control appeal-input" name="answer_{{ loop.index }}" rows="3" required></textarea>
+                </div>
+                {% endfor %}
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-warning btn-lg w-100">
+                        <i class="bi bi-send-fill"></i> Submit Appeal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .appeal-card {
+        background-color: #222;
+        border: 1px solid #f0ad4e;
+        border-radius: 10px;
+        padding: 20px;
+        max-width: 600px;
+        margin: auto;
+        box-shadow: 0px 0px 15px rgba(240, 173, 78, 0.2);
+    }
+
+    .appeal-input {
+        background-color: #333;
+        border: 1px solid #f0ad4e;
+        color: white;
+        border-radius: 5px;
+    }
+
+    .appeal-input:focus {
+        border-color: #f0ad4e;
+        box-shadow: 0 0 8px rgba(240, 173, 78, 0.5);
+    }
+
+    .btn-warning {
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 8px;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .btn-warning:hover {
+        background-color: #d89a3d;
+        box-shadow: 0 0 10px rgba(240, 173, 78, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .appeal-card {
+            margin: 10px;
+        }
+    }
+</style>
+
+{% endblock %}

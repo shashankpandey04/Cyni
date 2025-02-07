@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Ban Appeals | {{ guild.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Side Navbar -->
+        {% include 'sidebar.html' %}
+        
+        <hr class="my-4" style="border-color: #f0ad4e;">
+        
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+            <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h4 class="text-light"><i class="bi bi-gear-fill"></i> Manage Ban Appeal Questions</h4>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>Note:</strong> Customize the ban appeal questions for your guild. Members will answer these when appealing a ban.
+            </div>
+
+            <div class="card manage-card">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('ban_appeal_manage', guild_id=guild.id) }}">
+                        <h5 class="text-warning mb-3">Current Questions</h5>
+
+                        <div id="question-container">
+                            {% for question in appeal_application.questions %}
+                                <div class="form-group mb-3">
+                                    <label class="text-light fw-bold">Question {{ loop.index }}</label>
+                                    <input type="text" class="form-control appeal-input" name="question" value="{{ question.question }}" required>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <button type="button" class="btn btn-success w-100 mb-3" onclick="addQuestion()">
+                            <i class="bi bi-plus-lg"></i> Add Question
+                        </button>
+
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-save-fill"></i> Save Questions
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    function addQuestion() {
+        let container = document.getElementById("question-container");
+        let index = container.children.length + 1;
+
+        let div = document.createElement("div");
+        div.classList.add("form-group", "mb-3");
+
+        let label = document.createElement("label");
+        label.classList.add("text-light", "fw-bold");
+        label.innerText = `Question ${index}`;
+
+        let input = document.createElement("input");
+        input.type = "text";
+        input.classList.add("form-control", "appeal-input");
+        input.name = "question";
+        input.required = true;
+
+        div.appendChild(label);
+        div.appendChild(input);
+        container.appendChild(div);
+    }
+</script>
+
+<style>
+    .manage-card {
+        background-color: #222;
+        border: 1px solid #f0ad4e;
+        border-radius: 10px;
+        padding: 20px;
+        max-width: 700px;
+        margin: auto;
+        box-shadow: 0px 0px 15px rgba(240, 173, 78, 0.2);
+    }
+
+    .appeal-input {
+        background-color: #333;
+        border: 1px solid #f0ad4e;
+        color: white;
+        border-radius: 5px;
+    }
+
+    .appeal-input:focus {
+        border-color: #f0ad4e;
+        box-shadow: 0 0 8px rgba(240, 173, 78, 0.5);
+    }
+
+    .btn-warning, .btn-success {
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .btn-warning:hover {
+        background-color: #d89a3d;
+        box-shadow: 0 0 10px rgba(240, 173, 78, 0.4);
+    }
+
+    .btn-success:hover {
+        background-color: #28a745;
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .manage-card {
+            margin: 10px;
+        }
+    }
+</style>
+
+{% endblock %}

@@ -48,6 +48,23 @@
             </ul>
         </div>
 
+        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#banappealNav" aria-expanded="false" aria-controls="banappealNav">
+            <i class="fas fa-cogs me-2"></i> Ban Appeal
+        </h6>
+        <div class="collapse" id="banappealNav">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-light hover-link" href="{{url_for('ban_appeal_manage', guild_id=guild.id)}}">Manage Questions</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-light hover-link" href="{{ url_for('ban_appeal', guild_id=guild.id) }}">Ban Appeal Form</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-light hover-link" href="{{url_for('ban_appeal_logs', guild_id=guild.id)}}">Ban Appeal Logs</a>
+                </li>
+            </ul>
+        </div>
+
         <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#ERMNav" aria-expanded="false" aria-controls="ERMNav">
             <i class="fas fa-user-lock me-2"></i> ERM Panel
         </h6>
