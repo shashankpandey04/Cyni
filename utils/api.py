@@ -428,6 +428,132 @@ class APIRoutes:
 
         return {"message": "LOA status updated successfully."}
     
+    async def POST_notify_ban_appeal(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Notify a user about their application status."""
+        logger.debug("Received POST request to notify user about ban appeal status.")
+        
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        json_data = await request.json()
+        user_id = json_data.get("user_id")
+        guild_id = json_data.get("guild_id")
+        appeal_id = json_data.get("appeal_id")
+        user_name = json_data.get("user_name")
+
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            logger.error(f"Guild not found for ID: {guild_id}")
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        member = self.bot.get_user(user_id)
+
+        sett = await db.settings.find_one({"_id": guild_id})
+        if not sett:
+            logger.error(f"Settings not found for guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="Settings not found")
+        
+        ban_appeal_channel_id = sett.get("moderation_module", {}).get("ban_appeal_channel", None)
+        
+        if not ban_appeal_channel_id:
+            logger.error(f"Ban appeal channel not found in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="Ban appeal channel not found")
+        
+        ban_appeal_channel = guild.get_channel(int(ban_appeal_channel_id))
+        if not ban_appeal_channel:
+            logger.error(f"Ban appeal channel not found in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="Ban appeal channel not found")
+        
+        embed = discord.Embed(
+            title="New Ban Appeal",
+            description=f"**{user_name}** has submitted a ban appeal.\n**User ID:** {user_id}\n**Appeal ID:** {appeal_id}\n**Posted at:** <t:{int(datetime.datetime.now().timestamp())}:R>",
+            color=0x2F3136
+        )
+        view = discord.ui.View()
+        url_button = discord.ui.Button(
+            label="View Ban Appeal", 
+            url=f"https://cyni.quprdigital.tk/banappeal/logs/{guild_id}/{appeal_id}",
+            style=discord.ButtonStyle.url
+        )
+        view.add_item(url_button)
+        await ban_appeal_channel.send(embed=embed, view=view)
+        return {"message": "Ban appeal notification sent successfully."}
+    
+    async def POST_notify_ban_appeal_status(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Notify a user about their ban appeal status."""
+        logger.debug("Received POST request to notify user about ban appeal status.")
+        
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        json_data = await request.json()
+        user_id = json_data.get("user_id")
+        guild_id = json_data.get("guild_id")
+        appeal_id = json_data.get("appeal_id")
+        status = json_data.get("status")
+
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            logger.error(f"Guild not found for ID: {guild_id}")
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        member = guild.get_member(int(user_id))
+        if not member:
+            logger.error(f"User  not found for ID: {user_id} in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="User  not found")
+        
+        appeal_doc = await db.ban_appeals.find_one({"appeal_id": appeal_id})
+        if not appeal_doc:
+            logger.error(f"Ban appeal not found for ID: {appeal_id}")
+            raise HTTPException(status_code=404, detail="Ban appeal not found")
+
+        await db.ban_appeals.update_one({"_id": appeal_id}, {"$set": {"status": status}})
+        guild_invite = await guild.text_channels[0].create_invite()
+        if status == "accepted":
+            try:
+                await guild.unban(member)
+            except Exception as e:
+                #raise HTTPException(status_code=500, detail="Failed to unban user.")
+                pass    # Ignore if user is already unbanned
+        view = discord.ui.View()
+        url_button = discord.ui.Button(
+            label="Join Server", 
+            url=guild_invite.url,
+            style=discord.ButtonStyle.url
+        )
+        view.add_item(url_button)
+        if status == "accepted":
+            embed = discord.Embed(
+                title=f"Ban Appeal Status",
+                description=f"Your ban appeal has been accepted by the moderation team in **{guild.name}**.",
+                color=discord.Color.green()
+            )
+            await member.send(embed=embed, view=view)
+        elif status == "denied":
+            embed = discord.Embed(
+                title=f"Ban Appeal Status",
+                description=f"Your ban appeal has been rejected by the moderation team in **{guild.name}**.",
+                color=discord.Color.red()
+            )
+            await member.send(embed=embed)
 
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):
