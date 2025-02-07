@@ -733,13 +733,7 @@ def ban_appeal(guild_id):
     if not guild:
         flash("Guild not found.", "error")
         return redirect(url_for("dashboard"))
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    user_roles = [role.id for role in guild.get_member(int(session["user_id"])).roles]
-    if not any(role in user_roles for role in management_roles):
-        flash("You do not have the required permissions to access this page.", "error")
-        return redirect(url_for("dashboard"))
-    
+
     if request.method == "GET":
         if mongo_db["ban_appeals"].find_one(
             {
