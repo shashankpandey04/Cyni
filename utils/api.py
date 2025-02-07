@@ -531,8 +531,7 @@ class APIRoutes:
             try:
                 await guild.unban(member)
             except Exception as e:
-                #raise HTTPException(status_code=500, detail="Failed to unban user.")
-                pass    # Ignore if user is already unbanned
+                raise HTTPException(status_code=500, detail="Failed to unban user.")
         view = discord.ui.View()
         url_button = discord.ui.Button(
             label="Join Server", 

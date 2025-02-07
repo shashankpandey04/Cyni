@@ -729,87 +729,84 @@ def ban_appeal_manage(guild_id):
 @app.route('/banappeal/apply/<guild_id>', methods=["GET", "POST"])
 @login_required
 def ban_appeal(guild_id):
-    """
-    Banned User Appeal
-    """
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        flash("Guild not found.", "error")
+        return redirect(url_for("dashboard"))
+    
     if request.method == "GET":
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            flash("Guild not found.", "error")
-            return redirect(url_for("dashboard"))
-            
-        
-        already_appealed = mongo_db["ban_appeals"].find_one({"guild_id": int(guild_id), "user_id": session["user_id"]})
-        if already_appealed:
+        if mongo_db["ban_appeals"].find_one(
+            {
+                "guild_id": int(guild_id),
+                "user_id": session["user_id"],
+                "status": "pending"
+                }
+            ):
             flash("You have already appealed your ban.", "error")
             return redirect(url_for("dashboard"))
-        
+
         sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
         management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+        user_roles = [role.id for role in guild.get_member(int(session["user_id"])).roles]
+        if not any(role in user_roles for role in management_roles):
             flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
         
-        appeal_application = mongo_db["appeal_applications"].find_one({"guild_id": int(guild_id)})
-        if not appeal_application:
-            appeal_application = {
-                "questions": [
-                    {"question": "Why were you banned?"},
-                    {"question": "Why should we unban you?"},
-                    {"question": "What will you do to prevent this from happening again?"},
-                    {"question": "Do you have any additional information to provide?"},
-                    {"question": "Do you have any evidence to provide?"},
-                ]
-            }
-        else:
-            appeal_application = {
-                "questions": appeal_application["questions"]
-            }
+        # Fetch or set default appeal questions
+        appeal_application = mongo_db["appeal_applications"].find_one({"guild_id": int(guild_id)}) or {
+            "questions": [
+                {"question": "Why were you banned?"},
+                {"question": "Why should we unban you?"},
+                {"question": "What will you do to prevent this from happening again?"},
+                {"question": "Do you have any additional information to provide?"},
+                {"question": "Do you have any evidence to provide?"},
+            ]
+        }
+        
         return render_template("ban_appeal.html", guild=guild, appeal_application=appeal_application)
     
-    if request.method == "POST":
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            flash("Guild not found.", "error")
-            return redirect(url_for("dashboard"))
-        
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        sett.get('moderation_module', {}).get('ban_appeal_channel', None)
-        appeal_application = mongo_db["appeal_applications"].find_one({"guild_id": int(guild_id)})
-        questions = [q['question'] for q in appeal_application["questions"]]
-        answers = [request.form.get(f"answer_{i}") for i in range(1, len(questions) + 1)]
+    appeal_application = mongo_db["appeal_applications"].find_one({"guild_id": int(guild_id)})
+    questions = [q['question'] for q in appeal_application["questions"]]
+    answers = [request.form.get(f"answer_{i}") for i in range(1, len(questions) + 1)]
 
-        if not all(answers):
-            flash("Please answer all questions.", "error")
-            return redirect(url_for('ban_appeal', guild_id=guild_id))
+    if not all(answers):
+        flash("Please answer all questions.", "error")
+        return redirect(url_for('ban_appeal', guild_id=guild_id))
+
+    uid = str(uuid.uuid4())
+    while mongo_db["ban_appeals"].find_one({"appeal_id": uid}):
         uid = str(uuid.uuid4())
-        if mongo_db["ban_appeals"].find_one({"appeal_id": uid}):
-            uid = str(uuid.uuid4())
-        appeal_data = {
-            "appeal_id": uid,
-            "guild_id": int(guild_id),
-            "user_id": session["user_id"],
-            "questions": [{"question": question, "answer": answer} for question, answer in zip(questions, answers)],
-            "status": "pending",
-            "timestamp": datetime.now(),
-            "username": session["username"]
-        }
-        mongo_db["ban_appeals"].insert_one(appeal_data)
-        data = {
-            "user_id": session["user_id"],
-            "guild_id": int(guild_id),
-            "appeal_id": uid,
-            "user_name": session["username"]
-        }
-        headers = {"Authorization": bot_token}
-        URL = 'http://127.0.0.1:5000/notify_ban_appeal'
+
+    appeal_data = {
+        "appeal_id": uid,
+        "guild_id": int(guild_id),
+        "user_id": session["user_id"],
+        "questions": [{"question": q, "answer": a} for q, a in zip(questions, answers)],
+        "status": "pending",
+        "timestamp": datetime.now(),
+        "username": session["username"]
+    }
+    mongo_db["ban_appeals"].insert_one(appeal_data)
+
+    data = {
+        "user_id": session["user_id"],
+        "guild_id": int(guild_id),
+        "appeal_id": uid,
+        "user_name": session["username"]
+    }
+    headers = {"Authorization": bot_token}
+    URL = 'http://127.0.0.1:5000/notify_ban_appeal'
+    
+    try:
         response = requests.post(URL, headers=headers, json=data)
         if response.status_code == 200:
             flash("Ban appeal submitted successfully.")
-            return redirect(url_for("dashboard"))
         else:
             flash("Failed to notify staff about your ban appeal.", "error")
-            return redirect(url_for("dashboard"))
+    except requests.RequestException:
+        flash("Failed to notify staff about your ban appeal.", "error")
+    
+    return redirect(url_for("dashboard"))
         
 @app.route('/banappeal/logs/<guild_id>', methods=["GET"])
 @login_required
