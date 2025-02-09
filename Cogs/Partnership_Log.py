@@ -157,10 +157,12 @@ class Partnership_Log(commands.Cog):
         embeds = []
         for partnership in partnerships:
             representative = ctx.guild.get_member(partnership["representative"])
+            if not representative:
+                representative = await self.bot.fetch_user(partnership["representative"])
             description = re.sub(r'\\n', '\n', partnership["description"])
             formatted_description = (
                 f"{description}\n\n"
-                f"Representative: {representative.mention}"
+                f"Representative: {representative.mention if isinstance(representative, discord.Member) else "Couldn't find the representative"}"
             )
             embed = discord.Embed(
                 title=partnership["title"],
