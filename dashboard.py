@@ -69,6 +69,7 @@ def index():
 
 @app.route("/login")
 def login():
+    session['next'] = request.args.get('next', '/dashboard')
     discord_login_url = (
         f"{DISCORD_API_BASE_URL}/oauth2/authorize?client_id={os.getenv('DISCORD_CLIENT_ID')}"
         f"&redirect_uri={os.getenv('DISCORD_REDIRECT_URI')}&response_type=code&scope={OAUTH_SCOPE}"
@@ -118,7 +119,8 @@ def callback():
         users[user_json["id"]] = User(user_json["id"])
         login_user(users[user_json["id"]])
 
-    return redirect(url_for("dashboard"))
+    next_url = session.pop('next', '/dashboard')
+    return redirect(next_url)
 
 @app.route("/logout")
 def logout():
