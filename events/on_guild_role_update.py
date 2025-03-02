@@ -22,28 +22,27 @@ class OnGuildRoleUpdate(commands.Cog):
         guild = after.guild
         if not sett:
             return
-        try:
-            if not sett["moderation_module"]["enabled"]:
-                return
-        except KeyError:
+        if sett.get("moderation_module", {}).get("enabled", False) is False:
             return
-        try:
-            if not sett["moderation_module"]["enabled"]:
-                return
-        except KeyError:
-            return
-        try:
-            if not sett["moderation_module"]["audit_log"]:
-                return
-        except KeyError:
+        if sett.get("moderation_module", {}).get("audit_log") is None:
             return
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         created_at = discord_time(datetime.datetime.now())
 
+        webhooks = await guild_log_channel.webhooks()
+        cyni_webhook = None
+        for webhook in webhooks:
+            if webhook.name == "Cyni":
+                cyni_webhook = webhook
+            break
+        
+        if not cyni_webhook:
+            bot_avatar = await self.bot.user.avatar.read()
+            cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+
         if before.name != after.name:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -56,12 +55,14 @@ class OnGuildRoleUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Role ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
         if before.color != after.color:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= "Role Color Update",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -74,12 +75,14 @@ class OnGuildRoleUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Role ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
         if before.permissions != after.permissions:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -89,12 +92,14 @@ class OnGuildRoleUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Role ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
         if before.hoist != after.hoist:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -104,12 +109,14 @@ class OnGuildRoleUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Role ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
         if before.mentionable != after.mentionable:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -119,7 +126,10 @@ class OnGuildRoleUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Role ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(OnGuildRoleUpdate(bot))

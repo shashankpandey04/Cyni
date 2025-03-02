@@ -21,14 +21,12 @@ class OnGuildJoin(commands.Cog):
         embed = discord.Embed(
             title=f"Joined {guild.name}",
             description=f"""
-            <:anglesmallright:1268850037861908571> **Owner:** {guild.owner}
-            <:anglesmallright:1268850037861908571> **Members:** {guild.member_count}
-            <:anglesmallright:1268850037861908571> **ID:** {guild.id}
-            <:anglesmallright:1268850037861908571> **Bot Count:** {len([member for member in guild.members if member.bot])}
-            <:anglesmallright:1268850037861908571> **User Count:** {len([member for member in guild.members if not member.bot])}
-            <:anglesmallright:1268850037861908571> **Created At:** {created_at}
-            <:anglesmallright:1268850037861908571> **Verification Level:** {guild.verification_level}
-            <:anglesmallright:1268850037861908571> **Guild Count:** {len(self.bot.guilds)}
+            > **Owner:** {guild.owner}
+            > **Members:** {guild.member_count}
+            > **ID:** {guild.id}
+            > **Bot Count:** {len([member for member in guild.members if member.bot])}
+            > **User Count:** {len([member for member in guild.members if not member.bot])}
+            > **Guild Count:** {len(self.bot.guilds)}
             """,
             color=BLANK_COLOR
         )

@@ -48,6 +48,8 @@ intents.members = True
 intents.messages = True
 intents.moderation = True
 intents.bans = True
+intents.webhooks = True
+intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 

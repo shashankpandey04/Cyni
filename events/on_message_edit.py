@@ -25,29 +25,29 @@ class OnMessageEdit(commands.Cog):
         sett = await self.bot.settings.find_by_id(before.guild.id)
         if not sett:
             return
-        try:
-            if not sett["moderation_module"]["enabled"]:
-                return
-        except KeyError:
+        if sett.get("moderation_module", {}).get("enabled", False) is False:
             return
-        try:
-            if not sett["moderation_module"]["enabled"]:
-                return
-        except KeyError:
-            return
-        try:
-            if not sett["moderation_module"]["audit_log"]:
-                return
-        except KeyError:
+        if not sett.get("moderation_module", {}).get("audit_log"):
             return
         guild_log_channel = before.guild.get_channel(sett["moderation_module"]["audit_log"])
+
+        webhooks = await guild_log_channel.webhooks()
+        cyni_webhook = None
+        for webhook in webhooks:
+            if webhook.name == "Cyni":
+                cyni_webhook = webhook
+            break
+        
+        if not cyni_webhook:
+            bot_avatar = await self.bot.user.avatar.read()
+            cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+
         created_at = discord_time(datetime.datetime.now())
         if len(before.content) > 1024:
             before.content = before.content[:1021] + "..."
         if len(after.content) > 1024:
             after.content = after.content[:1021] + "..."
-        await guild_log_channel.send(
-            embed = discord.Embed(
+        embed = discord.Embed(
                 title= " ",
                 description=f"Message by {before.author.mention} edited {created_at}",
                 color=YELLOW_COLOR
@@ -60,7 +60,10 @@ class OnMessageEdit(commands.Cog):
             ).set_footer(
                 text=f"Message ID: {before.id}"
             )
-        )
+        if cyni_webhook:
+            await cyni_webhook.send(embed=embed)
+        else:
+            await guild_log_channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(OnMessageEdit(bot))

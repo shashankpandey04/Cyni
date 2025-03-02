@@ -38,13 +38,25 @@ class OnGuildChannelUpdate(commands.Cog):
                 return
         except KeyError:
             return
-        guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
+        guild_log_channel = guild.get_channel(sett.get("moderation_module", {}).get("audit_log"))
+        if not guild_log_channel:
+            return
         created_at = discord_time(datetime.datetime.now())
+
+        webhooks = await guild_log_channel.webhooks()
+        cyni_webhook = None
+        for webhook in webhooks:
+            if webhook.name == "Cyni":
+                cyni_webhook = webhook
+            break
         
+        if not cyni_webhook:
+            bot_avatar = await self.bot.user.avatar.read()
+            cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+
         if before.name != after.name:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -57,12 +69,14 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
         if before.category != after.category:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -75,12 +89,14 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
         if before.is_nsfw() != after.is_nsfw():
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -93,7 +109,10 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
         changes = []
         if before.overwrites != after.overwrites:
@@ -102,8 +121,7 @@ class OnGuildChannelUpdate(commands.Cog):
                 if len(changes) > 1024:
                     changes = changes[:1021] + "..."
                 async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.overwrite_update):
-                    return await guild_log_channel.send(
-                        embed = discord.Embed(
+                    embed = discord.Embed(
                             title= " ",
                             description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                             color=YELLOW_COLOR
@@ -116,13 +134,15 @@ class OnGuildChannelUpdate(commands.Cog):
                         ).set_footer(
                             text=f"Channel ID: {after.id}"
                         )
-                    )
+                    if cyni_webhook:
+                        await cyni_webhook.send(embed=embed)
+                    else:
+                        await guild_log_channel.send(embed=embed)
 
 
         if before.type != after.type:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
-                return await guild_log_channel.send(
-                    embed = discord.Embed(
+                embed = discord.Embed(
                         title= " ",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
@@ -135,7 +155,10 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(OnGuildChannelUpdate(bot))
