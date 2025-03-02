@@ -250,3 +250,25 @@ def parse_duration(duration):
 
     total_seconds = timedelta(days=days, weeks=weeks, hours=hours, minutes=minutes, seconds=seconds).total_seconds()
     return int(total_seconds)
+
+def time_converter(parameter: str) -> int:
+    conversions = {
+        ("s", "seconds", " seconds"): 1,
+        ("m", "minute", "minutes", " minutes"): 60,
+        ("h", "hour", "hours", " hours"): 60 * 60,
+        ("d", "day", "days", " days"): 24 * 60 * 60,
+        ("w", "week", " weeks"): 7 * 24 * 60 * 60
+    }
+
+    for aliases, multiplier in conversions.items():
+        parameter = parameter.strip()
+        for alias in aliases:
+            if parameter[(len(parameter) - len(alias)):].lower() == alias.lower():
+                alias_found = parameter[(len(parameter) - len(alias)):]
+                number = parameter.split(alias_found)[0]
+                number = number.replace("-", "")
+                if not number.strip()[-1].isdigit():
+                    continue
+                return int(number.strip()) * multiplier
+
+    raise ValueError("Invalid time format")

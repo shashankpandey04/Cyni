@@ -52,7 +52,10 @@ class OnGuildChannelUpdate(commands.Cog):
         
         if not cyni_webhook:
             bot_avatar = await self.bot.user.avatar.read()
-            cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            try:
+                cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            except discord.HTTPException:
+                cyni_webhook = None
 
         if before.name != after.name:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
@@ -117,27 +120,25 @@ class OnGuildChannelUpdate(commands.Cog):
         changes = []
         if before.overwrites != after.overwrites:
             changes = compare_overwrites(before.overwrites, after.overwrites)
-            if changes:
-                if len(changes) > 1024:
-                    changes = changes[:1021] + "..."
-                async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.overwrite_update):
-                    embed = discord.Embed(
-                            title= " ",
-                            description=f"{entry.user.mention} updated {before.mention} on {created_at}",
-                            color=YELLOW_COLOR
-                        ).add_field(
-                            name="Channel Name",
-                            value=f"{before.name}",
-                        ).add_field(
-                            name="Overwrites",
-                            value=f"{changes}",
-                        ).set_footer(
-                            text=f"Channel ID: {after.id}"
-                        )
-                    if cyni_webhook:
-                        await cyni_webhook.send(embed=embed)
-                    else:
-                        await guild_log_channel.send(embed=embed)
+            human_readable_changes = "\n".join([f"{perm[0].replace('_', ' ').title()}: {perm[1].strip()}" for perm in changes])
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.overwrite_update):
+                embed = discord.Embed(
+                    title= " ",
+                    description=f"{entry.user.mention} updated {before.mention} on {created_at}",
+                    color=YELLOW_COLOR
+                ).add_field(
+                    name="Channel Name",
+                    value=f"{before.name}",
+                ).add_field(
+                    name="Overwrites",
+                    value=f"{human_readable_changes}",
+                ).set_footer(
+                    text=f"Channel ID: {after.id}"
+                )
+                if cyni_webhook:
+                    await cyni_webhook.send(embed=embed)
+                else:
+                    await guild_log_channel.send(embed=embed)
 
 
         if before.type != after.type:

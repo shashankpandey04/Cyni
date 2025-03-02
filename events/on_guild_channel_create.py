@@ -38,7 +38,10 @@ class OnGuildChannelCreate(commands.Cog):
         
         if not cyni_webhook:
             bot_avatar = await self.bot.user.avatar.read()
-            cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            try:
+                cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            except discord.HTTPException:
+                cyni_webhook = None
 
         async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_create):
             embed = discord.Embed(

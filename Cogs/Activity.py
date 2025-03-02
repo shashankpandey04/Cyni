@@ -46,7 +46,7 @@ class Activity(commands.Cog):
             for member in staff_activity["staff"][i:i+25]:
                 user = ctx.guild.get_member(member["_id"])
                 if user:
-                    embed.description += f"{user.mention} - {member['messages']} messages\n"
+                    embed.description += f"> {user.mention}\n<a:animated_arrow:1345685591538401320> {member['messages']} messages\n\n"
             await ctx.send(embed=embed)
 
     @activity.command(

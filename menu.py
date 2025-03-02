@@ -888,3 +888,38 @@ class PremiumButton(View):
         )
         self.add_item(self.premium_button)
         
+
+class LOARequest(View):
+    def __init__(self, bot, guild_id: int, user_id: int, schema_id):
+        super().__init__()
+        self.bot = bot
+        self.user_id = user_id
+        self.guild_id = guild_id
+        self.schema_id = schema_id
+
+        self.accept_button = discord.ui.Button(
+            label="Accept",
+            style=discord.ButtonStyle.success,
+            row=0
+        )
+
+        self.deny_button = discord.ui.Button(
+            label="Deny",
+            style=discord.ButtonStyle.danger,
+            row=1
+        )
+
+        self.accept_button.callback = self.accept_callback
+        self.deny_button.callback = self.deny_callback
+
+        self.add_item(self.accept_button)
+        self.add_item(self.deny_button)
+
+    async def accept_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
+
+        await interaction.response.send_message("LOA Request Accepted!", ephemeral=True)
+        await interaction.message.delete()
+
+    

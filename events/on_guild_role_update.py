@@ -38,7 +38,10 @@ class OnGuildRoleUpdate(commands.Cog):
         
         if not cyni_webhook:
             bot_avatar = await self.bot.user.avatar.read()
-            cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            try:
+                cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            except discord.HTTPException:
+                cyni_webhook = None
 
         if before.name != after.name:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
@@ -82,13 +85,21 @@ class OnGuildRoleUpdate(commands.Cog):
 
         if before.permissions != after.permissions:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+                before_perms = [perm for perm, value in before.permissions if value]
+                after_perms = [perm for perm, value in after.permissions if value]
+                added_perms = set(after_perms) - set(before_perms)
+                removed_perms = set(before_perms) - set(after_perms)
+                
                 embed = discord.Embed(
-                        title= " ",
+                        title= "Role Permissions Update",
                         description=f"{entry.user.mention} updated {before.mention} on {created_at}",
                         color=YELLOW_COLOR
                     ).add_field(
-                        name="Role Permissions",
-                        value=f"{before.permissions} -> {after.permissions}",
+                        name="Added Permissions",
+                        value=", ".join(added_perms) if added_perms else "None",
+                    ).add_field(
+                        name="Removed Permissions",
+                        value=", ".join(removed_perms) if removed_perms else "None",
                     ).set_footer(
                         text=f"Role ID: {after.id}"
                     )

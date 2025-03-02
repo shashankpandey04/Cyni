@@ -43,7 +43,10 @@ class OnMemberJoin(commands.Cog):
         
         if not cyni_webhook:
             bot_avatar = await self.bot.user.avatar.read()
-            cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            try:
+                cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+            except discord.HTTPException:
+                cyni_webhook = None
 
         joined_at = discord_time(datetime.datetime.now())
         embed = discord.Embed(

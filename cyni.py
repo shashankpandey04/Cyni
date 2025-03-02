@@ -87,6 +87,7 @@ class Bot(commands.AutoShardedBot):
             self.erlc_keys_document = Document(self.db, 'erlc_keys')
             self.applications_document = Document(self.db, 'applications')
             self.partnership_document = Document(self.db, 'partnership')
+            self.loa_document = Document(self.db, 'loa')
 
     async def setup_hook(self) -> None:
 
@@ -106,11 +107,11 @@ class Bot(commands.AutoShardedBot):
         self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
         self.applications = Applications(self.db, 'applications')
         self.partnership = Partnership(self.db, 'partnership')
-
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
+        UNLOAD_EXTENSIONS = ["Cogs.LeaveManager"]
 
 
         for extension in EXT_EXTENSIONS:
@@ -135,6 +136,13 @@ class Bot(commands.AutoShardedBot):
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
                 logging.error(f'Failed to load extension {extension}.', exc_info=True)
+
+        for extension in UNLOAD_EXTENSIONS:
+            try:
+                await self.unload_extension(extension)
+                logging.info(f'Unloaded extension {extension}.')
+            except Exception as e:
+                logging.error(f'Failed to unload extension {extension}.', exc_info=True)
 
         #await self.load_extension("jishaku")
 

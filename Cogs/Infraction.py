@@ -36,7 +36,7 @@ class Infraction(commands.Cog):
     @app_commands.autocomplete(
         dm=dm_autocomplete
     )
-    async def staff_infract(self,ctx,member:discord.Member, type:str,approver:discord.Role,*,reason:str,rank:str,punishment:str = None,role_remove:discord.Role = None,role_add:discord.Role = None, dm: str = "false"):
+    async def staff_infract(self,ctx,member:discord.Member, type:str,approver:discord.Member,*,reason:str,rank:str,punishment:str = None,role_remove:discord.Role = None,role_add:discord.Role = None, dm: str = "false"):
         '''
         Warn, demote or promote a staff member.
         '''
@@ -52,24 +52,15 @@ class Infraction(commands.Cog):
                     color = discord.Color.red()
                 )
             )        
-        try:
-            enabled = settings['staff_management']["enabled"]
-            if not enabled:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        title="Module not enabled",
-                        description="Please enable Staff Management Module via `/config` command.",
-                        color=BLANK_COLOR
-                    )
-                )
-        except KeyError:
+        enabled = settings.get("staff_management", {}).get("enabled", False)
+        if not enabled:
             return await ctx.send(
-                    embed=discord.Embed(
-                        title="Module not enabled",
-                        description="Please enable Staff Management Module via `/config` command.",
-                        color=BLANK_COLOR
-                    )
+                embed=discord.Embed(
+                    title="Module not enabled",
+                    description="Please enable Staff Management Module via `/config` command.",
+                    color=BLANK_COLOR
                 )
+            )
         
         count = await self.bot.infraction_log.count_all(
             {"guild_id": ctx.guild.id}

@@ -1,9 +1,8 @@
 import discord
 from discord.ext import commands
 import time
-import asyncio
 
-from utils.constants import YELLOW_COLOR, BLANK_COLOR, RED_COLOR, GREEN_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from discord import app_commands
 from cyni import is_management, is_staff
 from utils.utils import log_command_usage
@@ -162,7 +161,7 @@ class Partnership_Log(commands.Cog):
             description = re.sub(r'\\n', '\n', partnership["description"])
             formatted_description = (
                 f"{description}\n\n"
-                f"Representative: {representative.mention if isinstance(representative, discord.Member) else "Couldn't find the representative"}"
+                f"Representative: {representative.mention if representative else 'Couldn\'t find the representative'}"
             )
             embed = discord.Embed(
                 title=partnership["title"],
