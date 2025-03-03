@@ -806,9 +806,9 @@ class Moderation(commands.Cog):
                 )
             )
         
-        for role in ctx.guild.roles:
-            if not channel.permissions_for(role).send_messages:
-                await channel.set_permissions(role, send_messages=True)
+        for overwrite in channel.overwrites:
+            if isinstance(overwrite, discord.Role) and not channel.permissions_for(overwrite).send_messages:
+                await channel.set_permissions(overwrite, send_messages=True)
         await ctx.send(
             embed = discord.Embed(
                 description = f"{channel.mention} has been unlocked.",
