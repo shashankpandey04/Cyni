@@ -201,22 +201,57 @@ async def create_full_backup(guild, bot):
     }
 
 def compare_overwrites(before_overwrites, after_overwrites):
+    """
+    Compare two sets of permission overwrites and return the differences.
+    
+    Parameters:
+    -----------
+    before_overwrites : dict
+        The previous permission overwrites
+    after_overwrites : dict
+        The new permission overwrites
+        
+    Returns:
+    --------
+    list
+        A list of tuples containing (target, perm_type, permission_name, old_value, new_value)
+    """
     changes = []
-    all_targets = set(before_overwrites.keys()).union(set(after_overwrites.keys()))
+    
+    # Find all targets (roles/members) that exist in either overwrite set
+    all_targets = set(before_overwrites.keys()) | set(after_overwrites.keys())
+    
     for target in all_targets:
-        before_perms = before_overwrites.get(target, discord.PermissionOverwrite())
-        after_perms = after_overwrites.get(target, discord.PermissionOverwrite())
-        perm_changes = []
-        for perm in discord.Permissions.VALID_FLAGS:
-            before_value = getattr(before_perms, perm, None)
-            after_value = getattr(after_perms, perm, None)
-            if before_value != after_value:
-                status_before = "Allowed" if before_value is True else "Denied" if before_value is False else "Neutral"
-                status_after = "Allowed" if after_value is True else "Denied" if after_value is False else "Neutral"
-                perm_changes.append(f"{perm}: {status_before} -> {status_after}")
-        if perm_changes:
-            changes.append("\n".join(perm_changes))
-
+        # Get the overwrite objects (or None if they don't exist)
+        before_overwrite = before_overwrites.get(target, None)
+        after_overwrite = after_overwrites.get(target, None)
+        
+        # If target was added or removed entirely
+        if before_overwrite is None:
+            # Target was added
+            for perm_name, value in after_overwrite:
+                if value is not None:  # Only include non-default permissions
+                    changes.append((target, "added", perm_name, None, value))
+        elif after_overwrite is None:
+            # Target was removed
+            for perm_name, value in before_overwrite:
+                if value is not None:  # Only include non-default permissions
+                    changes.append((target, "removed", perm_name, value, None))
+        else:
+            # Target exists in both, compare permissions
+            before_perms = dict(before_overwrite)
+            after_perms = dict(after_overwrite)
+            
+            # Find all permission names
+            all_perm_names = set(before_perms.keys()) | set(after_perms.keys())
+            
+            for perm_name in all_perm_names:
+                before_value = before_perms.get(perm_name, None)
+                after_value = after_perms.get(perm_name, None)
+                
+                if before_value != after_value:
+                    changes.append((target, "changed", perm_name, before_value, after_value))
+    
     return changes
 
 async def get_discord_by_roblox(bot,username):
