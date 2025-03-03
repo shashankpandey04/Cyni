@@ -38,7 +38,7 @@ class OnMessageEdit(commands.Cog):
         for webhook in webhooks:
             if webhook.name == "Cyni":
                 cyni_webhook = webhook
-            break
+                break
         
         if not cyni_webhook:
             bot_avatar = await self.bot.user.avatar.read()
