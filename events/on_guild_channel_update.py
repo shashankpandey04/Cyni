@@ -36,20 +36,19 @@ class OnGuildChannelUpdate(commands.Cog):
             return
         created_at = discord_time(datetime.datetime.now())
 
-        # Fix webhook search logic - the break was inside the loop causing issues
-        webhooks = await guild_log_channel.webhooks()
-        cyni_webhook = None
-        for webhook in webhooks:
-            if webhook.name == "Cyni":
-                cyni_webhook = webhook
-                break
+        #webhooks = await guild_log_channel.webhooks()
+        #cyni_webhook = None
+        #for webhook in webhooks:
+        #    if webhook.name == "Cyni":
+        #        cyni_webhook = webhook
+        #        break
         
-        if not cyni_webhook:
-            bot_avatar = await self.bot.user.avatar.read()
-            try:
-                cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
-            except discord.HTTPException:
-                cyni_webhook = None
+        #if not cyni_webhook:
+        #    bot_avatar = await self.bot.user.avatar.read()
+        #    try:
+        #        cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
+        #    except discord.HTTPException:
+        #        cyni_webhook = None
 
         if before.name != after.name:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
@@ -72,10 +71,10 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                if cyni_webhook:
-                    await cyni_webhook.send(embed=embed)
-                else:
-                    await guild_log_channel.send(embed=embed)
+                #if cyni_webhook:
+                #    await cyni_webhook.send(embed=embed)
+                #else:
+                await guild_log_channel.send(embed=embed)
 
         if before.category != after.category:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
@@ -98,10 +97,10 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                if cyni_webhook:
-                    await cyni_webhook.send(embed=embed)
-                else:
-                    await guild_log_channel.send(embed=embed)
+                #if cyni_webhook:
+                #    await cyni_webhook.send(embed=embed)
+                #else:
+                await guild_log_channel.send(embed=embed)
 
         if before.is_nsfw() != after.is_nsfw():
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
@@ -124,31 +123,24 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                if cyni_webhook:
-                    await cyni_webhook.send(embed=embed)
-                else:
-                    await guild_log_channel.send(embed=embed)
+                #if cyni_webhook:
+                #    await cyni_webhook.send(embed=embed)
+                #else:
+                await guild_log_channel.send(embed=embed)
 
         # Improve the permission overwrite formatting
         if before.overwrites != after.overwrites:
             changes = compare_overwrites(before.overwrites, after.overwrites)
             
-            # Assume compare_overwrites returns data that needs formatting
-            # Format for better human readability
             human_readable_changes = []
             for target, perm_type, perm_name, old_value, new_value in changes:
                 target_name = target.name if hasattr(target, 'name') else str(target)
-                
-                # Convert from "allow/deny/none" to "✅/❌/➖"
+
                 old_symbol = "❌" if old_value is False else "✅" if old_value is True else "➖"
                 new_symbol = "❌" if new_value is False else "✅" if new_value is True else "➖"
-                
-                # Format the permission name to be more readable
                 readable_name = perm_name.replace('_', ' ').title()
                 
                 human_readable_changes.append(f"**{target_name}**: {readable_name} ({old_symbol} → {new_symbol})")
-            
-            # Join all changes with line breaks
             formatted_changes = "\n".join(human_readable_changes) if human_readable_changes else "No detailed permission changes available"
             
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.overwrite_update):
@@ -167,10 +159,10 @@ class OnGuildChannelUpdate(commands.Cog):
                 ).set_footer(
                     text=f"Channel ID: {after.id}"
                 )
-                if cyni_webhook:
-                    await cyni_webhook.send(embed=embed)
-                else:
-                    await guild_log_channel.send(embed=embed)
+                #if cyni_webhook:
+                #    await cyni_webhook.send(embed=embed)
+                #else:
+                await guild_log_channel.send(embed=embed)
 
         if before.type != after.type:
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_update):
@@ -193,10 +185,10 @@ class OnGuildChannelUpdate(commands.Cog):
                     ).set_footer(
                         text=f"Channel ID: {after.id}"
                     )
-                if cyni_webhook:
-                    await cyni_webhook.send(embed=embed)
-                else:
-                    await guild_log_channel.send(embed=embed)
+                #if cyni_webhook:
+                #    await cyni_webhook.send(embed=embed)
+                #else:
+                await guild_log_channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(OnGuildChannelUpdate(bot))

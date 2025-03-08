@@ -33,6 +33,7 @@ from Datamodels.afk import AFK
 from Datamodels.Erlc_keys import ERLC_Keys
 from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
+from Datamodels.LOA import LOA
 
 from Tasks.Uptime import check_uptime
 
@@ -107,6 +108,7 @@ class Bot(commands.AutoShardedBot):
         self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
         self.applications = Applications(self.db, 'applications')
         self.partnership = Partnership(self.db, 'partnership')
+        self.loa = LOA(self.db, 'loa')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]

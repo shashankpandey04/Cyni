@@ -3,6 +3,7 @@ from discord.ext import commands
 import logging
 from utils.constants import BLANK_COLOR
 from discord.ui import Button, View, Modal, TextInput
+from bson import ObjectId
 
 class BasicConfig(discord.ui.View):
     def __init__(self, bot, sett, user_id: int):
@@ -896,6 +897,7 @@ class LOARequest(View):
         self.user_id = user_id
         self.guild_id = guild_id
         self.schema_id = schema_id
+        self.deny_callback = None
 
         self.accept_button = discord.ui.Button(
             label="Accept",
@@ -906,7 +908,7 @@ class LOARequest(View):
         self.deny_button = discord.ui.Button(
             label="Deny",
             style=discord.ButtonStyle.danger,
-            row=1
+            row=0
         )
 
         self.accept_button.callback = self.accept_callback
@@ -919,7 +921,66 @@ class LOARequest(View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
 
-        await interaction.response.send_message("LOA Request Accepted!", ephemeral=True)
-        await interaction.message.delete()
+        document = await self.bot.loa.find_by_id(self.schema_id)
+        if not isinstance(document, dict):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Error",
+                    description="LOA Request not found.",
+                    color=0xFF0000
+                ),
+                ephemeral=True
+            )
+        
+        document["accepted"] = True
+        
+        await self.bot.loa.update_by_id(document)
+        
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="LOA Request Accepted",
+                description="The LOA Request has been accepted.",
+                color=0x00FF00
+            ),
+            ephemeral=True
+        )
+
+        embed = interaction.message.embeds[0]
+        embed.set_footer(text=f"Accepted by {interaction.user}")
+        embed.color = discord.Color.green()
+        await interaction.message.edit(embed=embed, view=None)
+
+    async def deny_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
+
+        document = await self.bot.loa.find_by_id(self.schema_id)
+        if not isinstance(document, dict):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Error",
+                    description="LOA Request not found.",
+                    color=0xFF0000
+                ),
+                ephemeral=True
+            )
+
+        document["denied"] = True
+        
+        await self.bot.loa.update_by_id(document)
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="LOA Request Denied",
+                description="The LOA Request has been denied.",
+                color=0xFF0000
+            ),
+            ephemeral=True
+        )
+
+        embed = interaction.message.embeds[0]
+        embed.set_footer(text=f"Denied by {interaction.user}")
+        embed.color = discord.Color.red()
+        await interaction.message.edit(embed=embed, view=None)
 
     

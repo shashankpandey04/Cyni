@@ -19,9 +19,11 @@ class LeaveManager(commands.Cog):
         ).add_field(
             name="Staff Information",
             value=f"> **Staff Member:** {member.mention}\n> **Past LOAs:** {len(total_past_loas)}",
+            inline=False
         ).add_field(
             name="LOA Information",
             value=f"> **Reason:** {schema['reason']}\n> **Start:** <t:{schema['start']}:F>\n> **Expiry:** <t:{schema['expiry']}:F>",
+            inline=False
         )
         await loa_channel.send(embed=embed, view=LOARequest(self.bot, guild.id, member.id, schema["_id"]))
 
@@ -53,24 +55,24 @@ class LeaveManager(commands.Cog):
                 color=RED_COLOR
             ))
 
-        active_loa =  [item async for item in self.bot.loas.db.find({
+        active_loa =  [item async for item in self.bot.loa.db.find({
             "guild_id": ctx.guild.id,
             "user": ctx.author.id,
-            "status": "active",
             "accepted": True,
             "denied": False,
             "voided": False,
+            "expired": False,
             "type": "loa"
         })]
 
-        if len(active_loa) > 0:
+        if active_loa:
             return await ctx.send(embed=discord.Embed(
                 title="Active Leave of Absence",
                 description="You already have an active leave of absence.",
                 color=RED_COLOR
             ))
         
-        total_past_loas = [item async for item in self.bot.loas.db.find({
+        total_past_loas = [item async for item in self.bot.loa.db.find({
             "guild_id": ctx.guild.id,
             "user": ctx.author.id,
             "type": "loa",
@@ -94,7 +96,8 @@ class LeaveManager(commands.Cog):
             "expiry": expiry_timestamp
         }
 
-        await self.bot.loas.db.insert_one(loa_schema)
+        await self.bot.loa.db.insert_one(loa_schema)
+        await self.send_loa_embed(ctx.guild, ctx.channel, ctx.author, loa_schema, total_past_loas)
         await ctx.send(embed=discord.Embed(
             title="Leave of Absence Requested",
             description="Your leave of absence request has been submitted.",
