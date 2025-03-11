@@ -113,7 +113,7 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.LeaveManager"]
+        UNLOAD_EXTENSIONS = ["Cogs.LeaveManager", "Cogs.Backup", "Cogs.Tickets"]
 
 
         for extension in EXT_EXTENSIONS:
@@ -138,13 +138,13 @@ class Bot(commands.AutoShardedBot):
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
                 logging.error(f'Failed to load extension {extension}.', exc_info=True)
-
-        for extension in UNLOAD_EXTENSIONS:
-            try:
-                await self.unload_extension(extension)
-                logging.info(f'Unloaded extension {extension}.')
-            except Exception as e:
-                logging.error(f'Failed to unload extension {extension}.', exc_info=True)
+        if os.getenv("PRODUCTION_TOKEN"):
+            for extension in UNLOAD_EXTENSIONS:
+                try:
+                    await self.unload_extension(extension)
+                    logging.info(f'Unloaded extension {extension}.')
+                except Exception as e:
+                    logging.error(f'Failed to unload extension {extension}.', exc_info=True)
 
         #await self.load_extension("jishaku")
 
@@ -154,7 +154,6 @@ class Bot(commands.AutoShardedBot):
         logging.info("Connected to MongoDB")
 
         change_status.start()
-        #check_uptime.start()
 
         logging.info(f"Logged in as {bot.user}")
 
@@ -175,23 +174,23 @@ bot_shard_channel = 1203343926388330518
 
 afk_users = {}
 
-#@bot.event
-#async def on_shard_ready(shard_id):
-#    embed = discord.Embed(
-#        title="Shard Connected",
-#        description=f"Shard ID `{shard_id}` connected successfully.",
-#        color=BLANK_COLOR
-#    )
-#    await bot.get_channel(bot_shard_channel).send(embed=embed)
+@bot.event
+async def on_shard_ready(shard_id):
+    embed = discord.Embed(
+        title="Shard Connected",
+        description=f"Shard ID `{shard_id}` connected successfully.",
+        color=BLANK_COLOR
+    )
+    await bot.get_channel(bot_shard_channel).send(embed=embed)
 
-#@bot.event
-#async def on_shard_disconnect(shard_id):
-#    embed = discord.Embed(
-#        title="Shard Disconnected",
-#        description=f"Shard ID `{shard_id}` disconnected.",
-#        color=BLANK_COLOR
-#    )
-#    await bot.get_channel(bot_shard_channel).send(embed=embed)
+@bot.event
+async def on_shard_disconnect(shard_id):
+    embed = discord.Embed(
+        title="Shard Disconnected",
+        description=f"Shard ID `{shard_id}` disconnected.",
+        color=BLANK_COLOR
+    )
+    await bot.get_channel(bot_shard_channel).send(embed=embed)
 
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
@@ -226,16 +225,9 @@ async def AutoDefer(ctx: commands.Context):
             }
         )
 
-@bot.after_invoke
-async def loggingCommand(ctx: commands.Context):
-    logging.info(f"{ctx.author} used {ctx.command} in {ctx.guild}.")
-
-@bot.tree.command()
-async def banappeal(interaction: discord.Interaction):
-    '''
-    Appeal a ban.
-    '''
-    await interaction.response.send_modal(BanAppealModal(bot))
+#@bot.after_invoke
+#async def loggingCommand(ctx: commands.Context):
+#    logging.info(f"{ctx.author} used {ctx.command} in {ctx.guild}.")
 
 @tasks.loop(hours=1)
 async def change_status():

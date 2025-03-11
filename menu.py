@@ -935,7 +935,9 @@ class LOARequest(View):
         document["accepted"] = True
         
         await self.bot.loa.update_by_id(document)
-        
+
+        self.bot.dispatch("on_loa_accept", document)
+
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="LOA Request Accepted",
@@ -948,6 +950,7 @@ class LOARequest(View):
         embed = interaction.message.embeds[0]
         embed.set_footer(text=f"Accepted by {interaction.user}")
         embed.color = discord.Color.green()
+        embed.title = "<:checked:1268849964063391788> LOA Request Accepted"
         await interaction.message.edit(embed=embed, view=None)
 
     async def deny_callback(self, interaction: discord.Interaction):
@@ -969,6 +972,8 @@ class LOARequest(View):
         
         await self.bot.loa.update_by_id(document)
 
+        self.bot.dispatch("on_loa_deny", document)
+
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="LOA Request Denied",
@@ -981,6 +986,7 @@ class LOARequest(View):
         embed = interaction.message.embeds[0]
         embed.set_footer(text=f"Denied by {interaction.user}")
         embed.color = discord.Color.red()
+        embed.title = "<:declined:1268849944455024671> LOA Request Denied"
         await interaction.message.edit(embed=embed, view=None)
 
     
