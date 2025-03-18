@@ -4,9 +4,6 @@ from discord.ext import commands
 from discord.ext import tasks
 from utils.mongo import Document
 from utils.constants import BLANK_COLOR
-import sentry_sdk
-import asyncio
-import aiohttp
 
 from pkgutil import iter_modules
 import logging
@@ -16,8 +13,6 @@ import time
 from dotenv import load_dotenv
 import motor.motor_asyncio
 from utils.utils import get_prefix
-from Modals.ban_appeal import BanAppealModal
-
 
 from Datamodels.Settings import Settings
 from Datamodels.Analytics import Analytics
@@ -34,8 +29,6 @@ from Datamodels.Erlc_keys import ERLC_Keys
 from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
 from Datamodels.LOA import LOA
-
-from Tasks.Uptime import check_uptime
 
 from utils.prc_api import PRC_API_Client
 from decouple import config
@@ -113,7 +106,8 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.LeaveManager", "Cogs.Backup", "Cogs.Tickets"]
+        UNLOAD_EXTENSIONS = ["Cogs.LeaveManager", "Cogs.Tickets", "Cogs.Applications"]
+        DISCONTINUED_EXTENSIONS = ["Cogs.Backup"]
 
 
         for extension in EXT_EXTENSIONS:
@@ -125,8 +119,6 @@ class Bot(commands.AutoShardedBot):
 
         for extension in Cogs:
             try:
-                if extension == "Cogs.Applications":
-                    continue
                 await self.load_extension(extension)
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
@@ -138,6 +130,7 @@ class Bot(commands.AutoShardedBot):
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
                 logging.error(f'Failed to load extension {extension}.', exc_info=True)
+
         if os.getenv("PRODUCTION_TOKEN"):
             for extension in UNLOAD_EXTENSIONS:
                 try:
@@ -145,6 +138,13 @@ class Bot(commands.AutoShardedBot):
                     logging.info(f'Unloaded extension {extension}.')
                 except Exception as e:
                     logging.error(f'Failed to unload extension {extension}.', exc_info=True)
+
+        for extension in DISCONTINUED_EXTENSIONS:
+            try:
+                await self.unload_extension(extension)
+                logging.info(f'Unloaded extension {extension}.')
+            except Exception as e:
+                logging.error(f'Failed to unload extension {extension}.', exc_info=True)
 
         #await self.load_extension("jishaku")
 
