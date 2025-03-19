@@ -13,6 +13,8 @@ from bson import ObjectId, Int64
 from cyni import bot, fetch_invite, bot_ready
 from utils.erm_api import *
 
+from DashboardModules.WelcomeModule import welcome_route
+
 # Load environment variables
 load_dotenv()
 
@@ -37,6 +39,9 @@ app.config['SESSION_MONGODB'] = mongo_client
 app.config['SESSION_MONGODB_DB'] = mongo_db.name
 app.config['SESSION_USE_SIGNER'] = True
 Session(app)
+
+# Register Blueprint
+app.register_blueprint(welcome_route)
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)

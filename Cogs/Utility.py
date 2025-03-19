@@ -479,30 +479,32 @@ class Utility(commands.Cog):
         """
         Get information about a sentry error.
         """
-        if ctx.author.roles:
-            if self.support_role in [role.id for role in ctx.author.roles]:
+        support_guild = self.bot.get_guild(1152949579407442050)
+        member = support_guild.get_member(ctx.author.id) if support_guild else None
+        
+        if member and self.support_role in [role.id for role in member.roles]:
+            doc = await self.bot.errors.find_by_id(error_id)
+            if doc is None:
+                await ctx.send(f"Error not found, retrying in 5 seconds.")
+                time.sleep(5)
                 doc = await self.bot.errors.find_by_id(error_id)
                 if doc is None:
-                    await ctx.send(f"Error not found, retrying in 5 seconds.")
-                    time.sleep(5)
-                    doc = await self.bot.errors.find_by_id(error_id)
-                    if doc is None:
-                        return await ctx.send("Error not found.")
-                return await ctx.send(
-                    embed=discord.Embed(
-                        title="Error",
-                        description=f"**Error ID:** {doc['_id']}\n\n**Error:** {doc['error']}",
-                        color=BLANK_COLOR
-                    )
+                    return await ctx.send("Error not found.")
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"**Error ID:** {doc['_id']}\n\n**Error:** {doc['error']}",
+                    color=BLANK_COLOR
                 )
-            else:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        title="Not Permitted",
-                        description="Only Cyni Staff is allowed to use this command.",
-                        color=RED_COLOR
-                    )
+            )
+        else:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="Only Cyni Staff is allowed to use this command.",
+                    color=RED_COLOR
                 )
+            )
             
     @commands.hybrid_command(
         name="say",

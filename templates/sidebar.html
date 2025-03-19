@@ -1,208 +1,330 @@
-<nav class="col-md-3 col-lg-2 d-md-block sidebar" style="background-color: black; border-right: 1px solid #f0ad4e; padding-top: 20px;">
-    <div class="position-sticky">
-        <div class="d-flex align-items-center mt-3 mb-4">
-            {% if 'username' in session %}
-            <button class="btn btn-outline-warning me-2" id="notificationButton" onclick="fetchNotifications(); $('#notificationModal').modal('show');">
-                <i class="fas fa-bell"></i>
+
+<aside class="fixed inset-y-0 left-0 w-64 bg-black/90 backdrop-blur-lg border-r border-amber-500/30 transition-all duration-300 shadow-xl shadow-amber-900/10 z-50">
+    <div class="flex flex-col h-full">
+      <!-- Logo Section -->
+      <div class="px-4 py-6 border-b border-amber-500/20">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
+            <span class="text-black font-bold text-xl">
+                {{ session['username']|default('?')|first }}
+            </span>
+          </div>
+          <span class="ml-3 text-xl font-semibold text-white">Cyni</span>
+        </div>
+      </div>
+  
+      <!-- User & Notification Section -->
+      <div class="flex items-center justify-between px-4 py-4">
+        {% if 'username' in session %}
+        <div class="flex items-center">
+          <button id="notificationButton" 
+                  onclick="fetchNotifications()"
+                  class="relative p-2 bg-black/60 rounded-full border border-amber-500/40 transition hover:bg-amber-500/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+            </svg>
+          </button>
+        </div>
+        {% endif %}
+        <div class="flex items-center">
+          <div class="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center">
+            <span class="text-black font-bold text-sm">{{ session['username']|default('?')|first }}</span>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Navigation Section -->
+      <div class="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-amber-500/30 scrollbar-track-black/20 py-4">
+        <!-- Main Navigation -->
+        <nav class="space-y-1 px-2">
+          <a href="{{ url_for('dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 transition hover:bg-amber-500/10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zM3 16a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" />
+            </svg>
+            Dashboard
+          </a>
+          <a href="{{ url_for('guild', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-white hover:bg-gradient-to-r hover:from-amber-500/20 hover:to-transparent transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+            </svg>
+            Guild Overview
+          </a>
+        </nav>
+  
+        <!-- Modules Navigation -->
+        <div class="mt-8">
+          <div class="px-4 pb-2">
+            <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
+                    data-collapse-toggle="modulesNav" 
+                    aria-expanded="false" 
+                    aria-controls="modulesNav">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+              </svg>
+              <span>Modules</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
             </button>
-            <span class="text-warning">Notifications</span>
-            {% endif %}
+          </div>
+          <div id="modulesNav" class="hidden">
+            <div class="space-y-1 px-2 py-2 ml-4 border-l border-amber-500/20">
+              <a href="{{ url_for('guild_settings_basics', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Basic Settings
+              </a>
+              <a href="{{ url_for('anti_ping_settings', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Anti Ping
+              </a>
+              <a href="{{ url_for('moderation_settings', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Moderation
+              </a>
+              <a href="{{ url_for('welcome_module.welcome', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Welcome Module
+              </a>
+            </div>
+          </div>
         </div>
-        <p class="text-light mb-2">
-            <a href="{{ url_for('dashboard') }}" class="text-warning hover-link">Dashboard</a>
-        </p>
-        <p class="text-light mb-2">
-            <a class="text-warning hover-link" href="{{url_for('guild', guild_id=guild.id)}}">Guild Overview</a>
-        </p>
-        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#modulesNav" aria-expanded="false" aria-controls="modulesNav">
-            <i class="fas fa-cogs me-2"></i> Modules Navigation
-        </h6>
-        <div class="collapse" id="modulesNav">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{url_for('guild_settings_basics', guild_id=guild.id)}}">Basic Settings</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{ url_for('anti_ping_settings', guild_id=guild.id) }}">Anti Ping</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{ url_for('moderation_settings', guild_id=guild.id) }}">Moderation</a>
-                </li>
-            </ul>
+  
+        <!-- Applications Navigation -->
+        <div class="mt-6">
+          <div class="px-4 pb-2">
+            <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
+                    data-collapse-toggle="applicationNav" 
+                    aria-expanded="false" 
+                    aria-controls="applicationNav">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+              </svg>
+              <span>Applications</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <div id="applicationNav" class="hidden">
+            <div class="space-y-1 px-2 py-2 ml-4 border-l border-amber-500/20">
+              <a href="{{ url_for('create_application', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Create Application
+              </a>
+              <a href="{{ url_for('applications', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Manage Applications
+              </a>
+              <a href="{{ url_for('application_logs', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Application Logs
+              </a>
+            </div>
+          </div>
         </div>
-
-        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#applicationNav" aria-expanded="false" aria-controls="applicationNav">
-            <i class="fas fa-file-alt me-2"></i> Applications
-        </h6>
-        <div class="collapse" id="applicationNav">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{url_for('create_application', guild_id=guild.id)}}">Create Application</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{url_for('applications', guild_id=guild.id)}}">Manage Applications</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href='{{url_for("application_logs", guild_id=guild.id)}}'>Application Logs</a>
-                </li>
-            </ul>
+  
+        <!-- Ban Appeal Navigation -->
+        <div class="mt-6">
+          <div class="px-4 pb-2">
+            <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
+                    data-collapse-toggle="banappealNav" 
+                    aria-expanded="false" 
+                    aria-controls="banappealNav">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+              <span>Ban Appeal</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <div id="banappealNav" class="hidden">
+            <div class="space-y-1 px-2 py-2 ml-4 border-l border-amber-500/20">
+              <a href="{{ url_for('ban_appeal_manage', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Manage Questions
+              </a>
+              <a href="{{ url_for('ban_appeal', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Ban Appeal Form
+              </a>
+              <a href="{{ url_for('ban_appeal_logs', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Ban Appeal Logs
+              </a>
+            </div>
+          </div>
         </div>
-
-        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#banappealNav" aria-expanded="false" aria-controls="banappealNav">
-            <i class="fas fa-cogs me-2"></i> Ban Appeal
-        </h6>
-        <div class="collapse" id="banappealNav">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{url_for('ban_appeal_manage', guild_id=guild.id)}}">Manage Questions</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{ url_for('ban_appeal', guild_id=guild.id) }}">Ban Appeal Form</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{url_for('ban_appeal_logs', guild_id=guild.id)}}">Ban Appeal Logs</a>
-                </li>
-            </ul>
+  
+        <!-- ERM Panel Navigation -->
+        <div class="mt-6">
+          <div class="px-4 pb-2">
+            <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
+                    data-collapse-toggle="ERMNav" 
+                    aria-expanded="false" 
+                    aria-controls="ERMNav">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+              </svg>
+              <span>ERM Panel</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <div id="ERMNav" class="hidden">
+            <div class="space-y-1 px-2 py-2 ml-4 border-l border-amber-500/20">
+              <a href="{{ url_for('erm_shifts', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                ERM Shifts
+              </a>
+              <a href="{{ url_for('erm_authenticate', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+                Authenticate ERM
+              </a>
+            </div>
+          </div>
         </div>
-
-        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#ERMNav" aria-expanded="false" aria-controls="ERMNav">
-            <i class="fas fa-user-lock me-2"></i> ERM Panel
-        </h6>
-        <div class="collapse" id="ERMNav">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href='{{url_for("erm_shifts", guild_id=guild.id)}}'>ERM Shifts</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="{{url_for('erm_authenticate', guild_id=guild.id)}}">Authenticate ERM</a>
-                </li>
-            </ul>
+      </div>
+  
+      <!-- Footer -->
+      <div class="px-4 py-4 border-t border-amber-500/20">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-amber-500/70">Cyni Dashboard v2.0</span>
+          <a href="#" class="text-xs text-amber-500/70 hover:text-amber-500 transition">Help</a>
         </div>
-    <!--
-        <h6 class="text-light mb-3 cursor-pointer" data-toggle="collapse" data-target="#CADNav" aria-expanded="false" aria-controls="CADNav">
-            <i class="fas fa-clipboard-list me-2"></i> CYNI CAD
-        </h6>
-        <div class="collapse" id="CADNav">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href='#'>CAD Panel</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-light hover-link" href="#">Manage CAD</a>
-                </li>
-            </ul>
-        </div>
-    -->
+      </div>
     </div>
-</nav>
-
-<!-- Notification Modal -->
-<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable modal-lg">
-        <div class="modal-content bg-dark text-light">
-            <div class="modal-header border-bottom border-secondary">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-bell-fill text-warning me-3" style="font-size: 1.5rem;"></i>
-                    <h5 class="modal-title" id="notificationModalLabel">Notifications</h5>
+  </aside>
+  
+  <!-- Notification Modal -->
+  <div id="notificationModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm"></div>
+      </div>
+      <div class="inline-block align-bottom bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div class="bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-500/20 sm:mx-0 sm:h-10 sm:w-10">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+              <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
+                Notifications
+              </h3>
+              <div class="mt-4">
+                <div id="notificationList" class="max-h-60 overflow-y-auto">
+                  <!-- Notification items will go here -->
+                  <div class="p-3 bg-gray-700/50 rounded-lg mb-2 border border-gray-600/50">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <p class="text-sm font-medium text-white">New Application</p>
+                        <p class="text-xs text-gray-400 mt-1">A new application has been submitted</p>
+                      </div>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500 text-gray-900">
+                        New
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <ul id="notificationList" class="list-group list-group-flush bg-dark">
-                    <!-- Notifications will be dynamically populated here -->
-                    <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>New Message</strong>
-                            <p class="text-muted mb-0">You have a new message from Support</p>
-                        </div>
-                        <span class="badge bg-warning text-dark rounded-pill">New</span>
-                    </li>
-                </ul>
-                <div id="noNotificationsMessage" class="text-center text-muted py-4 d-none">
-                    <i class="bi bi-inbox-fill" style="font-size: 3rem;"></i>
-                    <p class="mt-3">No notifications at the moment</p>
+                <div id="noNotificationsMessage" class="py-4 text-center text-gray-400 hidden">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  <p>No notifications at the moment</p>
                 </div>
+              </div>
             </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-outline-light" id="clearNotificationsBtn">Clear All</button>
-            </div>
+          </div>
         </div>
+        <div class="bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button type="button" id="clearNotificationsBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-amber-500 text-base font-medium text-white hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 sm:ml-3 sm:w-auto sm:text-sm">
+            Clear All
+          </button>
+          <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-500 shadow-sm px-4 py-2 bg-gray-800 text-base font-medium text-gray-300 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="document.getElementById('notificationModal').classList.add('hidden')">
+            Close
+          </button>
+        </div>
+      </div>
     </div>
-</div>
-<script>
-function fetchNotifications() {
-    const guildId = '{{ guild.id }}';
-    const userId = '{{ session["user_id"] }}';
-    const url = `/notifications/${guildId}/${userId}`;
-    
-    console.log(url);
-    
-    fetch(url)
+  </div>
+  
+  <!-- JavaScript for sidebar functionality -->
+  <script>
+    // Toggle sidebar sections
+    document.addEventListener('DOMContentLoaded', function() {
+      const toggleButtons = document.querySelectorAll('[data-collapse-toggle]');
+      
+      toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-collapse-toggle');
+          const target = document.getElementById(targetId);
+          
+          if (target) {
+            target.classList.toggle('hidden');
+            // Update the arrow icon
+            const arrow = this.querySelector('svg:last-child');
+            if (arrow) {
+              if (target.classList.contains('hidden')) {
+                arrow.innerHTML = '<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />';
+              } else {
+                arrow.innerHTML = '<path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />';
+              }
+            }
+          }
+        });
+      });
+    });
+  
+    // Notification functionality
+    function fetchNotifications() {
+      const guildId = '{{ guild.id }}';
+      const userId = '{{ session["user_id"] }}';
+      const url = `/notifications/${guildId}/${userId}`;
+      
+      // Show modal
+      document.getElementById('notificationModal').classList.remove('hidden');
+      
+      fetch(url)
         .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Received non-JSON response");
-            }
-            return response.json();
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
         })
         .then(data => {
-            const notificationList = document.getElementById('notificationList');
-            if (!notificationList) {
-                console.error('Notification list element not found');
-                return;
-            }
-            notificationList.innerHTML = ''; // Clear previous notifications
-
-            if (data.length === 0) {
-                notificationList.innerHTML = '<li class="text-warning">No new notifications</li>';
-            } else {
-                data.forEach(notification => {
-                    const listItem = document.createElement('li');
-                    listItem.innerHTML = `<strong>${notification.title}</strong><br>${notification.message}<br><small>From: ${notification.from}</small>`;
-                    notificationList.appendChild(listItem);
-                });
-            }
-
-            // Show the modal
-            $('#notificationModal').modal('show');
+          const notificationList = document.getElementById('notificationList');
+          const noNotificationsMessage = document.getElementById('noNotificationsMessage');
+          
+          if (!notificationList) return;
+          
+          notificationList.innerHTML = ''; // Clear previous notifications
+          
+          if (data.length === 0) {
+            notificationList.classList.add('hidden');
+            noNotificationsMessage.classList.remove('hidden');
+          } else {
+            notificationList.classList.remove('hidden');
+            noNotificationsMessage.classList.add('hidden');
+            
+            data.forEach(notification => {
+              const notificationItem = document.createElement('div');
+              notificationItem.className = 'p-3 bg-gray-700/50 rounded-lg mb-2 border border-gray-600/50';
+              notificationItem.innerHTML = `
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="text-sm font-medium text-white">${notification.title}</p>
+                    <p class="text-xs text-gray-400 mt-1">${notification.message}</p>
+                    <p class="text-xs text-amber-500/70 mt-2">From: ${notification.from}</p>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500 text-gray-900">
+                    New
+                  </span>
+                </div>
+              `;
+              notificationList.appendChild(notificationItem);
+            });
+          }
         })
         .catch(error => console.error('Error fetching notifications:', error));
-}
-</script>
-
-<style>
-    .hover-link {
-        text-decoration: none;
-        color: #f0ad4e;
     }
-    .hover-link:hover {
-        color: #ffcc00;
-    }
-
-    .dropdown-content {
-        position: absolute;
-        background-color: black;
-        min-width: 160px;
-        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-        z-index: 1;
-        border-radius: 5px;
-    }
-    .dropdown-content ul {
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
-    }
-    .dropdown-content li {
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-        border: 1px solid #f0ad4e;
-        margin: 5px 0;
-        background-color: black;
-        color: #f0ad4e;
-        border-radius: 5px;
-    }
-</style>
+  
+    // Clear notifications
+    document.getElementById('clearNotificationsBtn').addEventListener('click', function() {
+      document.getElementById('notificationList').innerHTML = '';
+      document.getElementById('notificationList').classList.add('hidden');
+      document.getElementById('noNotificationsMessage').classList.remove('hidden');
+    });
+  </script>

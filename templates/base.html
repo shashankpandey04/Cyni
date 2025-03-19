@@ -11,10 +11,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
   <link rel="icon" href="{{ url_for('static', filename='images/cyni.png') }}" type="image/png">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body>
-    {% include 'navigation.html' %}
-
+    <div>
+        {% include 'navigation.html' %}
+    </div>
+    
     <div class="flash-messages">
       {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -27,14 +30,13 @@
       {% endwith %}
     </div>
   
-    <main>
+    <main class="pt-5">
 
     {% block content %}
 
     {% endblock %}
   </main>
 
-  {% include 'footer.html' %}
   
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.4.3/dist/umd/popper.min.js"></script>
