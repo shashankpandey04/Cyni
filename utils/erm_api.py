@@ -171,7 +171,7 @@ def get_roblox_thumbnail(user_id: str) -> str:
             image_url = data['data'][0]['imageUrl']
             return image_url
         else:
-            return 'https://tr.rbxcdn.com/180DAY-f37f4fe7dbc6d6a1511c556b1c962a95/420/420/Image/Webp/noFilter'
+            return 'https://play-lh.googleusercontent.com/WNWZaxi9RdJKe2GQM3vqXIAkk69mnIl4Cc8EyZcir2SKlVOxeUv9tZGfNTmNaLC717Ht'
 
     except requests.exceptions.RequestException as e:
         return f"An error occurred: {e}"

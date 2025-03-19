@@ -173,7 +173,6 @@ def status():
 
 
 @app.route("/dashboard")
-@login_required
 def dashboard():
     user_id = session["user_id"]
     username = session["username"]
@@ -433,7 +432,7 @@ def create_application(guild_id):
                 "pass_role": pass_role,
                 "fail_role": fail_role,
                 "status": "open",
-                "created_at": datetime.datetime.now().timestamp()
+                "created_at": datetime.now().timestamp()
             }
 
             mongo_db["applications"].insert_one(application_data)
@@ -560,7 +559,7 @@ def apply(guild_id, application_id):
             "answers": [{"answer": answer} for answer in answers],
             "status": "pending",
             "guild_id": int(guild_id),
-            "created_at": datetime.datetime.now().timestamp()
+            "created_at": datetime.now().timestamp()
         }
         data = {
             "guild_id": int(guild_id),
@@ -881,7 +880,7 @@ def notifications(guild_id, user_id):
         return jsonify({
             "title": "Unauthorized",
             "message": "You are not authorized to view notifications for this user.",
-            "created_at": datetime.datetime.now().timestamp(),
+            "created_at": datetime.now().timestamp(),
             "from": "System"
         }), 403
     
@@ -911,7 +910,7 @@ def notifications(guild_id, user_id):
                     notification_list.append({
                         "title": "Shift Grinding Alert",
                         "message": f"{user['nickname']} is having a shift longer than 4 hours.",
-                        "created_at": datetime.datetime.now().timestamp(),
+                        "created_at": datetime.now().timestamp(),
                         "from": "ERM"
                     })
     return jsonify(notification_list)

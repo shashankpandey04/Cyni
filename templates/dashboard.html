@@ -3,200 +3,136 @@
 {% block title %}Dashboard | Cyni{% endblock %}
 
 {% block content %}
-    <style>
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+<div class="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 text-gray-100">
+  <div class="max-w-7xl mx-auto p-6 lg:p-8">
+    {% if user_id %}
+      <!-- Logged in user view -->
+      <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between">
+        <div class="space-y-2">
+          <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500">
+            Hey there, @{{ session['username'] }}! 👋
+          </h1>
+          <p class="text-gray-400 text-lg">Here are the guilds you're a part of</p>
+        </div>
+        <div class="mt-4 md:mt-0">
+          <button class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-medium shadow-lg shadow-purple-500/20 transition-all duration-300 flex items-center gap-2">
+            <span>Refresh</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7.5V9a1 1 0 01-2 0V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H16a1 1 0 110 2h-5a1 1 0 01-1-1v-5a1 1 0 112 0v1.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-        .welcome-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-            color: linear-gradient(90deg, #7289da, #a855f7);
-        }
-
-        .welcome-text h1 {
-            font-size: 2.5rem;
-            margin: 0;
-            color: linear-gradient(90deg, #7289da, #a855f7);
-        }
-
-        .login-cta {
-            text-align: center;
-            padding: 4rem 0;
-        }
-
-        .login-button {
-            background: linear-gradient(135deg, #7289da, #a855f7);
-            color: white;
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-
-        .login-button:hover {
-            transform: scale(1.05);
-        }
-
-        .guilds-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .guild-card {
-            background-color: #1e1e1e;
-            border-radius: 15px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            border: 1px solid #2a2a2a;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
-        .guild-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-        }
-
-        .guild-card-header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1.5rem;
-            background: linear-gradient(145deg, #2a2a2a, #1e1e1e);
-        }
-
-        .guild-icon {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 4px solid #7289da;
-            object-fit: cover;
-        }
-
-        .guild-card-body {
-            padding: 1rem;
-            text-align: center;
-        }
-
-        .guild-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .guild-tags {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .tag {
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin: 0 0.3rem;
-        }
-
-        .official-tag {
-            background-color: #ffd700;
-            color: #121212;
-        }
-
-        .affiliated-tag {
-            background-color: #4fc3f7;
-            color: #121212;
-        }
-
-        .guild-actions {
-            display: flex;
-            justify-content: center;
-            gap: 0.8rem;
-        }
-
-        .action-btn {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .dashboard-btn {
-            background-color: #7289da;
-            color: white;
-        }
-
-        .modpanel-btn {
-            background-color: #4a4a4a;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        {% if user_id %}
-            <div class="welcome-header">
-                <div class="welcome-text">
-                    <h1>Hey there, @{{ session['username'] }}! 👋</h1>
-                    <p>Here are the guilds you're a part of</p>
+      {% if user_guilds|length == 0 %}
+        <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 text-center">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-600/20 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">No Guilds Found</h3>
+          <p class="text-gray-400">You are not a member of any guilds. Join a guild to see it here.</p>
+        </div>
+      {% else %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {% for guild in user_guilds %}
+            <div class="relative group">
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-50 group-hover:opacity-100 transition duration-300"></div>
+              <div class="relative bg-gray-900 rounded-2xl p-6 flex flex-col items-center transition-all duration-300 group-hover:translate-y-[-8px]">
+                <div class="w-24 h-24 rounded-full border-4 border-indigo-500 mb-4 overflow-hidden">
+                  {% if guild.icon %}
+                    <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
+                         alt="{{ guild.name }}'s icon" 
+                         class="w-full h-full object-cover">
+                  {% else %}
+                    <div class="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-2xl font-bold">
+                      {{ guild.name[:2] }}
+                    </div>
+                  {% endif %}
                 </div>
+                
+                <h3 class="text-xl font-semibold mb-2 text-center">{{ guild.name }}</h3>
+                
+                <div class="flex gap-2 mb-4">
+                  {% if guild.official %}
+                    <span class="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-semibold flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      Official
+                    </span>
+                  {% endif %}
+                  {% if guild.affiliated %}
+                    <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-semibold flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                      </svg>
+                      Affiliated
+                    </span>
+                  {% endif %}
+                </div>
+                
+                <div class="flex gap-3 mt-2 w-full">
+                  {% if guild.admin %}
+                    <a href="{{ url_for('guild', guild_id=guild.id) }}" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-300 flex items-center justify-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+                        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+                      </svg>
+                      Dashboard
+                    </a>
+                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors duration-300 flex items-center justify-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd" />
+                      </svg>
+                      Mod Panel
+                    </a>
+                  {% elif guild.moderator %}
+                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="w-full py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors duration-300 flex items-center justify-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd" />
+                      </svg>
+                      Mod Panel
+                    </a>
+                  {% else %}
+                    <a href="#" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-300 flex items-center justify-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd" />
+                      </svg>
+                      View Server
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
             </div>
-
-            <div class="guilds-grid">
-                {% if user_guilds|length == 0 %}
-                    <div class="alert alert-warning">
-                        You are not a member of any guilds.
-                    </div>
-                {% endif %}
-
-                {% for guild in user_guilds %}
-                    <div class="guild-card">
-                        <div class="guild-card-header">
-                            {% if guild.icon %}
-                                <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" 
-                                     alt="{{ guild.name }}'s icon" 
-                                     class="guild-icon">
-                            {% else %}
-                                <img src="https://archive.org/download/discordprofilepictures/discordblue.png" 
-                                     alt="{{ guild.name }}'s icon" 
-                                     class="guild-icon">
-                            {% endif %}
-                        </div>
-                        <div class="guild-card-body">
-                            <div class="guild-name">{{ guild.name }}</div>
-                            <div class="guild-tags">
-                                {% if guild.official %}
-                                    <span class="tag official-tag">💎 Official</span>
-                                {% endif %}
-                                {% if guild.affiliated %}
-                                    <span class="tag affiliated-tag">🤝 Affiliated</span>
-                                {% endif %}
-                            </div>
-                            <div class="guild-actions">
-                                {% if guild.admin %}
-                                    <a href="{{ url_for('guild', guild_id=guild.id) }}" class="action-btn dashboard-btn">Dashboard</a>
-                                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="action-btn modpanel-btn">Mod Panel</a>
-                                {% elif guild.moderator %}
-                                    <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="action-btn modpanel-btn">Mod Panel</a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="login-cta">
-                <a href="{{ url_for('login') }}" class="login-button">Login with Discord</a>
-            </div>
-        {% endif %}
-    </div>
-</body>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% else %}
+      <!-- Login view -->
+      <div class="min-h-[60vh] flex flex-col items-center justify-center">
+        <div class="mb-12 text-center">
+          <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500">
+            Welcome to Cyni
+          </h1>
+          <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+            Log in with Discord to access your guild management dashboard and moderation tools.
+          </p>
+        </div>
+        
+        <a href="{{ url_for('login') }}" class="group relative inline-flex items-center justify-center py-4 px-8 text-lg font-medium text-white overflow-hidden rounded-2xl transition-all duration-300">
+          <span class="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-600 to-purple-700 group-hover:from-indigo-700 group-hover:to-purple-800 transition-all duration-300"></span>
+          <span class="absolute bottom-0 right-0 block w-64 h-64 mb-32 mr-4 transition-all duration-500 origin-bottom-left transform rotate-45 translate-x-24 bg-pink-500 opacity-30 group-hover:rotate-90 ease"></span>
+          <span class="relative flex items-center gap-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19.7275 5.29082C18.3027 4.63436 16.7796 4.14965 15.1856 3.8725C15.1599 3.86707 15.134 3.87872 15.1208 3.90171C14.9219 4.26322 14.7009 4.72817 14.5458 5.09491C12.8302 4.83855 11.1236 4.83855 9.45703 5.09491C9.30186 4.7173 9.07521 4.26322 8.87551 3.90171C8.86229 3.87951 8.83644 3.86786 8.81067 3.8725C7.21748 4.14883 5.69437 4.63354 4.26878 5.29082C4.25725 5.29625 4.2473 5.30571 4.24066 5.31761C1.78431 9.05365 1.10048 12.6747 1.43962 16.2467C1.44142 16.2651 1.45138 16.2827 1.46548 16.2939C3.37585 17.6979 5.23138 18.5558 7.04853 19.1279C7.0743 19.1351 7.10095 19.1262 7.11664 19.1046C7.54279 18.5274 7.92395 17.9192 8.25325 17.28C8.27046 17.244 8.25405 17.2013 8.21833 17.1862C7.66286 16.9755 7.13471 16.7242 6.62747 16.4423C6.58759 16.4191 6.58421 16.3611 6.62073 16.3338C6.72572 16.2546 6.83072 16.1714 6.93069 16.0873C6.94891 16.0714 6.97395 16.0682 6.99565 16.0778C10.4771 17.6718 14.1558 17.6718 17.5935 16.0778C17.6152 16.0674 17.6402 16.0706 17.6593 16.0865C17.7593 16.1714 17.8643 16.2546 17.9701 16.3338C18.0066 16.3611 18.0041 16.4191 17.9642 16.4423C17.457 16.7283 16.9288 16.9755 16.3725 17.1854C16.3368 17.2005 16.3212 17.244 16.3384 17.28C16.6757 17.9184 17.0568 18.5266 17.4742 19.1038C17.4891 19.1262 17.5166 19.1351 17.5424 19.1279C19.3686 18.5558 21.2241 17.6979 23.1345 16.2939C23.1494 16.2827 23.1586 16.2659 23.1604 16.2475C23.5755 12.0926 22.4733 8.50613 20.2575 5.31844C20.2517 5.30571 20.2417 5.29625 20.2302 5.29082H19.7275ZM8.78418 13.9072C7.6466 13.9072 6.7134 12.8711 6.7134 11.5965C6.7134 10.322 7.6301 9.28589 8.78418 9.28589C9.94736 9.28589 10.8715 10.3304 10.855 11.5965C10.855 12.8711 9.94654 13.9072 8.78418 13.9072ZM15.2325 13.9072C14.0949 13.9072 13.1617 12.8711 13.1617 11.5965C13.1617 10.322 14.0784 9.28589 15.2325 9.28589C16.3957 9.28589 17.3198 10.3304 17.3033 11.5965C17.3033 12.8711 16.3957 13.9072 15.2325 13.9072Z" fill="white"/>
+            </svg>
+            Login with Discord
+          </span>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
