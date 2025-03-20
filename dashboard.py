@@ -194,7 +194,7 @@ def dashboard():
     bot_guild_ids = {str(guild.id) for guild in bot.guilds}
 
     official_guild_id = '1152949579407442050'
-    affiliated_guild_ids = list(mongo_db['affiliated_guilds'].find())
+    affiliated_guild_ids = [guild['guild_id'] for guild in list(mongo_db["affiliated_guilds"].find())]
 
     for guild in guilds_json:
         permissions = guild.get("permissions", 0)
@@ -210,7 +210,7 @@ def dashboard():
                 "icon": guild["icon"],
                 "owner": guild["owner"],
                 "official": True if guild["id"] == official_guild_id else False,
-                "affiliated": True if guild["id"] in affiliated_guild_ids else False,
+                "affiliated": True if int(guild["id"]) in affiliated_guild_ids else False,
                 "admin": is_admin,
                 "moderator": has_manage_messages
             })
@@ -382,7 +382,7 @@ def applications(guild_id):
                    if management_roles) or not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
             flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
-        all_applications = list(mongo_db["applications"].find())
+        all_applications = list(mongo_db["applications"].find({"guild_id": int(guild_id)}))
         return render_template("applications.html", applications=all_applications, guild=guild)
     
 @app.route('/applications/manage/<guild_id>/create', methods=["POST","GET"])

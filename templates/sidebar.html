@@ -1,7 +1,6 @@
 
 <aside class="fixed inset-y-0 left-0 w-64 bg-black/90 backdrop-blur-lg border-r border-amber-500/30 transition-all duration-300 shadow-xl shadow-amber-900/10 z-25">
     <div class="flex flex-col h-full">
-      <!-- Logo Section -->
       <div class="px-4 py-6 border-b border-amber-500/20">
         <div class="flex items-center">
           <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
@@ -12,8 +11,6 @@
           <span class="ml-3 text-xl font-semibold text-white">Cyni</span>
         </div>
       </div>
-  
-      <!-- User & Notification Section -->
       <div class="flex items-center justify-between px-4 py-4">
         {% if 'username' in session %}
         <div class="flex items-center">
@@ -32,10 +29,7 @@
           </div>
         </div>
       </div>
-  
-      <!-- Navigation Section -->
       <div class="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-amber-500/30 scrollbar-track-black/20 py-4">
-        <!-- Main Navigation -->
         <nav class="space-y-1 px-2">
           <a href="{{ url_for('dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-amber-500/20 to-transparent border-l-4 border-amber-500 transition hover:bg-amber-500/10">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
@@ -50,8 +44,6 @@
             Guild Overview
           </a>
         </nav>
-  
-        <!-- Modules Navigation -->
         <div class="mt-8">
           <div class="px-4 pb-2">
             <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
@@ -84,8 +76,6 @@
             </div>
           </div>
         </div>
-  
-        <!-- Applications Navigation -->
         <div class="mt-6">
           <div class="px-4 pb-2">
             <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
@@ -115,8 +105,6 @@
             </div>
           </div>
         </div>
-  
-        <!-- Ban Appeal Navigation -->
         <div class="mt-6">
           <div class="px-4 pb-2">
             <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
@@ -146,8 +134,6 @@
             </div>
           </div>
         </div>
-  
-        <!-- ERM Panel Navigation -->
         <div class="mt-6">
           <div class="px-4 pb-2">
             <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
@@ -175,18 +161,14 @@
           </div>
         </div>
       </div>
-  
-      <!-- Footer -->
       <div class="px-4 py-4 border-t border-amber-500/20">
         <div class="flex items-center justify-between">
           <span class="text-xs text-amber-500/70">Cyni Dashboard v2.0</span>
-          <a href="#" class="text-xs text-amber-500/70 hover:text-amber-500 transition">Help</a>
+          <a href="http://discord.gg/J96XEbGNDm" class="text-xs text-amber-500/70 hover:text-amber-500 transition">Help</a>
         </div>
       </div>
     </div>
   </aside>
-  
-  <!-- Notification Modal -->
   <div id="notificationModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
       <div class="fixed inset-0 transition-opacity" aria-hidden="true">
@@ -240,10 +222,7 @@
       </div>
     </div>
   </div>
-  
-  <!-- JavaScript for sidebar functionality -->
   <script>
-    // Toggle sidebar sections
     document.addEventListener('DOMContentLoaded', function() {
       const toggleButtons = document.querySelectorAll('[data-collapse-toggle]');
       
@@ -254,7 +233,6 @@
           
           if (target) {
             target.classList.toggle('hidden');
-            // Update the arrow icon
             const arrow = this.querySelector('svg:last-child');
             if (arrow) {
               if (target.classList.contains('hidden')) {
@@ -267,14 +245,11 @@
         });
       });
     });
-  
-    // Notification functionality
+
     function fetchNotifications() {
       const guildId = '{{ guild.id }}';
       const userId = '{{ session["user_id"] }}';
       const url = `/notifications/${guildId}/${userId}`;
-      
-      // Show modal
       document.getElementById('notificationModal').classList.remove('hidden');
       
       fetch(url)
@@ -288,10 +263,7 @@
           const notificationList = document.getElementById('notificationList');
           const noNotificationsMessage = document.getElementById('noNotificationsMessage');
           
-          if (!notificationList) return;
-          
-          notificationList.innerHTML = ''; // Clear previous notifications
-          
+          if (!notificationList) return;          
           if (data.length === 0) {
             notificationList.classList.add('hidden');
             noNotificationsMessage.classList.remove('hidden');
@@ -320,8 +292,7 @@
         })
         .catch(error => console.error('Error fetching notifications:', error));
     }
-  
-    // Clear notifications
+
     document.getElementById('clearNotificationsBtn').addEventListener('click', function() {
       document.getElementById('notificationList').innerHTML = '';
       document.getElementById('notificationList').classList.add('hidden');

@@ -6,7 +6,6 @@
 <div class="min-h-screen bg-gradient-to-br from-gray-950 to-gray-900 text-gray-100">
   <div class="max-w-7xl mx-auto p-6 lg:p-8">
     {% if user_id %}
-      <!-- Logged in user view -->
       <div class="mb-12 flex flex-col md:flex-row items-start md:items-center justify-between">
         <div class="space-y-2">
           <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500">
@@ -15,7 +14,7 @@
           <p class="text-gray-400 text-lg">Here are the guilds you're a part of</p>
         </div>
         <div class="mt-4 md:mt-0">
-          <button class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-medium shadow-lg shadow-purple-500/20 transition-all duration-300 flex items-center gap-2">
+          <button onclick="refreshPage()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-medium shadow-lg shadow-purple-500/20 transition-all duration-300 flex items-center gap-2">
             <span>Refresh</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7.5V9a1 1 0 01-2 0V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H16a1 1 0 110 2h-5a1 1 0 01-1-1v-5a1 1 0 112 0v1.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
@@ -52,26 +51,68 @@
                   {% endif %}
                 </div>
                 
-                <h3 class="text-xl font-semibold mb-2 text-center">{{ guild.name }}</h3>
-                
                 <div class="flex gap-2 mb-4">
                   {% if guild.official %}
-                    <span class="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-semibold flex items-center gap-1">
+                    <span class="relative group px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-semibold flex items-center gap-1 cursor-pointer">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       Official
+                      <div class="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 w-48 p-2 text-center text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                        <h5>
+                          Official Server
+                        </h5>
+                        <p>
+                          Official CYNI Server
+                        </p>
+                        <br>
+                        <p>
+                          This server is an official CYNI server! <br> This means it is managed by the CYNI team.
+                        </p>
+                      </div>
                     </span>
                   {% endif %}
                   {% if guild.affiliated %}
-                    <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-semibold flex items-center gap-1">
+                    <span class="relative group px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-semibold flex items-center gap-1 cursor-pointer">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                       </svg>
                       Affiliated
+                      <div class="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 w-48 p-2 text-center text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                        <h5>
+                          Affiliated Server
+                        </h5>
+                        <p>
+                          Official CYNI affiliated Partner
+                        </p>
+                        <br>
+                        <p>
+                          This server has affiliated with CYNI, unlocking exclusive features and benefits:
+                        </p>
+                        <ul>
+                          <li>
+                            Priority support and ticketing
+                          </li>
+                          <li>
+                            Early access to new features
+                          </li>
+                        </ul>
+                      </div>
                     </span>
                   {% endif %}
                 </div>
+
+                <h3 class="text-xl font-semibold mb-2 text-center">{{ guild.name }}</h3>
+                <p class="text-sm text-gray-400 text-center">
+                  Permissions: 
+                  {% if guild.admin %}
+                    <span class="text-red-500">Admin</span>
+                  {% elif guild.moderator %}
+                    <span class="text-yellow-500">Moderator</span>
+                  {% else %}
+                    <span class="text-green text-green-500">Member</span>
+                  {% endif %}
+                </p>
                 
                 <div class="flex gap-3 mt-2 w-full">
                   {% if guild.admin %}
@@ -110,7 +151,6 @@
         </div>
       {% endif %}
     {% else %}
-      <!-- Login view -->
       <div class="min-h-[60vh] flex flex-col items-center justify-center">
         <div class="mb-12 text-center">
           <h1 class="text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500">
@@ -135,4 +175,37 @@
     {% endif %}
   </div>
 </div>
+
+<div class="hidden group-hover:block absolute top-0 left-0 w-64 h-64 mb-32 mr-4 transition-all duration-500 origin-bottom-left transform rotate-45 translate-x-24 bg-pink-500 opacity-30 ease">
+  <div class="w-full h-full bg-pink-500 opacity-30">
+    <h4>
+      Affiliated Server
+    </h4>
+    <p class="text-sm">
+      Official CYNI affiliated Partner
+    </p>
+  </div>
+  <div class="w-full h-full bg-pink-500 opacity-30">
+    <h4>
+      This server has affiliated with CYNI, unlocking exclusive features and benefits:
+    </h4>
+    <ul>
+      <li>
+        Priority support and ticketing
+      </li>
+      <li>
+        Early access to new features
+      </li>
+      <li>
+        Group Chat with CYNI Team
+      </li>
+    </ul>
+</div>
+
+<script>
+  function refreshPage() {
+    window.location.reload();
+  }
+</script>
+
 {% endblock %}
