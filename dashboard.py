@@ -157,24 +157,6 @@ def giveaway(message_id):
 
     return render_template("active_giveaway.html", guild=guild, giveaway=giveaway)
 
-@app.route('/status', methods=["GET"])
-def status():
-    website_link = 'https://cyni.quprdigital.tk'
-    erlc_api = 'https://api.policeroleplay.community/v1/server'
-    bot = bot_ready()
-    website = requests.get(website_link)
-    if website.status_code == 200:
-        website = True
-    else:
-        website = False
-    erlc = requests.get(erlc_api)
-    if erlc.status_code == 403:
-        erlc = True
-    else:
-        erlc = False
-    return render_template("status.html", bot=bot, website=website, erlc=erlc)
-
-
 @app.route("/dashboard")
 def dashboard():
     user_id = session["user_id"]
@@ -476,12 +458,17 @@ def manage_application(guild_id, application_id):
         if not banner_file or banner_file.filename == "":
             banner_image_url = None
         else:
-            mime_type = mimetypes.guess_type(banner_file.filename)[0] or "application/octet-stream"
-            response = requests.post(FILES_URL, files={
-                "file": (banner_file.filename, banner_file, mime_type)
-                },
-                headers={"Authorization": FILE_AUTH_TOKEN}
-                )
+            try:
+                mime_type = mimetypes.guess_type(banner_file.filename)[0] or "application/octet-stream"
+                response = requests.post(FILES_URL, files={
+                    "file": (banner_file.filename, banner_file, mime_type)
+                }, headers={
+                    "Authorization": f"Bearer {FILE_AUTH_TOKEN}"
+                })
+            except Exception as e:
+                print(e)
+                flash("Error uploading image.", "error")
+                return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
             try:
                 if response.status_code == 200:
                     banner_image_url = response.json().get("url")
