@@ -35,8 +35,7 @@
             <div class="p-6">
                 <!-- Description -->
                 <div class="mb-8">
-                    <h2 class="text-lg font-medium text-zinc-300 mb-2">Application Description</h2>
-                    <p class="text-zinc-400">{{ application.description }}</p>
+                    <div class="text-zinc-400">{{ application.description | safe }}</div>
                 </div>
                 
                 <!-- Application Form -->

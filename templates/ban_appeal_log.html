@@ -4,63 +4,65 @@
 
 {% block content %}
 <div class="flex h-screen bg-gray-900">
-    <div class="flex-1 ml-64 overflow-y-auto bg-gradient-to-br from-gray-900 to-gray-800">
-        <!-- Side Navbar -->
-        {% include 'sidebar.html' %}
-        
-        <hr class="my-4" style="border-color: #f0ad4e;">
-        
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h4 class="text-light"><i class="bi bi-file-earmark-text"></i> Ban Appeal Review</h4>
-            </div>
-
-            <div class="card appeal-card">
-                <div class="card-body">
-                    <h5 class="text-warning">User Information</h5>
-                    <ul class="list-group mb-3">
-                        <li class="list-group-item bg-dark text-light"><strong>Username:</strong> {{ appeal.username }}</li>
-                        <li class="list-group-item bg-dark text-light"><strong>Submitted On:</strong> 
-                            {{ appeal.timestamp.strftime('%B %d, %Y %H:%M:%S') }}
-                        </li>
-                        <li class="list-group-item bg-dark text-light"><strong>Current Status:</strong> 
-                            {% if appeal.status == "approved" %}
-                                <span class="badge bg-success">Approved</span>
-                            {% elif appeal.status == "denied" %}
-                                <span class="badge bg-danger">Denied</span>
-                            {% else %}
-                                <span class="badge bg-warning text-dark">Pending</span>
-                            {% endif %}
-                        </li>
-                        <li class="list-group-item bg-dark text-light"><strong>UserID:</strong> {{ appeal.user_id }}</li>
-                    </ul>
-
-                    <h5 class="text-warning">Appeal Details</h5>
-                    <div class="appeal-questions">
-                        {% for item in appeal.questions %}
-                            <div class="mb-3">
-                                <strong class="text-light">{{ item.question }}</strong>
-                                <p class="text-muted">{{ item.answer }}</p>
-                            </div>
-                        {% else %}
-                            <p class="text-muted">No questions found.</p>
-                        {% endfor %}
-                    </div>
-
-                    <form method="POST" action="{{ url_for('ban_appeal_log', guild_id=guild.id, appeal_id=appeal.appeal_id) }}">
-                        <div class="d-flex justify-content-between">
-                            <button type="submit" name="status" value="approved" class="btn btn-success w-50 me-2">
-                                <i class="bi bi-check-circle-fill"></i> Approve
-                            </button>
-                            <button type="submit" name="status" value="denied" class="btn btn-danger w-50">
-                                <i class="bi bi-x-circle-fill"></i> Deny
-                            </button>
-                        </div>
-                    </form>
+    <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+        <div class="w-5xl mx-auto space-y-6 md:space-y-8">
+            <!-- Side Navbar -->
+            {% include 'sidebar.html' %}
+            
+            <hr class="my-4" style="border-color: #f0ad4e;">
+            
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+                <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h4 class="text-light"><i class="bi bi-file-earmark-text"></i> Ban Appeal Review</h4>
                 </div>
-            </div>
-        </main>
+
+                <div class="card appeal-card">
+                    <div class="card-body">
+                        <h5 class="text-warning">User Information</h5>
+                        <ul class="list-group mb-3">
+                            <li class="list-group-item bg-dark text-light"><strong>Username:</strong> {{ appeal.username }}</li>
+                            <li class="list-group-item bg-dark text-light"><strong>Submitted On:</strong> 
+                                {{ appeal.timestamp.strftime('%B %d, %Y %H:%M:%S') }}
+                            </li>
+                            <li class="list-group-item bg-dark text-light"><strong>Current Status:</strong> 
+                                {% if appeal.status == "approved" %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% elif appeal.status == "denied" %}
+                                    <span class="badge bg-danger">Denied</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </li>
+                            <li class="list-group-item bg-dark text-light"><strong>UserID:</strong> {{ appeal.user_id }}</li>
+                        </ul>
+
+                        <h5 class="text-warning">Appeal Details</h5>
+                        <div class="appeal-questions">
+                            {% for item in appeal.questions %}
+                                <div class="mb-3">
+                                    <strong class="text-light">{{ item.question }}</strong>
+                                    <p class="text-muted">{{ item.answer }}</p>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No questions found.</p>
+                            {% endfor %}
+                        </div>
+
+                        <form method="POST" action="{{ url_for('ban_appeal_log', guild_id=guild.id, appeal_id=appeal.appeal_id) }}">
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" name="status" value="approved" class="btn btn-success w-50 me-2">
+                                    <i class="bi bi-check-circle-fill"></i> Approve
+                                </button>
+                                <button type="submit" name="status" value="denied" class="btn btn-danger w-50">
+                                    <i class="bi bi-x-circle-fill"></i> Deny
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 </div>
 

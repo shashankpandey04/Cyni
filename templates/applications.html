@@ -4,49 +4,51 @@
 
 {% block content %}
 <div class="flex h-screen bg-gray-900">
-    <div class="flex-1 ml-64 overflow-y-auto bg-gradient-to-br from-gray-900 to-gray-800">
-        <!-- Side Navbar -->
-        {% include 'sidebar.html' %}
-        <hr class="my-4" style="border-color: #f0ad4e;">
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h4 class="h4 text-light">Manage Applications</h4>
-            </div>
-
-            <h2 class="text-light mt-4">Existing Applications</h2>
-            {% if applications|length == 0 %}
-            <div class="alert alert-warning" role="alert">
-                No applications found.
-            </div>
-            {% else %}
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for application in applications %}
-                            <tr>
-                                <td>{{ application.name }}</td>
-                                <td>
-                                    <a href="{{ url_for('manage_application',guild_id=guild.id, application_id=application._id) }}" 
-                                    class="btn btn-primary">Manage</a>
-                                    <button class="btn btn-secondary copy-btn" 
-                                            data-link="https://cyni.quprdigital.tk/applications/apply/{{ guild.id}}/{{ application._id }}">
-                                        Copy Link
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+        <div class="w-5xl mx-auto space-y-6 md:space-y-8">
+            <!-- Side Navbar -->
+            {% include 'sidebar.html' %}
+            <hr class="my-4" style="border-color: #f0ad4e;">
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h4 class="h4 text-light">Manage Applications</h4>
                 </div>
-            {% endif %}
-        </main>
+
+                <h2 class="text-light mt-4">Existing Applications</h2>
+                {% if applications|length == 0 %}
+                <div class="alert alert-warning" role="alert">
+                    No applications found.
+                </div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for application in applications %}
+                                <tr>
+                                    <td>{{ application.name }}</td>
+                                    <td>
+                                        <a href="{{ url_for('manage_application',guild_id=guild.id, application_id=application._id) }}" 
+                                        class="btn btn-primary">Manage</a>
+                                        <button class="btn btn-secondary copy-btn" 
+                                                data-link="https://cyni.quprdigital.tk/applications/apply/{{ guild.id}}/{{ application._id }}">
+                                            Copy Link
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </main>
+        </div>
     </div>
 </div>
 

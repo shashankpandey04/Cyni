@@ -12,6 +12,7 @@ from bson import ObjectId, Int64
 from cyni import bot, bot_ready
 from utils.erm_api import *
 import mimetypes
+import markdown
 
 from DashboardModules.WelcomeModule import welcome_route
 
@@ -531,6 +532,9 @@ def apply(guild_id, application_id):
         if existing_application:
             flash("You have already applied for this application.", "error")
             return redirect(url_for("dashboard"))
+        
+        markedown_application_description = application.get("description")
+        application['description'] = markdown.markdown(markedown_application_description, extensions=['extra', 'codehilite', 'smarty'])
         
         return render_template("apply.html", guild=guild, application=application)
     

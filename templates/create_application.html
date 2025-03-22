@@ -4,66 +4,68 @@
 
 {% block content %}
 <div class="flex h-screen bg-gray-900">
-    <div class="flex-1 ml-64 overflow-y-auto bg-gradient-to-br from-gray-900 to-gray-800">
-        <!-- Side Navbar -->
-        {% include 'sidebar.html' %}
-        <hr class="my-4" style="border-color: #f0ad4e;">
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <h1 class="h4 text-light">Create Application for {{ guild.name }}</h1>
-            
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="alert alert-dismissible fade show" role="alert">
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+    <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+        <div class="w-5xl mx-auto space-y-6 md:space-y-8">
+            <!-- Side Navbar -->
+            {% include 'sidebar.html' %}
+            <hr class="my-4" style="border-color: #f0ad4e;">
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+                <h1 class="h4 text-light">Create Application for {{ guild.name }}</h1>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="alert alert-dismissible fade show" role="alert">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
 
-            <form method="POST" action="{{ url_for('create_application', guild_id=guild.id) }}">
-                <div class="form-group">
-                    <label for="application_name" class="text-light">Application Name</label>
-                    <input type="text" class="form-control" id="application_name" name="application_name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="application_description" class="text-light">Application Description</label>
-                    <textarea class="form-control" id="application_description" name="application_description" rows="3" required></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="required_roles" class="text-light">Required Roles (IDs, comma-separated)</label>
-                    <input type="text" class="form-control" id="required_roles" name="required_roles" placeholder="e.g. 123456789012345678, 987654321098765432">
-                </div>
-                
-                <div class="form-group">
-                    <label for="application_channel" class="text-light">Application Channel ID</label>
-                    <input type="text" class="form-control" id="application_channel" name="application_channel" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="question" class="text-light">Questions</label>
-                    <div id="questions-container">
-                        <input type="text" class="form-control" name="question" placeholder="Enter a question" required>
+                <form method="POST" action="{{ url_for('create_application', guild_id=guild.id) }}">
+                    <div class="form-group">
+                        <label for="application_name" class="text-light">Application Name</label>
+                        <input type="text" class="form-control" id="application_name" name="application_name" required>
                     </div>
-                    <button type="button" class="btn btn-secondary mt-2" id="add-question">Add Another Question</button>
-                </div>
-                
-                <div class="form-group">
-                    <label for="pass_role" class="text-light">Pass Role ID</label>
-                    <input type="text" class="form-control" id="pass_role" name="pass_role" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="fail_role" class="text-light">Fail Role ID</label>
-                    <input type="text" class="form-control" id="fail_role" name="fail_role" required>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">Create Application</button>
-            </form>
-        </main>
+                    
+                    <div class="form-group">
+                        <label for="application_description" class="text-light">Application Description</label>
+                        <textarea class="form-control" id="application_description" name="application_description" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="required_roles" class="text-light">Required Roles (IDs, comma-separated)</label>
+                        <input type="text" class="form-control" id="required_roles" name="required_roles" placeholder="e.g. 123456789012345678, 987654321098765432">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="application_channel" class="text-light">Application Channel ID</label>
+                        <input type="text" class="form-control" id="application_channel" name="application_channel" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="question" class="text-light">Questions</label>
+                        <div id="questions-container">
+                            <input type="text" class="form-control" name="question" placeholder="Enter a question" required>
+                        </div>
+                        <button type="button" class="btn btn-secondary mt-2" id="add-question">Add Another Question</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pass_role" class="text-light">Pass Role ID</label>
+                        <input type="text" class="form-control" id="pass_role" name="pass_role" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fail_role" class="text-light">Fail Role ID</label>
+                        <input type="text" class="form-control" id="fail_role" name="fail_role" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Create Application</button>
+                </form>
+            </main>
+        </div>
     </div>
 </div>
 

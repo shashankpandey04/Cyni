@@ -4,47 +4,49 @@
 
 {% block content %}
 <div class="flex h-screen bg-gray-900">
-    <div class="flex-1 ml-64 overflow-y-auto bg-gradient-to-br from-gray-900 to-gray-800">
-        <!-- Side Navbar -->
-        {% include 'sidebar.html' %}
-        
-        <hr class="my-4" style="border-color: #f0ad4e;">
-        
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h4 class="text-light"><i class="bi bi-gear-fill"></i> Manage Ban Appeal Questions</h4>
-            </div>
-
-            <div class="alert alert-info">
-                <strong>Note:</strong> Customize the ban appeal questions for your guild. Members will answer these when appealing a ban.
-            </div>
-
-            <div class="card manage-card">
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('ban_appeal_manage', guild_id=guild.id) }}">
-                        <h5 class="text-warning mb-3">Current Questions</h5>
-
-                        <div id="question-container">
-                            {% for question in appeal_application.questions %}
-                                <div class="form-group mb-3">
-                                    <label class="text-light fw-bold">Question {{ loop.index }}</label>
-                                    <input type="text" class="form-control appeal-input" name="question" value="{{ question.question }}" required>
-                                </div>
-                            {% endfor %}
-                        </div>
-
-                        <button type="button" class="btn btn-success w-100 mb-3" onclick="addQuestion()">
-                            <i class="bi bi-plus-lg"></i> Add Question
-                        </button>
-
-                        <button type="submit" class="btn btn-warning w-100">
-                            <i class="bi bi-save-fill"></i> Save Questions
-                        </button>
-                    </form>
+    <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+        <div class="w-5xl mx-auto space-y-6 md:space-y-8">
+            <!-- Side Navbar -->
+            {% include 'sidebar.html' %}
+            
+            <hr class="my-4" style="border-color: #f0ad4e;">
+            
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
+                <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h4 class="text-light"><i class="bi bi-gear-fill"></i> Manage Ban Appeal Questions</h4>
                 </div>
-            </div>
-        </main>
+
+                <div class="alert alert-info">
+                    <strong>Note:</strong> Customize the ban appeal questions for your guild. Members will answer these when appealing a ban.
+                </div>
+
+                <div class="card manage-card">
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('ban_appeal_manage', guild_id=guild.id) }}">
+                            <h5 class="text-warning mb-3">Current Questions</h5>
+
+                            <div id="question-container">
+                                {% for question in appeal_application.questions %}
+                                    <div class="form-group mb-3">
+                                        <label class="text-light fw-bold">Question {{ loop.index }}</label>
+                                        <input type="text" class="form-control appeal-input" name="question" value="{{ question.question }}" required>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <button type="button" class="btn btn-success w-100 mb-3" onclick="addQuestion()">
+                                <i class="bi bi-plus-lg"></i> Add Question
+                            </button>
+
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-save-fill"></i> Save Questions
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 </div>
 
