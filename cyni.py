@@ -30,6 +30,8 @@ from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
 from Datamodels.LOA import LOA
 
+from Tasks.loa_check import loa_check
+
 from utils.prc_api import PRC_API_Client
 from decouple import config
 
@@ -106,7 +108,7 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.LeaveManager", "Cogs.Tickets", "Cogs.Applications"]
+        UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications"]
         DISCONTINUED_EXTENSIONS = ["Cogs.Backup"]
 
 
@@ -154,6 +156,7 @@ class Bot(commands.AutoShardedBot):
         logging.info("Connected to MongoDB")
 
         change_status.start()
+        loa_check.start(self)
 
         logging.info(f"Logged in as {bot.user}")
 

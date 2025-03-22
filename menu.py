@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import logging
-from utils.constants import BLANK_COLOR
+from utils.constants import BLANK_COLOR, GREEN_COLOR, RED_COLOR
 from discord.ui import Button, View, Modal, TextInput
 from bson import ObjectId
 
@@ -951,6 +951,39 @@ class LOARequest(View):
         embed.set_footer(text=f"Accepted by {interaction.user}")
         embed.color = discord.Color.green()
         embed.title = "<:checked:1268849964063391788> LOA Request Accepted"
+        
+        user_id = document["user_id"]
+        user = self.bot.get_user(user_id)
+
+        if user is not None:
+            try:
+                await user.send(
+                    embed=discord.Embed(
+                        title=f"Activity Notice Accepted | {interaction.guild.name}",
+                        description=f"Your {document['type']} request in **{interaction.guild.name}** was accepted!",
+                        color=GREEN_COLOR,
+                    )
+                )
+            except:
+                print(f"Could not DM {user} about accepted LOA in {interaction.guild}")
+
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if settings is None:
+            return
+        
+        loa_module = settings.get("leave_of_absence", {})
+        role_ids = loa_module.get("loa_role", 0)
+        
+        if 0 == role_ids:
+            return
+        
+        loa_role = interaction.guild.get_role(role_ids)
+        if loa_role is None:
+            return
+        
+        member = interaction.guild.get_member(user.id) or await interaction.guild.fetch_member(user.id)
+        if member:
+            await member.add_roles(loa_role, reason="LOA Accepted")
         await interaction.message.edit(embed=embed, view=None)
 
     async def deny_callback(self, interaction: discord.Interaction):
@@ -987,6 +1020,134 @@ class LOARequest(View):
         embed.set_footer(text=f"Denied by {interaction.user}")
         embed.color = discord.Color.red()
         embed.title = "<:declined:1268849944455024671> LOA Request Denied"
+
+        user_id = document["user_id"]
+        user = self.bot.get_user(user_id)
+
+        if user is not None:
+            try:
+                await user.send(
+                    embed=discord.Embed(
+                        title=f"Activity Notice Denied | {interaction.guild.name}",
+                        description=f"Your {document['type']} request in **{interaction.guild.name}** was denied.",
+                        color=RED_COLOR,
+                    )
+                )
+            except:
+                print(f"Could not DM {user} about denied LOA in {interaction.guild}")
+
         await interaction.message.edit(embed=embed, view=None)
 
-    
+class LOAConfig(discord.ui.View):
+    def __init__(self, bot, setting, user_id: int):
+        super().__init__()
+        self.bot = bot
+        self.sett = setting
+        self.user_id = user_id
+
+        try:
+            enabled = self.sett["leave_of_absence"]["enabled"]
+        except KeyError:
+            enabled = False
+
+        self.enable_disable_select = discord.ui.Select(
+            placeholder="Enable/Disable LOA Module",
+            row=0,
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(
+                    label="Enable",
+                    value="enable",
+                    default=enabled == True or False
+                ),
+                discord.SelectOption(
+                    label="Disable",
+                    value="disable",
+                    default=enabled == False or False
+                )
+            ]
+        )
+        self.enable_disable_select.callback = self.enable_disable_callback
+        self.add_item(self.enable_disable_select)
+
+        try:
+            loa_channel = self.sett["leave_of_absence"]["loa_channel"]
+        except KeyError:
+            loa_channel = 0
+        self.loa_channel_select = discord.ui.ChannelSelect(
+            placeholder="LOA Channel",
+            row=1,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=loa_channel)],
+            channel_types=[discord.ChannelType.text]
+        )
+        self.loa_channel_select.callback = self.loa_channel_callback
+        self.add_item(self.loa_channel_select)
+
+        try:
+            loa_role = self.sett["leave_of_absence"]["loa_role"]
+        except KeyError:
+            loa_role = 0
+        self.loa_role_select = discord.ui.RoleSelect(
+            placeholder="LOA Role",
+            row=2,
+            min_values=1,
+            max_values=1,
+            default_values=[discord.Object(id=loa_role)]
+        )
+        self.loa_role_select.callback = self.loa_role_callback
+        self.add_item(self.loa_role_select)
+
+    async def enable_disable_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["leave_of_absence"]["enabled"] = not settings["leave_of_absence"].get("enabled",False)
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "leave_of_absence": {"enabled": True}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        await interaction.response.send_message(f"LOA Module {'Enabled' if settings.get('leave_of_absence', {}).get('enabled', False)
+
+            else 'Disabled'}",ephemeral=True)
+        
+    async def loa_channel_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["leave_of_absence"]["loa_channel"] = self.loa_channel_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "leave_of_absence": {"loa_channel": self.loa_channel_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("LOA Channel Updated!",ephemeral=True)
+
+    async def loa_role_callback(self,interaction:discord.Interaction):
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "You are not allowed to use this menu.", 
+                ephemeral=True
+            )
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if not isinstance(settings, dict):
+            settings = {"_id": interaction.guild.id}
+        try:
+            settings["leave_of_absence"]["loa_role"] = self.loa_role_select.values[0].id
+        except KeyError:
+            settings = {"_id": interaction.guild.id, "leave_of_absence": {"loa_role": self.loa_role_select.values[0].id}}
+        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await interaction.response.send_message("LOA Role Updated!",ephemeral=True)
+        

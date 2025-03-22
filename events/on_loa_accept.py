@@ -1,8 +1,7 @@
 import discord
 from discord.ext import commands
 
-from utils.constants import BLANK_COLOR, GREEN_COLOR
-
+from utils.constants import GREEN_COLOR
 
 class OnLOAAccept(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -24,30 +23,23 @@ class OnLOAAccept(commands.Cog):
                 )
             )
         except:
-            pass
+            print(f"Could not DM {user} about accepted LOA in {guild}")
 
         settings = await self.bot.get_guild_settings(guild.id)
         if settings is None:
             return
         
         loa_module = settings.get("leave_of_absence", {})
-        role_ids = loa_module.get("role_ids", [])
+        role_ids = loa_module.get("loa_role", 0)
         
-        loa_roles = list(
-            filter(
-                lambda x: x is not None,
-                [
-                    discord.utils.get(guild.roles, id=identifier)
-                    for identifier in role_ids
-                ],
-            )
-        )
-        for rl in loa_roles:
-            if rl not in user.roles:
-                try:
-                    await user.add_roles(rl)
-                except discord.HTTPException:
-                    pass
+        if 0 == role_ids:
+            return
+        
+        loa_role = guild.get_role(role_ids)
+        if loa_role is None:
+            return
+        
+        await user.add_roles(loa_role, reason="LOA Accepted")
 
 async def setup(bot):
     await bot.add_cog(OnLOAAccept(bot))

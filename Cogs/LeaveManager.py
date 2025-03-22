@@ -48,6 +48,30 @@ class LeaveManager(commands.Cog):
         """
         Apply for a leave of absence.
         """
+        sett = await self.bot.settings.find_by_id(ctx.guild.id)
+        if sett is None:
+            return await ctx.send(embed=discord.Embed(
+                title="Settings Not Found",
+                description="The settings for this guild have not been found.",
+                color=RED_COLOR
+            ))
+
+        loa_module = sett.get("leave_of_absence", {})
+        if not loa_module.get("enabled", False):
+            return await ctx.send(embed=discord.Embed(
+                title="LOA Module Disabled",
+                description="The leave of absence module has been disabled.",
+                color=RED_COLOR
+            ))
+
+        loa_role = loa_module.get("loa_role", 0)
+        if loa_role == 0:
+            return await ctx.send(embed=discord.Embed(
+                title="LOA Role Not Set",
+                description="The leave of absence role has not been set.",
+                color=RED_COLOR
+            ))
+        
         try:
             duration_seconds = time_converter(time)
         except ValueError:
@@ -95,11 +119,12 @@ class LeaveManager(commands.Cog):
             "type": "loa",
             "reason": reason,
             "start": current_timestamp,
-            "expiry": expiry_timestamp
+            "expiry": expiry_timestamp,
+            "dm_sent": False,
         }
 
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        loa_channel_id = settings.get("leave_of_absence", {}).get("channel", 1160481898536112170)
+        loa_channel_id = settings.get("leave_of_absence", {}).get("loa_channel", 0)
 
         if 0 == loa_channel_id:
             return await ctx.send(embed=discord.Embed(
@@ -107,8 +132,16 @@ class LeaveManager(commands.Cog):
                 description="The leave of absence channel has not been set.",
                 color=RED_COLOR
             ))
+        
+        channel = ctx.guild.get_channel(loa_channel_id)
+        if channel is None:
+            return await ctx.send(embed=discord.Embed(
+                title="LOA Channel Not Found",
+                description="The leave of absence channel could not be found.",
+                color=RED_COLOR
+            ))
         await self.bot.loa.db.insert_one(loa_schema)
-        await self.send_loa_embed(ctx.guild, ctx.channel, ctx.author, loa_schema, total_past_loas)
+        await self.send_loa_embed(ctx.guild, channel, ctx.author, loa_schema, total_past_loas)
         await ctx.send(embed=discord.Embed(
             title="Leave of Absence Requested",
             description="Your leave of absence request has been submitted.",

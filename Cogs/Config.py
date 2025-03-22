@@ -1,6 +1,10 @@
 import discord
 from discord.ext import commands
-from menu import BasicConfig, AntiPingView, ModerationModule, StaffInfraction, ServerManagement, PartnershipModule
+from menu import (
+    BasicConfig, AntiPingView, ModerationModule, 
+    StaffInfraction, ServerManagement, PartnershipModule,
+    LOAConfig
+)
 from utils.pagination import Pagination
 from cyni import is_management
 from utils.constants import BLANK_COLOR, RED_COLOR
@@ -100,7 +104,7 @@ class Config(commands.Cog):
 
             embed6 = discord.Embed(
                 title="Partnership Module",
-                description="> What is Partnership module? The partnership module allows you to configure the following settings:\n\n"
+                description="> **What is Partnership module?**\n The partnership module allows you to configure the following settings:\n\n"
                             "<:anglesmallright:1268850037861908571> **Partnership Module Enabled**\n"
                             "- Enable or disable the partnership module.\n\n"
                             "<:anglesmallright:1268850037861908571> **Partnership Channel**\n"
@@ -111,14 +115,27 @@ class Config(commands.Cog):
                 color=BLANK_COLOR
             )
 
-            all_embed = [embed1, embed2, embed3, embed4, embed5, embed6]
+            embed7 = discord.Embed(
+                title="LOA Module",
+                description=(
+                    "> **Enabled**\n"
+                    "This setting allows you to enable or disable the LOA module. If the LOA module is disabled, users will not be able to request LOAs.\n\n"
+                    "> **LOA Role**\n"
+                    "This role will be given to users when their LOA request is accepted and removed when it expires.\n\n"
+                    "> **LOA Channel**\n"
+                    "This channel is where LOA requests will be sent for staff to review and accept or decline."
+                )
+            )
+
+            all_embed = [embed1, embed2, embed3, embed4, embed5, embed6, embed7]
             views = [
                 BasicConfig(self.bot, sett, ctx.author.id), 
                 AntiPingView(self.bot, sett, ctx.author.id), 
                 ModerationModule(bot=self.bot,setting=sett,user_id=ctx.author.id),
                 StaffInfraction(bot=self.bot,setting=sett,user_id=ctx.author.id),
                 ServerManagement(bot=self.bot,setting=sett,user_id=ctx.author.id),
-                PartnershipModule(bot=self.bot,setting=sett,user_id=ctx.author.id)
+                PartnershipModule(bot=self.bot,setting=sett,user_id=ctx.author.id),
+                LOAConfig(bot=self.bot,setting=sett,user_id=ctx.author.id)
             ]
             view = Pagination(self.bot, ctx.author.id, all_embed, views)
             await ctx.send(embed=embed1, view=view)
