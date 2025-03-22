@@ -3,95 +3,77 @@
 {% block title %}Apply for {{ application.name }} | {{ guild.name }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-5">
-    <h1 class="h4 text-light">Apply for {{ application.name }}</h1>
-
-    <div class="alert alert-info" role="alert">
-        Logged in as <strong>{{ session['username'] }}</strong>
-    </div>
-    <!-- Application Card -->
-    <div class="card mb-4" style="background-color: #222; border: 1px solid #f0ad4e;">
-        <div class="card-body">
-            <h5 class="text-light">Application Description</h5>
-            <p class="text-muted">{{ application.description }}</p>
-
-            <h5 class="text-light mt-4">Questions</h5>
-            <form method="POST" action="{{ url_for('apply', guild_id=guild.id, application_id=application._id) }}">
-                {% for question in application.questions %}
-                    <div class="form-group mb-3">
-                        <label class="text-light">{{ question.question }}</label>
-                        <input type="text" class="form-control" name="answer_{{loop.index}}" required>
-                    </div>
-                {% endfor %}
+<div class="min-h-screen bg-gradient-to-br from-zinc-950 to-zinc-900 py-12 px-4 sm:px-6">
+    <div class="max-w-3xl mx-auto">
+        <!-- User Info Bar -->
+        <div class="bg-zinc-800/50 backdrop-blur-sm rounded-lg px-4 py-3 mb-6 flex items-center">
+            <div class="text-zinc-400 text-sm">Logged in as</div>
+            <div class="font-medium text-white ml-2">{{ session['username'] }}</div>
+            <div class="ml-auto text-xs px-2 py-1 bg-zinc-700 text-zinc-300 rounded-full">{{ guild.name }}</div>
+        </div>
+        
+        <!-- Application Card -->
+        <div class="bg-zinc-900 rounded-xl border border-zinc-800 shadow-2xl overflow-hidden">
+            <!-- Banner Image -->
+            {% if application.banner_image %}
+            <div class="h-56 w-full relative">
+                <img src="{{ application.banner_image }}" alt="{{ application.name }} Banner" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 w-full p-6">
+                    <h1 class="text-3xl font-bold text-white">{{ application.name }}</h1>
+                </div>
+            </div>
+            {% else %}
+            <div class="h-32 bg-gradient-to-r from-amber-600/20 to-purple-800/20 flex items-end">
+                <div class="p-6">
+                    <h1 class="text-3xl font-bold text-white">{{ application.name }}</h1>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Application Content -->
+            <div class="p-6">
+                <!-- Description -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-medium text-zinc-300 mb-2">Application Description</h2>
+                    <p class="text-zinc-400">{{ application.description }}</p>
+                </div>
                 
-                <!-- Submit Button -->
-                <button type="submit" class="btn btn-primary w-100">Submit Application</button>
-            </form>
+                <!-- Application Form -->
+                <form method="POST" action="{{ url_for('apply', guild_id=guild.id, application_id=application._id) }}" class="space-y-6">
+                    <h2 class="text-lg font-medium text-white flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Questions
+                    </h2>
+                    
+                    <!-- Questions -->
+                    <div class="space-y-5">
+                        {% for question in application.questions %}
+                        <div class="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+                            <label class="block text-zinc-200 font-medium mb-2">{{ question.question }}</label>
+                            <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent" 
+                                   name="answer_{{loop.index}}" required>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="pt-4">
+                        <button type="submit" 
+                                class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg shadow-lg hover:from-amber-600 hover:to-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900 transition-all">
+                            Submit Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Application Info Bar -->
+        <div class="mt-4 text-center text-zinc-500 text-xs">
+            Applications are reviewed by the {{ guild.name }} moderation team. You'll be notified of the outcome.
         </div>
     </div>
 </div>
-<style>
-    /* Card Style */
-    .card {
-        border-radius: 10px; /* Rounded corners for card */
-        transition: none !important; /* Disable any hover animations */
-    }
-
-    /* No hover tilt or transformation */
-    .card:hover {
-        transform: none !important;
-        box-shadow: none !important;
-    }
-
-    /* Button Style */
-    .btn-primary {
-        background-color: #007bff; /* Custom primary button color */
-        border-color: #007bff; /* Border color */
-    }
-
-    .btn-primary:hover {
-        background-color: #0056b3; /* Darker blue on hover */
-    }
-
-    /* Form Style */
-    .form-group label {
-        font-weight: bold; /* Make labels bold */
-    }
-
-    /* Adjust the form container */
-    .form-control {
-        background-color: #333; /* Dark background for inputs */
-        border: 1px solid #f0ad4e; /* Custom border */
-        color: white; /* Text color */
-    }
-
-    .form-control:focus {
-        border-color: #f0ad4e; /* Focus border color */
-        box-shadow: 0 0 5px rgba(240, 173, 78, 0.5); /* Subtle glow effect on focus */
-    }
-
-    /* Alert box style */
-    .alert {
-        background-color: #333; /* Dark background for alerts */
-        color: #f0ad4e; /* Golden text color */
-    }
-
-    /* Ensure buttons are not tilted */
-    .btn {
-        transition: none; /* Disable any transition on button */
-    }
-
-    .btn:hover {
-        transform: none; /* Remove any transformation on hover to avoid tilt */
-    }
-
-    /* Mobile responsiveness */
-    @media (max-width: 768px) {
-        .card {
-            margin: 10px; /* Adjust card margin for small screens */
-        }
-    }
-</style>
-
 {% endblock %}
-

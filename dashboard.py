@@ -7,16 +7,19 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 import datetime
 import uuid
-from functools import wraps
 from waitress import serve
 from bson import ObjectId, Int64
-from cyni import bot, fetch_invite, bot_ready
+from cyni import bot, bot_ready
 from utils.erm_api import *
+import mimetypes
 
 from DashboardModules.WelcomeModule import welcome_route
 
-# Load environment variables
+FILES_URL = "https://files.cyni.quprdigital.tk/upload"
+
 load_dotenv()
+
+FILE_AUTH_TOKEN = os.getenv("FILE_AUTH_TOKEN")
 
 # Constants
 DISCORD_API_BASE_URL = "https://discord.com/api"
@@ -442,6 +445,7 @@ def create_application(guild_id):
 @app.route('/applications/manage/<guild_id>/<application_id>', methods=["GET", "POST"])
 @login_required
 def manage_application(guild_id, application_id):
+    application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
     if request.method == "GET":
         guild = bot.get_guild(int(guild_id))
         if not guild:
@@ -453,8 +457,6 @@ def manage_application(guild_id, application_id):
         if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
             flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
-        
-        application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
         if not application:
             flash("Application not found.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
@@ -469,6 +471,26 @@ def manage_application(guild_id, application_id):
         pass_role = int(request.form.get("pass_role"))
         fail_role = int(request.form.get("fail_role"))
         status = request.form.get("status")
+        banner_file = request.files.get("banner_image")
+
+        if not banner_file or banner_file.filename == "":
+            banner_image_url = None
+        else:
+            mime_type = mimetypes.guess_type(banner_file.filename)[0] or "application/octet-stream"
+            response = requests.post(FILES_URL, files={
+                "file": (banner_file.filename, banner_file, mime_type)
+                },
+                headers={"Authorization": FILE_AUTH_TOKEN}
+                )
+            try:
+                if response.status_code == 200:
+                    banner_image_url = response.json().get("url")
+                else:
+                    flash("Failed to upload banner image.", "error")
+                    return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
+            except Exception as e:
+                flash(f"Error uploading image: {str(e)}", "error")
+                return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
 
         application_data = {
             "guild_id": int(guild_id),
@@ -480,6 +502,7 @@ def manage_application(guild_id, application_id):
             "pass_role": pass_role,
             "fail_role": fail_role,
             "status": status,
+            "banner_image": banner_image_url if banner_image_url else application.get("banner_image"),
         }
 
         mongo_db["applications"].update_one(

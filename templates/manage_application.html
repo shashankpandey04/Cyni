@@ -3,66 +3,175 @@
 {% block title %}Manage Application | Cyni{% endblock %}
 
 {% block content %}
-<div class="flex h-screen bg-gray-900">
-    <div class="flex-1 ml-64 overflow-y-auto bg-gradient-to-br from-gray-900 to-gray-800">
-        <!-- Side Navbar -->
-        {% include 'sidebar.html' %}
-        <hr class="my-4" style="border-color: #f0ad4e;">
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h4 class="h4 text-light">Manage Application: {{ application.name }}</h4>
+<div class="flex h-screen bg-black">
+    <!-- Side Navbar -->
+    {% include 'sidebar.html' %}
+    
+    <!-- Main Content Area -->
+    <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-6 ml-64">
+        <div class="max-w-5xl mx-auto">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-2xl font-bold text-white">
+                    <span class="text-amber-400">Manage:</span> {{ application.name }}
+                </h1>
+                <div class="text-sm bg-zinc-800 px-3 py-1 rounded-full">
+                    <span class="{% if application.status == 'open' %}text-green-400{% else %}text-red-400{% endif %}">
+                        ● {% if application.status == 'open' %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
             </div>
-
-            <form method="POST">
-                <div class="mb-3">
-                    <label for="application_name" class="form-label text-light">Application Name</label>
-                    <input type="text" class="form-control" id="application_name" name="application_name" value="{{ application.name }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="application_description" class="form-label text-light">Application Description</label>
-                    <textarea class="form-control" id="application_description" name="application_description" rows="3" required>{{ application.description }}</textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="required_roles" class="form-label text-light">Required Roles (IDs)</label>
-                    <input type="text" class="form-control" id="required_roles" name="required_roles" value="{{ application.required_roles | join(', ') }}" placeholder="Comma-separated role IDs">
-                </div>
-                <div class="mb-3">
-                    <label for="application_channel" class="form-label text-light">Application Channel ID</label>
-                    <input type="number" class="form-control" id="application_channel" name="application_channel" value="{{ application.application_channel }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="pass_role" class="form-label text-light">Pass Role ID</label>
-                    <input type="number" class="form-control" id="pass_role" name="pass_role" value="{{ application.pass_role }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="fail_role" class="form-label text-light">Fail Role ID</label>
-                    <input type="number" class="form-control" id="fail_role" name="fail_role" value="{{ application.fail_role }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="status" class="form-label text-light">Status</label>
-                    <select class="form-select" id="status" name="status" required>
-                        <option value="open" {% if application.status == 'open' %}selected{% endif %}>Active</option>
-                        <option value="close" {% if application.status == 'close' %}selected{% endif %}>Inactive</option>
-                    </select>
-                </div>
-
-                <h5 class="text-light">Questions</h5>
-                <div id="questions-container">
-                    {% for question in application.questions %}
-                    <div class="mb-3 question-item">
-                        <input type="text" class="form-control" name="question" value="{{ question.question }}" placeholder="Question" required>
-                        <button type="button" class="btn btn-danger remove-question mt-2">Remove Question</button>
+            
+            <!-- Form Container -->
+            <div class="bg-zinc-900 rounded-xl border border-zinc-800 shadow-xl overflow-hidden">
+                <!-- Banner Image Preview -->
+                <div class="relative h-48 bg-gradient-to-r from-amber-600/20 to-purple-800/20 overflow-hidden">
+                    {% if application.banner_image %}
+                    <img src="{{ application.banner_image }}" alt="Application Banner" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="flex items-center justify-center h-full">
+                        <span class="text-zinc-500">No banner image</span>
                     </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
-                <button type="button" class="btn btn-primary" id="add-question">Add Question</button>
-
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-success">Update Application</button>
-                </div>
-            </form>
-        </main>
+                
+                <!-- Form -->
+                <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6">
+                    <!-- Banner Upload -->
+                    <div class="mb-6">
+                        <label for="banner_image" class="block text-sm font-medium text-zinc-400 mb-2">
+                            Application Banner
+                        </label>
+                        <div class="flex items-center space-x-3">
+                            <label class="flex items-center justify-center px-4 py-2 border border-zinc-700 rounded-lg cursor-pointer hover:bg-zinc-800 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span class="text-zinc-300">Upload Banner</span>
+                                <input type="file" name="banner_image" id="banner_image" class="hidden" accept="image/*">
+                            </label>
+                            {% if application.banner_image %}
+                            <button type="button" id="remove_banner" class="text-red-400 text-sm hover:text-red-300">
+                                Remove banner
+                            </button>
+                            <input type="hidden" id="remove_banner_input" name="remove_banner" value="false">
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Form Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="application_name" class="block text-sm font-medium text-zinc-400 mb-1">
+                                    Application Name
+                                </label>
+                                <input type="text" id="application_name" name="application_name" 
+                                       value="{{ application.name }}" required
+                                       class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            </div>
+                            
+                            <div>
+                                <label for="application_description" class="block text-sm font-medium text-zinc-400 mb-1">
+                                    Application Description
+                                </label>
+                                <textarea id="application_description" name="application_description" rows="4" required
+                                          class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">{{ application.description }}</textarea>
+                            </div>
+                            
+                            <div>
+                                <label for="status" class="block text-sm font-medium text-zinc-400 mb-1">
+                                    Status
+                                </label>
+                                <select id="status" name="status" required
+                                        class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                    <option value="open" {% if application.status == 'open' %}selected{% endif %}>Active</option>
+                                    <option value="close" {% if application.status == 'close' %}selected{% endif %}>Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label for="required_roles" class="block text-sm font-medium text-zinc-400 mb-1">
+                                    Required Roles (IDs)
+                                </label>
+                                <input type="text" id="required_roles" name="required_roles" 
+                                       value="{{ application.required_roles | join(', ') }}" 
+                                       placeholder="Comma-separated role IDs"
+                                       class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            </div>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label for="application_channel" class="block text-sm font-medium text-zinc-400 mb-1">
+                                        Channel ID
+                                    </label>
+                                    <input type="number" id="application_channel" name="application_channel" 
+                                           value="{{ application.application_channel }}" required
+                                           class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                </div>
+                                
+                                <div>
+                                    <label for="pass_role" class="block text-sm font-medium text-zinc-400 mb-1">
+                                        Pass Role ID
+                                    </label>
+                                    <input type="number" id="pass_role" name="pass_role" 
+                                           value="{{ application.pass_role }}" required
+                                           class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                </div>
+                                
+                                <div>
+                                    <label for="fail_role" class="block text-sm font-medium text-zinc-400 mb-1">
+                                        Fail Role ID
+                                    </label>
+                                    <input type="number" id="fail_role" name="fail_role" 
+                                           value="{{ application.fail_role }}" required
+                                           class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Questions Section -->
+                    <div class="pt-4 border-t border-zinc-800">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-medium text-white">Application Questions</h2>
+                            <button type="button" id="add-question" 
+                                    class="inline-flex items-center px-3 py-1.5 text-sm bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add Question
+                            </button>
+                        </div>
+                        
+                        <div id="questions-container" class="space-y-3">
+                            {% for question in application.questions %}
+                            <div class="flex items-center space-x-2 question-item">
+                                <input type="text" name="question" value="{{ question.question }}" 
+                                       placeholder="Enter question" required
+                                       class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                                <button type="button" class="remove-question p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="pt-6 flex justify-end">
+                        <button type="submit" 
+                                class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg shadow-lg hover:from-amber-600 hover:to-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900 transition-all">
+                            Update Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -70,18 +179,52 @@
     document.getElementById('add-question').addEventListener('click', function() {
         const container = document.getElementById('questions-container');
         const questionItem = document.createElement('div');
-        questionItem.className = 'mb-3 question-item';
+        questionItem.className = 'flex items-center space-x-2 question-item';
         questionItem.innerHTML = `
-            <input type="text" class="form-control" name="question" placeholder="Question" required>
-            <button type="button" class="btn btn-danger remove-question mt-2">Remove Question</button>
+            <input type="text" name="question" placeholder="Enter question" required
+                   class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+            <button type="button" class="remove-question p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
         `;
         container.appendChild(questionItem);
     });
 
-    document.getElementById('questions-container').addEventListener('click', function(e){
-         if (e.target.classList.contains('remove-question')) {
-            e.target.parentElement.remove();
+    document.getElementById('questions-container').addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-question') || e.target.closest('.remove-question')) {
+            const button = e.target.classList.contains('remove-question') ? e.target : e.target.closest('.remove-question');
+            button.closest('.question-item').remove();
         }
     });
+    
+    // Preview uploaded banner image
+    document.getElementById('banner_image').addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const bannerContainer = document.querySelector('.h-48');
+                bannerContainer.innerHTML = `<img src="${e.target.result}" alt="Application Banner Preview" class="w-full h-full object-cover">`;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    
+    // Handle banner removal if needed
+    const removeButton = document.getElementById('remove_banner');
+    if (removeButton) {
+        removeButton.addEventListener('click', function() {
+            // Set the hidden input value to true
+            document.getElementById('remove_banner_input').value = 'true';
+            
+            // Update the preview
+            const bannerContainer = document.querySelector('.h-48');
+            bannerContainer.innerHTML = `<div class="flex items-center justify-center h-full"><span class="text-zinc-500">No banner image</span></div>`;
+            
+            // Hide the remove button
+            this.style.display = 'none';
+        });
+    }
 </script>
 {% endblock %}
