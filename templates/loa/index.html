@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}LOA Requests{% endblock %}
+
+{% block content %}
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <!-- Include the sidebar -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area -->
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-white mb-2">LOA Requests</h1>
+        <p class="text-gray-400">Manage leave of absence requests from your server members</p>
+      </div>
+      
+      <!-- Status Card -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-amber-500/10 overflow-hidden mb-8">
+        <div class="p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-12 w-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+            </div>
+            <div class="ml-4">
+              <h2 class="text-lg font-semibold text-white">Leave of Absence Requests</h2>
+              <p class="text-sm text-gray-400">
+                {% if guild_data.get('leave_of_absence', {}).get('enabled', False) %}
+                  Currently <span class="text-green-400">Active</span>
+                {% else %}
+                  Currently <span class="text-red-400">Inactive</span>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Settings Form -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="border-b border-gray-700/50 p-6">
+          <h3 class="text-xl font-semibold text-white">Leave of Absence Settings</h3>
+          <p class="text-sm text-gray-400 mt-1">Customize how Cyni handles leave of absence requests from your server members</p>
+        </div>
+        
+        <div class="p-6">
+          <form method="POST" action="{{ url_for('welcome_module.welcome', guild_id=guild.id) }}">
+            <!-- Welcome Message Input -->
+            <div class="mb-6">
+              <label for="welcome_message" class="block text-sm font-medium text-gray-300 mb-2">Welcome Message</label>
+              <textarea 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="welcome_message" 
+                name="welcome_message" 
+                rows="4" 
+                placeholder="Hey {user}! Welcome to {server}. Enjoy your stay!">{{ guild_data.get('welcome_module', {}).get('welcome_message', 'Hey {user}! Welcome to {server}. Enjoy your stay!') }}</textarea>
+                <p class="mt-2 text-sm text-gray-400">
+                Available placeholders: 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user}</code> - mention user, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{server}</code> - server name, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user_name}</code> - username without mention, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user_discriminator}</code> - user's discriminator, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user_id}</code> - user's ID, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{server_id}</code> - server ID, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{member_count}</code> - total member count.
+                </p></div>
+            
+            <!-- Welcome Channel Selection -->
+            <div class="mb-6">
+              <label for="welcome_channel" class="block text-sm font-medium text-gray-300 mb-2">Welcome Channel</label>
+              <div class="relative">
+                <select 
+                  class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+                  id="welcome_channel" 
+                  name="welcome_channel">
+                  {% for channel_id, channel_name in channels.items() %}
+                  <option 
+                  value="{{ channel_id }}" 
+                  {% if channel_id == guild_data.get('welcome_module', {}).get('welcome_channel', '') %}selected{% endif %}>
+                  {{ channel_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <p class="mt-2 text-sm text-gray-400">Select the channel where welcome messages will be sent</p>
+            </div>
+
+            <div class="mb-6">
+              <label for="welcome_role" class="block text-sm font-medium text-gray-300 mb-2">Welcome Role</label>
+              <div class="relative">
+                <select 
+                  class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+                  id="welcome_role" 
+                  name="welcome_role">
+                  {% for role_id, role_name in roles.items() %}
+                  <option 
+                  value="{{ role_id }}" 
+                  {% if role_id == guild_data.get('welcome_module', {}).get('welcome_role', '') %}selected{% endif %}>
+                  {{ role_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <p class="mt-2 text-sm text-gray-400">Select the channel where welcome messages will be sent</p>
+            </div>
+            
+            <!-- Toggle Section -->
+            <div class="mb-8">
+              <div class="flex items-center">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    class="sr-only peer" 
+                    id="enabled" 
+                    name="enabled" 
+                    {% if guild_data.get('welcome_module', {}).get('enabled', False) %}checked{% endif %}>
+                  <div class="relative w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-amber-500 peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  <span class="ml-3 text-gray-200">Enable Welcome Messages</span>
+                </label>
+              </div>
+              <p class="mt-2 text-sm text-gray-400">Toggle to enable or disable welcome messages</p>
+            </div>
+            
+            <!-- <div class="mb-8">
+              <div class="border-t border-gray-700/30 pt-6">
+                <button 
+                  type="button" 
+                  class="flex items-center text-amber-500 hover:text-amber-400 transition-colors focus:outline-none"
+                  onclick="document.getElementById('advancedSettings').classList.toggle('hidden')">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Advanced Settings
+                </button>
+                
+                <div id="advancedSettings" class="hidden mt-4 space-y-4">
+                  <div class="mb-4">
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        class="sr-only peer" 
+                        id="use_embed" 
+                        name="use_embed" 
+                        {% if guild_data.get('welcome_module', {}).get('use_embed', False) %}checked{% endif %}>
+                      <div class="relative w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-amber-500 peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                      <span class="ml-3 text-gray-200">Use Embed Format</span>
+                    </label>
+                    <p class="mt-2 text-sm text-gray-400">Send welcome messages as rich embeds instead of plain text</p>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <label for="embed_color" class="block text-sm font-medium text-gray-300 mb-2">Embed Color</label>
+                    <div class="flex">
+                      <input 
+                        type="color" 
+                        class="h-10 w-10 rounded mr-2 bg-transparent border-0 cursor-pointer" 
+                        id="embed_color" 
+                        name="embed_color" 
+                        value="{{ guild_data.get('welcome_module', {}).get('embed_color', '#FF9900') }}">
+                      <input 
+                        type="text" 
+                        class="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                        id="embed_color_text" 
+                        value="{{ guild_data.get('welcome_module', {}).get('embed_color', '#FF9900') }}"
+                        onchange="document.getElementById('embed_color').value = this.value">
+                    </div>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <label for="embed_title" class="block text-sm font-medium text-gray-300 mb-2">Embed Title</label>
+                    <input 
+                      type="text" 
+                      class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                      id="embed_title" 
+                      name="embed_title" 
+                      placeholder="Welcome to {server}!"
+                      value="{{ guild_data.get('welcome_module', {}).get('embed_title', 'Welcome to {server}!') }}">
+                  </div>
+                </div>
+              </div>
+            </div> -->
+            
+            <!-- Action Buttons -->
+            <div class="flex justify-between">
+              <!-- <button 
+                type="button" 
+                onclick="showPreview()"
+                class="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+                Preview
+              </button> -->
+              <div>
+                <button 
+                  type="reset" 
+                  class="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900 mr-2">
+                  Reset
+                </button>
+                <button 
+                  type="submit" 
+                  class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+                  Save Configuration
+                </button>
+              </div>
+            </div>
+            <!-- Add this below the form but before the closing </div> -->
+            <!-- Preview Modal -->
+            <div id="previewModal" class="fixed inset-0 z-50 overflow-auto bg-black/70 flex justify-center items-center hidden">
+              <div class="bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 border border-gray-700">
+                <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                  <h3 class="text-xl font-semibold text-white">Message Preview</h3>
+                  <button onclick="closeModal()" class="text-gray-400 hover:text-white focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div class="p-6">
+                  <!-- Standard Message Preview -->
+                  <div id="standardPreview" class="bg-gray-700 rounded-lg p-4 mb-4">
+                    <span class="text-white" id="standardPreviewText"></span>
+                  </div>
+                  
+                  <!-- Embed Preview -->
+                  <div id="embedPreview" class="hidden mb-4">
+                    <div class="flex">
+                      <div class="w-1 rounded-l" id="embedColorBar"></div>
+                      <div class="bg-gray-700 rounded-r-lg p-4 flex-1">
+                        <div class="text-white font-semibold mb-2" id="embedTitlePreview"></div>
+                        <div class="text-gray-300" id="embedContentPreview"></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-4 text-gray-400 italic text-sm">
+                    Note: This is a simplified preview. Actual Discord embeds may appear slightly different.
+                  </div>
+                </div>
+                
+                <div class="p-4 border-t border-gray-700 flex justify-end">
+                  <button onclick="closeModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none">
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+<script>
+  document.getElementById('embed_color').addEventListener('input', function() {
+    document.getElementById('embed_color_text').value = this.value;
+  });
+</script>
+{% endblock %}
