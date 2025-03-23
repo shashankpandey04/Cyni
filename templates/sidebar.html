@@ -69,6 +69,9 @@
             <a href="{{ url_for('moderation_settings', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
               Moderation
             </a>
+            <a href="{{ url_for('welcome_module.welcome', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+              Welcome Module
+            </a>
           </div>
         </div>
       </div>
@@ -166,18 +169,15 @@
   </div>
 </aside>
 
-<!-- Hamburger menu button (visible only on mobile) -->
 <button id="sidebar-toggle" class="md:hidden fixed top-4 left-4 z-30 p-2 rounded-lg bg-black/80 border border-amber-500/30 shadow-lg">
   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
   </svg>
 </button>
 
-<!-- Overlay for mobile (appears when sidebar is open) -->
 <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 hidden md:hidden"></div>
 
 <div id="notificationModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-  <!-- Notification modal content remains unchanged -->
   <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
     <div class="fixed inset-0 transition-opacity" aria-hidden="true">
       <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm"></div>
@@ -196,7 +196,6 @@
             </h3>
             <div class="mt-4">
               <div id="notificationList" class="max-h-60 overflow-y-auto">
-                <!-- Notification items will go here -->
                 <div class="p-3 bg-gray-700/50 rounded-lg mb-2 border border-gray-600/50">
                   <div class="flex justify-between items-start">
                     <div>
@@ -233,7 +232,6 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Toggle menu buttons functionality (kept from original)
     const toggleButtons = document.querySelectorAll('[data-collapse-toggle]');
     
     toggleButtons.forEach(button => {
@@ -254,8 +252,7 @@
         }
       });
     });
-    
-    // Mobile sidebar toggle functionality
+
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
@@ -264,8 +261,7 @@
       sidebarToggle.addEventListener('click', function() {
         sidebar.classList.toggle('-translate-x-full');
         overlay.classList.toggle('hidden');
-        
-        // Toggle hamburger/close icon
+
         const icon = this.querySelector('svg');
         if (sidebar.classList.contains('-translate-x-full')) {
           icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />';
@@ -273,8 +269,7 @@
           icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
         }
       });
-      
-      // Close sidebar when clicking overlay
+
       overlay.addEventListener('click', function() {
         sidebar.classList.add('-translate-x-full');
         overlay.classList.add('hidden');

@@ -51,8 +51,6 @@ app.register_blueprint(welcome_route)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "Logged in successfully."
-login_manager.login_message_category = "info"
 
 bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
 
@@ -146,14 +144,12 @@ def logout():
 
 @app.route("/docs")
 def docs():
-    flash("Documentation coming soon.", "info")
     return redirect(url_for("index"))
 
 @app.route('/giveaway/<message_id>', methods=["GET"])
 def giveaway(message_id):
     giveaway = mongo_db["giveaways"].find_one({"message_id": int(message_id)})
     if not giveaway:
-        flash("Giveaway not found.")
         return redirect(url_for("dashboard"))
 
     return render_template("active_giveaway.html", guild=guild, giveaway=giveaway)
@@ -213,7 +209,6 @@ def guild(guild_id):
     
     member = guild.get_member(int(session["user_id"]))
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
     
     return render_template("guild.html", guild=guild)
@@ -259,7 +254,6 @@ def guild_settings_basics(guild_id):
             },
             upsert=True
         )
-        flash("Settings updated successfully.")
         return redirect(url_for("guild_settings_basics", guild_id=guild_id))
 
     return render_template("guild_settings_basics.html", guild=guild, guild_data=guild_data, roles=roles)
@@ -303,7 +297,6 @@ def anti_ping_settings(guild_id):
             },
             upsert=True
         )
-        flash("Anti-Ping settings updated successfully.")
         return redirect(url_for("anti_ping_settings", guild_id=guild_id))
 
     return render_template("anti_ping_settings.html", guild=guild, guild_data=guild_data, roles=roles)
@@ -318,7 +311,6 @@ def moderation_settings(guild_id):
     
     member = guild.get_member(int(session["user_id"]))
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
     
     guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
@@ -349,7 +341,6 @@ def moderation_settings(guild_id):
             },
             upsert=True
         )
-        flash("Moderation settings updated successfully.")
         return redirect(url_for("moderation_settings", guild_id=guild_id))
 
     return render_template("moderation_settings.html", guild=guild, guild_data=guild_data, channels=channels)
@@ -360,13 +351,11 @@ def applications(guild_id):
     if request.method == "GET":
         guild = bot.get_guild(int(guild_id))
         if not guild:
-            flash("Guild not found.", "error")
             return redirect(url_for("dashboard"))
         sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
         management_roles = sett.get("basic_settings", {}).get("management_roles", [])
         if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles
                    if management_roles) or not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
-            flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
         all_applications = list(mongo_db["applications"].find({"guild_id": int(guild_id)}))
         return render_template("applications.html", applications=all_applications, guild=guild)
@@ -383,7 +372,6 @@ def create_application(guild_id):
         management_roles = sett.get("basic_settings", {}).get("management_roles", [])
         if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles
                      if management_roles) or not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
-            flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
         return render_template("create_application.html", guild=guild)
 
@@ -391,13 +379,11 @@ def create_application(guild_id):
         if current_user.is_authenticated:
             guild = bot.get_guild(int(guild_id))
             if not guild:
-                flash("Guild not found.", "error")
                 return redirect(url_for("dashboard"))
             
             sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
             management_roles = sett.get("basic_settings", {}).get("management_roles", [])
             if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-                flash("You do not have the required permissions to access this page.", "error")
                 return redirect(url_for("dashboard"))
             
             application_name = request.form.get("application_name")
@@ -422,7 +408,6 @@ def create_application(guild_id):
             }
 
             mongo_db["applications"].insert_one(application_data)
-            flash("Application created successfully.")
             return redirect(url_for("applications", guild_id=guild_id))
     
 @app.route('/applications/manage/<guild_id>/<application_id>', methods=["GET", "POST"])
@@ -441,7 +426,6 @@ def manage_application(guild_id, application_id):
             flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
         if not application:
-            flash("Application not found.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
         return render_template("manage_application.html", guild=guild, application=application)
     
@@ -468,16 +452,13 @@ def manage_application(guild_id, application_id):
                 })
             except Exception as e:
                 print(e)
-                flash("Error uploading image.", "error")
                 return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
             try:
                 if response.status_code == 200:
                     banner_image_url = response.json().get("url")
                 else:
-                    flash("Failed to upload banner image.", "error")
                     return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
             except Exception as e:
-                flash(f"Error uploading image: {str(e)}", "error")
                 return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
 
         application_data = {
@@ -497,8 +478,6 @@ def manage_application(guild_id, application_id):
             {"_id": ObjectId(application_id)},
             {"$set": application_data}
         )
-
-        flash("Application updated successfully.")
         return redirect(url_for("applications", guild_id=guild_id))
 
 @app.route('/applications/apply/<guild_id>/<application_id>', methods=["GET", "POST"])
@@ -511,17 +490,14 @@ def apply(guild_id, application_id):
             return redirect(url_for("dashboard"))
         application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
         if not application:
-            flash("Application not found.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
         
         member = guild.get_member(int(session["user_id"]))
         if not member:
-            flash("You are not a member of this guild.", "error")
             return redirect(url_for("dashboard"))
 
         required_roles = application.get("required_roles", [])
         if not any(role in [role.id for role in member.roles] for role in required_roles):
-            flash("You do not have the required roles to apply.", "error")
             return redirect(url_for("dashboard"))
 
         existing_application = mongo_db["user_applications"].find_one({
@@ -530,7 +506,6 @@ def apply(guild_id, application_id):
             "status": "pending"
         })
         if existing_application:
-            flash("You have already applied for this application.", "error")
             return redirect(url_for("dashboard"))
         
         markedown_application_description = application.get("description")
@@ -541,12 +516,10 @@ def apply(guild_id, application_id):
     if request.method == "POST":
         application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
         if not application:
-            flash("Application not found.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
         
         member = bot.get_guild(int(guild_id)).get_member(int(session["user_id"]))
         if not member:
-            flash("You are not a member of this guild.", "error")
             return redirect(url_for("dashboard"))
         
         existing_application = mongo_db["user_applications"].find_one({
@@ -555,13 +528,11 @@ def apply(guild_id, application_id):
             "status": "pending"
         })
         if existing_application:
-            flash("You have already applied for this application.", "error")
             return redirect(url_for("dashboard"))
         
         answers = [request.form.get(f"answer_{i}") for i in range(1, len(application["questions"]) + 1)]
         print(len(answers), len(application["questions"]))
         if len(answers) != len(application["questions"]):
-            flash("Please answer all questions.", "error")
             return redirect(url_for("apply", guild_id=guild_id, application_id=application_id))
         
         application_data = {
@@ -585,7 +556,6 @@ def apply(guild_id, application_id):
         URL = 'http://127.0.0.1:5000/notify_application_submission'
         #response = requests.post(URL, headers=headers, json=data)
         mongo_db["user_applications"].insert_one(application_data)
-        flash("Application submitted successfully.")
         return redirect(url_for("dashboard"))
     
 @app.route('/applications/logs/<guild_id>', methods=["GET"])
@@ -593,13 +563,11 @@ def apply(guild_id, application_id):
 def application_logs(guild_id):
     guild = bot.get_guild(int(guild_id))
     if not guild:
-        flash("Guild not found.", "error")
         return redirect(url_for("dashboard"))
     
     sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
     management_roles = sett.get("basic_settings", {}).get("management_roles", [])
     if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-        flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
 
     user_applications = list(mongo_db["user_applications"].find(
@@ -620,13 +588,10 @@ def user_application(guild_id, application_id, user_id):
         sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
         management_roles = sett.get("basic_settings", {}).get("management_roles", [])
         if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-            flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
         
         application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
         if not application:
-            print("Application not found.")
-            flash("Application not found.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
 
         user_application = mongo_db["user_applications"].find_one({
@@ -635,8 +600,6 @@ def user_application(guild_id, application_id, user_id):
             "application_id": str(application_id)
         })
         if not user_application:
-            print("This user has not applied for this application.")
-            flash("Application log not found.", "error")
             return redirect(url_for("application_logs", guild_id=guild_id))
         
         return render_template("user_application.html", guild=guild, application=application, user_application=user_application)
@@ -644,18 +607,15 @@ def user_application(guild_id, application_id, user_id):
     if request.method == "POST":
         guild = bot.get_guild(int(guild_id))
         if not guild:
-            flash("Guild not found.", "error")
             return redirect(url_for("dashboard"))
         
         sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
         management_roles = sett.get("basic_settings", {}).get("management_roles", [])
         if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-            flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
         
         application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
         if not application:
-            flash("Application not found.", "error")
             return redirect(url_for("applications", guild_id=guild_id))
         
         user_application = mongo_db["user_applications"].find_one({
@@ -664,7 +624,6 @@ def user_application(guild_id, application_id, user_id):
             "application_id": str(application_id)
         })
         if not user_application:
-            flash("Application log not found.", "error")
             return redirect(url_for("application_logs", guild_id=guild_id))
         
         new_status = request.form.get("status")
@@ -685,14 +644,7 @@ def user_application(guild_id, application_id, user_id):
         }
         headers = {"Authorization": bot_token}
         URL = 'http://127.0.0.1:5000/notify_user'
-        response = requests.post(URL, headers=headers, json=data)
-
-        if response.status_code == 200:
-            flash("Application status updated successfully.")
-        else:
-            flash("Failed to notify user: " + response.json().get("error", "Unknown error"), "error")
-
-        flash("Application status updated successfully.")
+        requests.post(URL, headers=headers, json=data)
         return redirect(url_for("application_logs", guild_id=guild_id))
 
 @app.route('/banappeal/manage/<guild_id>', methods=["GET", "POST"])

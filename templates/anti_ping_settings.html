@@ -1,64 +1,121 @@
 {% extends "base.html" %}
 
-{% block title %}Anti-Ping Settings | Cyni{% endblock %}
+{% block title %} Anti Ping Settings | Cyni {% endblock %}
 
 {% block content %}
-<div class="flex h-screen bg-gray-900">
-    <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
-        <div class="w-5xl mx-auto space-y-6 md:space-y-8">
-        <!-- Side Navbar -->
-        {% include 'sidebar.html' %}
-        <hr>
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <h2 class="text-light">Anti-Ping Settings</h2>
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+  
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-extrabold text-white mb-2">Anti Ping Module</h1>
+            <p class="text-gray-400">This module allows you to protect specific roles from being pinged by users.</p>
+        </div>
+
+        <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-amber-500/10 overflow-hidden mb-8">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-12 w-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                      </svg>
+                    </div>
+                    <div class="ml-4">
+                      <h2 class="text-lg font-semibold text-white">Anti Ping Module</h2>
+                      <p class="text-sm text-gray-400">
+                        {% if guild_data.get('anti_ping_module', {}).get('enabled', False) %}
+                        Currently <span class="text-green-400">Active</span> and protecting the following roles:
+                        <span class="text-amber-500">
+                            {% for role_id in guild_data.get('anti_ping_module', {}).get('affected_roles', []) %}
+                            {{ roles.get(role_id, 'Unknown Role') }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </span>
+                        {% else %}
+                            Currently <span class="text-red-400">Inactive</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+            <div class="border-b border-gray-700/50 p-6">
+              <h3 class="text-xl font-semibold text-white">Anti Ping Module Settings</h3>
+              <p class="text-sm text-gray-400 mt-1">Configure the settings for the Anti Ping module</p>
+            </div>
+            
+            <div class="p-6">
             <form method="POST" action="{{ url_for('anti_ping_settings', guild_id=guild.id) }}">
-                <div class="mb-3">
-                    <label class="form-label text-light">Enable Anti-Ping Module</label>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="enabled" name="enabled" {% if guild_data.get('anti_ping_module', {}).get('enabled', False) %}checked{% endif %}>
-                        <label class="form-check-label text-light" for="enabled">
-                            Enable
-                        </label>
+                <div class="mb-8">
+                    <div class="flex items-center">
+                      <label class="inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          class="sr-only peer" 
+                          id="enabled" 
+                          name="enabled" 
+                          {% if guild_data.get('anti_ping_module', {}).get('enabled', False) %}checked{% endif %}>
+                        <div class="relative w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-amber-500 peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        <span class="ml-3 text-gray-200">Enable Anti Ping Module</span>
+                      </label>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <label for="affected_roles" class="form-label text-light">Affected Roles</label>
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="affectedRolesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Select Roles
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="affectedRolesDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
-                            {% for role_id, role_name in roles.items() %}
-                                <div class="form-check p-2">
-                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="affected_role_{{ role_id }}" name="affected_roles" {% if role_id in guild_data.get('anti_ping_module', {}).get('affected_roles', []) %}checked{% endif %} onclick="updateSelectedRoles('affectedRolesDropdown'); event.stopPropagation();">
-                                    <label class="form-check-label text-light" for="affected_role_{{ role_id }}">
-                                        {{ role_name }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
+                    <p class="mt-2 text-sm text-gray-400">Toggle to enable or disable the Anti Ping module</p>
+                  </div>
+
+                  <div class="mb-6">
+                    <label for="affected_roles" class="block text-sm font-medium text-gray-300 mb-2">Affected Roles</label>
+                    <div class="relative">
+                      <select 
+                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                        id="affected_roles" 
+                        name="affected_roles" 
+                        multiple
+                        size="5">
+                        {% for role_id, role_name in roles.items() %}
+                        <option 
+                          value="{{ role_id }}" 
+                          {% if role_id in guild_data.get('anti_ping_module', {}).get('affected_roles', []) %}selected{% endif %}
+                          class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
+                          {{ role_name }}
+                        </option>
+                        {% endfor %}
+                      </select>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <label for="exempt_roles" class="form-label text-light">Exempt Roles</label>
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="exemptRolesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Select Roles
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="exemptRolesDropdown" style="max-height: 200px; overflow-y: auto; width: 100%;">
-                            {% for role_id, role_name in roles.items() %}
-                                <div class="form-check p-2">
-                                    <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="exempt_role_{{ role_id }}" name="exempt_roles" {% if role_id in guild_data.get('anti_ping_module', {}).get('exempt_roles', []) %}checked{% endif %} onclick="updateSelectedRoles('exemptRolesDropdown'); event.stopPropagation();">
-                                    <label class="form-check-label text-light" for="exempt_role_{{ role_id }}">
-                                        {{ role_name }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
+                    <p class="mt-2 text-sm text-gray-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.</p>
+                  </div>
+
+                  <div class="mb-6">
+                    <label for="affected_roles" class="block text-sm font-medium text-gray-300 mb-2">Affected Roles</label>
+                    <div class="relative">
+                      <select 
+                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                        id="exempt_roles" 
+                        name="exempt_roles" 
+                        multiple
+                        size="5">
+                        {% for role_id, role_name in roles.items() %}
+                        <option 
+                          value="{{ role_id }}" 
+                          {% if role_id in guild_data.get('anti_ping_module', {}).get('exempt_roles', []) %}selected{% endif %}
+                          class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
+                          {{ role_name }}
+                        </option>
+                        {% endfor %}
+                      </select>
                     </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <p class="mt-2 text-sm text-gray-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.</p>
+                  </div>
+                
+                  <div class="flex justify-between">
+                    <button 
+                        type="submit" 
+                        class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+                        Save Configuration
+                    </button>
+                  </div>
             </form>
         </main>
         </div>

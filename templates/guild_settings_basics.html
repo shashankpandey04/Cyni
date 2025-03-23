@@ -1,182 +1,131 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard | Cyni{% endblock %}
+{% block title %} Basic Settings | Cyni {% endblock %}
 
 {% block content %}
-<style>
-    .multi-select-dropdown {
-        position: relative;
-        width: 100%;
-    }
-    .multi-select-dropdown .dropdown-header {
-        background-color: #495057;
-        color: white;
-        padding: 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .multi-select-dropdown .dropdown-list {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        max-height: 300px;
-        overflow-y: auto;
-        background-color: #343a40;
-        border: 1px solid #495057;
-        z-index: 1000;
-        border-radius: 4px;
-        margin-top: 5px;
-    }
-    .multi-select-dropdown .dropdown-list.show {
-        display: block;
-    }
-    .multi-select-dropdown .dropdown-item {
-        padding: 8px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-    }
-    .multi-select-dropdown .dropdown-item:hover {
-        background-color: #495057;
-    }
-    .multi-select-dropdown .dropdown-item input {
-        margin-right: 10px;
-    }
-    .multi-select-dropdown .search-input {
-        width: 100%;
-        padding: 8px;
-        background-color: #343a40;
-        color: white;
-        border: 1px solid #495057;
-        margin-bottom: 5px;
-    }
-</style>
-<div class="flex h-screen bg-gray-900">
-    <div class="flex-1 ml-64 overflow-y-auto bg-gradient-to-br from-gray-900 to-gray-800">
-        {% include 'sidebar.html' %}
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <h2 class="text-light">Basic Settings</h2>
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-extrabold text-white mb-2">Basic Settings</h1>
+            <p class="text-gray-400">This module allows you to configure the basic settings for the bot.</p>
+        </div>
+        
+        <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-amber-500/10 overflow-hidden mb-8">
+            <div class="p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-12 w-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                      </svg>
+                    </div>
+                    <div class="ml-4">
+                      <h2 class="text-lg font-semibold text-white">Basic Settings</h2>
+                      <p class="text-sm text-gray-400">
+                        {% if guild_data.get('customization', {}).get('prefix', '?') %}
+                          Currently <span class="text-green-400">Active</span> and using the following prefix: 
+                          <code>{{ guild_data.get('customization', {}).get('prefix', '?') }}</code>
+                        {% else %}
+                          Currently <span class="text-red-400">
+                            <code>?</code>
+                        {% endif %}
+                      </p>                      
+                    </div>
+                </div>
+            </div>
+          </div>
+
+        <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+            <div class="border-b border-gray-700/50 p-6">
+              <h3 class="text-xl font-semibold text-white">Basic Settings</h3>
+              <p class="text-sm text-gray-400 mt-1">Manage who can use the bot and other basic settings</p>
+            </div>
+
+            <div class="p-6">
             <form method="POST" action="{{ url_for('guild_settings_basics', guild_id=guild.id) }}" id="settingsForm">
-                <div class="card bg-dark" style="border-radius: 10px; padding: 20px; margin: 10px; border: 1px solid #f0ad4e;">
-                    <label for="guild_name" class="form-label text-light">Command Prefix</label>
-                    <p><small class="text-muted">The prefix that the bot will respond to. Default is <code>?</code>.</small></p>
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="prefix" name="prefix" value="{{ guild_data.get('customization', {}).get('prefix', '?') }}" required>
+                <div class="mb-8">
+                    <label for="prefix" class="block text-sm font-medium text-gray-300 mb-2">Bot Prefix</label>
+                    <div class="relative">
+                        <select 
+                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                        id="prefix" 
+                        name="prefix">
+                        {% for option in ['?', '!', '>', ':'] %}
+                          <option 
+                            value="{{ option }}" 
+                            {% if option == guild_data.get('basic_settings', {}).get('staff_roles', []) %}selected{% endif %}
+                            class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
+                            {{ option }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                      
+                      <p>
+                        Currently <span class="text-green-400">Active</span> and using the following prefix: 
+                        <code>{{ guild_data.get('customization', {}).get('prefix', '?') }}</code>
+                      </p>
                     </div>
-                </div>
-                <div class="card bg-dark" style="border-radius: 10px; padding: 20px; margin: 10px; border: 1px solid #f0ad4e;">
-                    <div class="mb-3">
-                        <label for="staff_roles" class="form-label text-light">Staff Roles</label>
-                        <p><small class="text-muted">These roles will have access to moderation commands.</small></p>
-                        <div id="staffRolesDropdown" class="multi-select-dropdown">
-                            <div class="dropdown-header">Select Roles ▼</div>
-                            <div class="dropdown-list">
-                                <input type="text" class="search-input" placeholder="Search roles...">
-                                <div class="dropdown-options">
-                                    {% for role_id, role_name in roles.items() %}
-                                        <div class="dropdown-item">
-                                            <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="role_{{ role_id }}" name="staff_roles" {% if role_id in guild_data.get('basic_settings', {}).get('staff_roles', []) %}checked{% endif %}>
-                                            <label class="form-check-label text-light" for="role_{{ role_id }}">
-                                                {{ role_name }}
-                                            </label>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
+                  </div>
+
+
+                  <div class="mb-6">
+                    <label for="staff_roles" class="block text-sm font-medium text-gray-300 mb-2">Staff Roles</label>
+                    <div class="relative">
+                      <select 
+                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                        id="staff_roles" 
+                        name="staff_roles" 
+                        multiple
+                        size="5">
+                        {% for role_id, role_name in roles.items() %}
+                        <option 
+                          value="{{ role_id }}" 
+                          {% if role_id in guild_data.get('basic_settings', {}).get('staff_roles', []) %}selected{% endif %}
+                          class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
+                          {{ role_name }}
+                        </option>
+                        {% endfor %}
+                      </select>
                     </div>
-                </div>
-                <div class="card bg-dark" style="border-radius: 10px; padding: 20px; margin: 10px; border: 1px solid #f0ad4e;">
-                    <div class="mb-3">
-                        <label for="management_roles" class="form-label text-light">Management Roles</label>
-                        <p><small class="text-muted">These roles will have access to management commands.</small></p>
-                        <div id="managementRolesDropdown" class="multi-select-dropdown">
-                            <div class="dropdown-header">Select Roles ▼</div>
-                            <div class="dropdown-list">
-                                <input type="text" class="search-input" placeholder="Search roles...">
-                                <div class="dropdown-options">
-                                    {% for role_id, role_name in roles.items() %}
-                                        <div class="dropdown-item">
-                                            <input class="form-check-input" type="checkbox" value="{{ role_id }}" id="management_role_{{ role_id }}" name="management_roles" {% if role_id in guild_data.get('basic_settings', {}).get('management_roles', []) %}checked{% endif %}>
-                                            <label class="form-check-label text-light" for="management_role_{{ role_id }}">
-                                                {{ role_name }}
-                                            </label>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
+                    <p class="mt-2 text-sm text-gray-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.
+                    </p>
+                  </div>
+                  
+                  <div class="mb-6">
+                    <label for="management_roles" class="block text-sm font-medium text-gray-300 mb-2">Management Roles</label>
+                    <div class="relative">
+                      <select 
+                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                        id="management_roles" 
+                        name="management_roles" 
+                        multiple
+                        size="5">
+                        {% for role_id, role_name in roles.items() %}
+                        <option 
+                          value="{{ role_id }}" 
+                          {% if role_id in guild_data.get('basic_settings', {}).get('management_roles', []) %}selected{% endif %}
+                          class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
+                          {{ role_name }}
+                        </option>
+                        {% endfor %}
+                      </select>
                     </div>
-                </div>
+                    <p class="mt-2 text-sm text-gray-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.
+                    </p>
+                  </div>
+                  <div class="flex justify-between">
+                    <button 
+                        type="submit" 
+                        class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+                        Save Configuration
+                    </button>
+                  </div>              
             </form>
         </main>
     </div>
+    </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    function initMultiSelectDropdown(dropdownId) {
-        const dropdown = document.getElementById(dropdownId);
-        const header = dropdown.querySelector('.dropdown-header');
-        const list = dropdown.querySelector('.dropdown-list');
-        const searchInput = dropdown.querySelector('.search-input');
-        const checkboxes = list.querySelectorAll('input[type="checkbox"]');
-
-        header.addEventListener('click', function(e) {
-            list.classList.toggle('show');
-            e.stopPropagation();
-        });
-
-        list.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-
-        document.addEventListener('click', function() {
-            list.classList.remove('show');
-        });
-
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            checkboxes.forEach(checkbox => {
-                const label = checkbox.nextElementSibling;
-                const match = label.textContent.toLowerCase().includes(searchTerm);
-                checkbox.closest('.dropdown-item').style.display = match ? 'flex' : 'none';
-            });
-        });
-
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                updateSelectedItems(dropdown);
-                document.getElementById('settingsForm').submit();
-            });
-        });
-
-        updateSelectedItems(dropdown);
-    }
-
-    function updateSelectedItems(dropdown) {
-        const header = dropdown.querySelector('.dropdown-header');
-        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
-        
-        const selectedItems = Array.from(checkboxes)
-            .map(checkbox => checkbox.nextElementSibling.textContent.trim());
-        
-        header.innerHTML = selectedItems.length > 0 
-            ? `${selectedItems.join(', ')} <span>▼</span>`
-            : 'Select Roles <span>▼</span>';
-    }
-
-    initMultiSelectDropdown('staffRolesDropdown');
-    initMultiSelectDropdown('managementRolesDropdown');
-
-    document.getElementById('prefix').addEventListener('input', function() {
-        document.getElementById('settingsForm').submit();
-    });
-});
-</script>
 {% endblock %}

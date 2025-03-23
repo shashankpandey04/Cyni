@@ -22,23 +22,39 @@ def welcome(guild_id):
     
     member = guild.get_member(int(session["user_id"]))
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        return "You do not have the required permissions to access this page.", 403
+        flash('You do not have the required permissions to access this page', 'danger')
+        return redirect(url_for('dashboard'))
     
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {'_id': guild.id, 'welcome_module': {'welcome_message': None,'welcome_channel': None,'welcome_role': None}}
+    guild_data = mongo_db["settings"].find_one({"_id": guild.id})
     if request.method == 'POST':
-        welcome_message = request.form.get('welcome_message')
-        welcome_channel = request.form.get('welcome_channel')
-        welcome_role = request.form.get('welcome_role')
+        welcome_message = request.form.get('welcome_message', '')
+        welcome_channel = request.form.get('welcome_channel', '')
+        welcome_role = request.form.get('welcome_role', '')
+        use_embed = request.form.get('use_embed', '')
+        embed_color = request.form.get('embed_color_text', '')
+        embed_title = request.form.get('embed_title', '')
+        enable_welcome = request.form.get('enabled', '')
+
+        welcome_module = guild_data.get('welcome_module', {})
+        welcome_module.get('welcome_message', " ")
+        welcome_module.get('welcome_channel', 0)
+        welcome_module.get('welcome_role', 0)
+        welcome_module.get('embed_color', " ")
+        welcome_module.get('embed_title', " ")
+        welcome_module.get('use_embed', False)
+        welcome_module.get('enabled', False)
         
-        guild_data['welcome_module']['welcome_message'] = welcome_message
-        guild_data['welcome_module']['welcome_channel'] = welcome_channel
-        guild_data['welcome_module']['welcome_role'] = welcome_role
-        
-        mongo_db["settings"].update_one({"_id": guild.id}, {"$set": {'welcome_module': {'welcome_message': welcome_message,'welcome_channel': welcome_channel,'welcome_role': welcome_role}}}, upsert=True)
-        
-        flash('Settings updated successfully', 'success')
+        welcome_module['welcome_message'] = welcome_message
+        welcome_module['welcome_channel'] = int(welcome_channel)
+        welcome_module['welcome_role'] = int(welcome_role)
+        welcome_module['use_embed'] = True if use_embed == 'on' else False
+        welcome_module['embed_color'] = embed_color
+        welcome_module['embed_title'] = embed_title
+        welcome_module['enabled'] = True if enable_welcome == 'on' else False
+
+        mongo_db["settings"].update_one({"_id": guild.id}, {"$set": {"welcome_module": welcome_module}})
         return redirect(url_for('welcome_module.welcome', guild_id=guild.id))
 
-    channels = {channel.id: channel.name for channel in guild.channels if channel.type == 0}
+    channels = {channel.id: channel.name for channel in guild.channels}
     roles = {role.id: role.name for role in guild.roles}
     return render_template('welcome_module/index.html', user=current_user, guild=guild, guild_data=guild_data, channels=channels, roles=roles)

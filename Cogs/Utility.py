@@ -148,39 +148,26 @@ class Utility(commands.Cog):
             
             joined_timestamp = discord_time(user.joined_at)
             created_timestamp = discord_time(user.created_at)
-            #status = user.status
-            #if status == discord.Status.online:
-            #    status = "Online"
-            #elif status == discord.Status.idle:
-            #    status = "Idle"
-            #elif status == discord.Status.dnd:
-            #    status = "Do Not Disturb"
-            #elif status == discord.Status.offline:
-            #    status = "Offline"
-
-            #if user.activity:
-            #    if user.activity.type == discord.ActivityType.playing:
-            #        status = f"Playing {user.activity.name}"
-            #    elif user.activity.type == discord.ActivityType.streaming:
-            #        status = f"Streaming {user.activity.name}"
-            #    elif user.activity.type == discord.ActivityType.listening:
-            #        status = f"Listening to {user.activity.name}"
-            #    elif user.activity.type == discord.ActivityType.watching:
-            #        status = f"Watching {user.activity.name}"
-            #    elif user.activity.type == discord.ActivityType.custom:
-            #        status = f"{user.activity.name}"
-            #    elif user.activity.type == discord.ActivityType.competing:
-            #        status = f"Competing in {user.activity.name}"
             embed = discord.Embed(
                 title=f"{user.name}",
-                description= " ",
+                description=" ",
                 color=BLANK_COLOR
             ).set_author(
                 name=f"{ctx.author}",
                 icon_url=ctx.author.avatar.url
             ).add_field(
                 name="User Information",
-                value=f'''**Mention:** {user.mention}\n**Nickname:** {user.display_name}\n**Joined Server Timestamp:** {joined_timestamp}\n**Created Account Timestamp:** {created_timestamp}''',
+                value=(
+                    f'''
+                    **ID:** {user.id}
+                    **Name:** `{user.name}`
+                    **Nickname:** {user.display_name}
+                    **Created:** {created_timestamp}
+                    **Joined:** {joined_timestamp}
+                    **Status:** {user.status}
+                    **Color:** {user.color}
+                    '''
+                ),
                 inline=False
             ).add_field(
                 name="Server Permissions",
@@ -192,7 +179,9 @@ class Utility(commands.Cog):
                 inline=False
             ).add_field(
                 name="Roles",
-                value=", ".join([role.mention for role in user.roles[:15]]) + ("..." if len(user.roles) > 15 else "") if user.roles else "None",
+                value=" ".join(
+                    [role.mention for role in user.roles if role.name != "@everyone"][:15]
+                ) + ("..." if len([role for role in user.roles if role.name != "@everyone"]) > 15 else "") if user.roles else "None",
                 inline=False
             ).set_thumbnail(url=user.avatar.url)
             specific_role_id = 1158043149424398406
@@ -201,12 +190,12 @@ class Utility(commands.Cog):
             member_in_guild = guild.get_member(user.id)
             
             if user.id == OWNER:
-                 embed.description +=  f"<:cyniverified:1269139230911893534> Cyni Founder\n"
-
-            if member_in_guild:
-                specific_role = guild.get_role(specific_role_id)
-                if specific_role in member_in_guild.roles:
-                    embed.description += f"<:cyniverified:1269139230911893534> Cyni Staff\n"
+                 embed.description +=  f"> CYNI Creator\n"
+            else:
+                if member_in_guild:
+                    specific_role = guild.get_role(specific_role_id)
+                    if specific_role in member_in_guild.roles:
+                        embed.description += f"> CYNI Staff\n"
             await ctx.send(embed=embed)
         except Exception as e:
             await ctx.send(f"An error occurred: {e}")
@@ -281,7 +270,8 @@ class Utility(commands.Cog):
             url=guild.icon.url if guild.icon else None
         ).add_field(
             name="Server Information",
-            value=f'''
+            value=(
+                f'''
                 **ID:** {guild.id}
                 **Owner:** {guild.owner.mention}
                 **Verification Level:** {guild.verification_level}
@@ -290,56 +280,15 @@ class Utility(commands.Cog):
                 **Member Count:** {guild.member_count}
                 **Role Count:** {len(guild.roles)}
                 **Emoji Count:** {len(guild.emojis)}
-                **Channel Count:** {len(guild.channels)}'''
+                **Channel Count:** {len(guild.channels)}
+                '''
+            )
         )
 
         if ctx.interaction:
             await ctx.interaction.response.send_message(embed=embed)
         else:
             await ctx.send(embed=embed)
-
-    @commands.hybrid_command(
-        name="premium",
-        extras={
-            "category": "General"
-        }
-    )
-    @commands.guild_only()
-    async def premium(self, ctx):
-        """
-        Link to Cyni Premium.
-        """
-        embed = discord.Embed(
-            title="Cyni Premium",
-            description="Get access to exclusive features with Cyni Premium.",
-            color=YELLOW_COLOR
-        ).add_field(
-            name="Premium Lite",
-            value="""
-                Server Backup & Restore
-                Up-to 1 server
-                """
-        ).add_field(
-            name="Premium Plus",
-            value="""
-                Server Backup & Restore
-                Custom Applications
-                Custom Infraction Types
-                Up-to 3 servers
-                """
-        ).add_field(
-            name="Cyni Whitelabel",
-            value="""
-                Customise Bot Name
-                Customise Bot Avatar
-                Customise Bot Status
-                Custom Applications
-                Custom Infraction Types
-                Unlimited Servers
-                """
-        )
-        view = PremiumButton()
-        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="vote",

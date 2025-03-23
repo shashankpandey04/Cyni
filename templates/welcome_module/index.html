@@ -9,7 +9,7 @@
   {% include 'sidebar.html' %}
   
   <!-- Main Content Area -->
-  <div class="flex-1 ml-64 overflow-y-auto h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
     <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       
       <!-- Page Header -->
@@ -59,8 +59,16 @@
                 name="welcome_message" 
                 rows="4" 
                 placeholder="Hey {user}! Welcome to {server}. Enjoy your stay!">{{ guild_data.get('welcome_module', {}).get('welcome_message', 'Hey {user}! Welcome to {server}. Enjoy your stay!') }}</textarea>
-              <p class="mt-2 text-sm text-gray-400">Available placeholders: {user} - mention user, {server} - server name, {user_name} - username without mention</p>
-            </div>
+                <p class="mt-2 text-sm text-gray-400">
+                Available placeholders: 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user}</code> - mention user, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{server}</code> - server name, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user_name}</code> - username without mention, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user_discriminator}</code> - user's discriminator, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{user_id}</code> - user's ID, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{server_id}</code> - server ID, 
+                <code class="bg-gray-700 px-1 rounded text-amber-400">{member_count}</code> - total member count.
+                </p></div>
             
             <!-- Welcome Channel Selection -->
             <div class="mb-6">
@@ -70,12 +78,36 @@
                   class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
                   id="welcome_channel" 
                   name="welcome_channel">
-                  <option value="">Select a channel</option>
                   {% for channel_id, channel_name in channels.items() %}
-                    <option value="{{ channel_id }}"
-                      {% if guild_data.get('welcome_module', {}).get('welcome_channel', None) == channel_id %}selected{% endif %}>
-                      {{ channel_name }}
-                    </option>
+                  <option 
+                  value="{{ channel_id }}" 
+                  {% if channel_id == guild_data.get('welcome_module', {}).get('welcome_channel', '') %}selected{% endif %}>
+                  {{ channel_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <p class="mt-2 text-sm text-gray-400">Select the channel where welcome messages will be sent</p>
+            </div>
+
+            <div class="mb-6">
+              <label for="welcome_role" class="block text-sm font-medium text-gray-300 mb-2">Welcome Role</label>
+              <div class="relative">
+                <select 
+                  class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+                  id="welcome_role" 
+                  name="welcome_role">
+                  {% for role_id, role_name in roles.items() %}
+                  <option 
+                  value="{{ role_id }}" 
+                  {% if role_id == guild_data.get('welcome_module', {}).get('welcome_role', '') %}selected{% endif %}>
+                  {{ role_name }}
+                  </option>
                   {% endfor %}
                 </select>
                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
@@ -94,8 +126,8 @@
                   <input 
                     type="checkbox" 
                     class="sr-only peer" 
-                    id="enable_welcome" 
-                    name="enable_welcome" 
+                    id="enabled" 
+                    name="enabled" 
                     {% if guild_data.get('welcome_module', {}).get('enabled', False) %}checked{% endif %}>
                   <div class="relative w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-amber-500 peer-focus:ring-2 peer-focus:ring-amber-500/30 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   <span class="ml-3 text-gray-200">Enable Welcome Messages</span>
@@ -104,8 +136,7 @@
               <p class="mt-2 text-sm text-gray-400">Toggle to enable or disable welcome messages</p>
             </div>
             
-            <!-- Advanced Settings (Expandable) -->
-            <div class="mb-8">
+            <!-- <div class="mb-8">
               <div class="border-t border-gray-700/30 pt-6">
                 <button 
                   type="button" 
@@ -118,7 +149,6 @@
                 </button>
                 
                 <div id="advancedSettings" class="hidden mt-4 space-y-4">
-                  <!-- Embed Toggle -->
                   <div class="mb-4">
                     <label class="inline-flex items-center cursor-pointer">
                       <input 
@@ -133,7 +163,6 @@
                     <p class="mt-2 text-sm text-gray-400">Send welcome messages as rich embeds instead of plain text</p>
                   </div>
                   
-                  <!-- Embed Color -->
                   <div class="mb-4">
                     <label for="embed_color" class="block text-sm font-medium text-gray-300 mb-2">Embed Color</label>
                     <div class="flex">
@@ -152,7 +181,6 @@
                     </div>
                   </div>
                   
-                  <!-- Embed Title -->
                   <div class="mb-4">
                     <label for="embed_title" class="block text-sm font-medium text-gray-300 mb-2">Embed Title</label>
                     <input 
@@ -165,12 +193,13 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </div> -->
             
             <!-- Action Buttons -->
             <div class="flex justify-between">
               <button 
                 type="button" 
+                onclick="showPreview()"
                 class="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900">
                 Preview
               </button>
@@ -185,6 +214,48 @@
                   class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
                   Save Configuration
                 </button>
+              </div>
+            </div>
+            <!-- Add this below the form but before the closing </div> -->
+            <!-- Preview Modal -->
+            <div id="previewModal" class="fixed inset-0 z-50 overflow-auto bg-black/70 flex justify-center items-center hidden">
+              <div class="bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 border border-gray-700">
+                <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                  <h3 class="text-xl font-semibold text-white">Message Preview</h3>
+                  <button onclick="closeModal()" class="text-gray-400 hover:text-white focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div class="p-6">
+                  <!-- Standard Message Preview -->
+                  <div id="standardPreview" class="bg-gray-700 rounded-lg p-4 mb-4">
+                    <span class="text-white" id="standardPreviewText"></span>
+                  </div>
+                  
+                  <!-- Embed Preview -->
+                  <div id="embedPreview" class="hidden mb-4">
+                    <div class="flex">
+                      <div class="w-1 rounded-l" id="embedColorBar"></div>
+                      <div class="bg-gray-700 rounded-r-lg p-4 flex-1">
+                        <div class="text-white font-semibold mb-2" id="embedTitlePreview"></div>
+                        <div class="text-gray-300" id="embedContentPreview"></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-4 text-gray-400 italic text-sm">
+                    Note: This is a simplified preview. Actual Discord embeds may appear slightly different.
+                  </div>
+                </div>
+                
+                <div class="p-4 border-t border-gray-700 flex justify-end">
+                  <button onclick="closeModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none">
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </form>
@@ -222,9 +293,68 @@
 </div>
 
 <script>
-  // Simple script to sync the color input with its text representation
   document.getElementById('embed_color').addEventListener('input', function() {
     document.getElementById('embed_color_text').value = this.value;
+  });
+</script>
+<!-- Update the preview button's onclick handler in the form -->
+<script>
+  // Close the modal
+  function closeModal() {
+    document.getElementById('previewModal').classList.add('hidden');
+  }
+  
+  // Generate and show preview
+  function showPreview() {
+    // Get values from form
+    const welcomeMessage = document.getElementById('welcome_message').value;
+    const useEmbed = document.getElementById('use_embed').checked;
+    const embedColor = document.getElementById('embed_color').value;
+    const embedTitle = document.getElementById('embed_title').value;
+    
+    // Replace placeholders with sample values
+    const processedMessage = welcomeMessage
+      .replace(/{user}/g, '@NewMember')
+      .replace(/{server}/g, 'Your Amazing Server')
+      .replace(/{user_name}/g, 'NewMember');
+    
+    const processedTitle = embedTitle
+      .replace(/{user}/g, '@NewMember')
+      .replace(/{server}/g, 'Your Amazing Server')
+      .replace(/{user_name}/g, 'NewMember');
+    
+    // Show/hide appropriate preview
+    if (useEmbed) {
+      document.getElementById('standardPreview').classList.add('hidden');
+      document.getElementById('embedPreview').classList.remove('hidden');
+      
+      // Update embed preview
+      document.getElementById('embedColorBar').style.backgroundColor = embedColor;
+      document.getElementById('embedTitlePreview').textContent = processedTitle;
+      document.getElementById('embedContentPreview').textContent = processedMessage;
+    } else {
+      document.getElementById('standardPreview').classList.remove('hidden');
+      document.getElementById('embedPreview').classList.add('hidden');
+      
+      // Update standard preview
+      document.getElementById('standardPreviewText').textContent = processedMessage;
+    }
+    
+    // Show the modal
+    document.getElementById('previewModal').classList.remove('hidden');
+  }
+  
+  // Add event listener to preview button
+  document.addEventListener('DOMContentLoaded', function() {
+    const previewButton = document.querySelector('button[type="button"]:not([onclick])');
+    previewButton.setAttribute('onclick', 'showPreview()');
+  });
+  
+  // Close modal when clicking outside
+  document.getElementById('previewModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeModal();
+    }
   });
 </script>
 {% endblock %}
