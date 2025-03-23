@@ -556,7 +556,7 @@ class Moderation(commands.Cog):
                     color = RED_COLOR
                 )
             )
-        time = parse_duration(self,time)
+        time = parse_duration(time)
         if not time:
             return await ctx.send(
                 embed = discord.Embed(
