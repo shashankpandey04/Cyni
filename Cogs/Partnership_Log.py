@@ -273,7 +273,12 @@ class Partnership_Log(commands.Cog):
         """
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,"partnership byuser")
-        partnerships = await self.bot.partnership.search({"representative": user.id})
+        partnerships = await self.bot.partnership.find(
+            {
+                "representative": user.id,
+                "_id": {"$regex": f"{ctx.guild.id}_"}
+            }
+        )
         if not partnerships:
             return await ctx.send(
                 embed = discord.Embed(
