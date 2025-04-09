@@ -289,6 +289,17 @@ class Partnership_Log(commands.Cog):
             )
         partnerships = sorted(partnerships, key=lambda x: x["timestamp"], reverse=True)
         embeds = []
+        
+        summary_embed = discord.Embed(
+            title = f"Partnership Summary for {user.name}",
+            description = f"Total Partnerships: {len(partnerships)}\nMost Recent: {partnerships[0]['title']}\nOldest: {partnerships[-1]['title']}",
+            color = BLANK_COLOR
+        ).set_footer(
+            text = "CYNI Partnership Log",
+            icon_url = self.bot.user.avatar.url if self.bot.user.avatar else " "
+        )
+        embeds.append(summary_embed)
+
         for partnership in partnerships:
             description = re.sub(r'\\n', '\n', partnership["description"])
             formatted_description = (
@@ -305,6 +316,7 @@ class Partnership_Log(commands.Cog):
             if partnership["image"]:
                 embed.set_image(url = partnership["image"])
             embeds.append(embed)
+            
         views = [discord.ui.View() for _ in range(len(embeds))]
         view = Pagination(self.bot, ctx.author.id, embeds, views)
         await ctx.send(embed=embeds[0], view=view)
