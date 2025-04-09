@@ -259,5 +259,53 @@ class Partnership_Log(commands.Cog):
             embed.set_image(url = partnership["image"])
         await ctx.send(embed = embed)
 
+    @partnership.command(
+        name="byuser",
+        extras={
+            "category": "Partnership"
+        }
+    )
+    @is_staff()
+    @app_commands.describe(user = "User to view partnerships of")
+    async def byuser(self, ctx, user: discord.Member):
+        """
+        View all partnerships of a user.
+        """
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,"partnership byuser")
+        partnerships = await self.bot.partnership.search_id(f"{ctx.guild.id}_")
+        if not partnerships:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title = "Partnerships not found",
+                    description = "No partnerships were found",
+                    color = RED_COLOR
+                )
+            )
+        partnerships = sorted(partnerships, key=lambda x: x["timestamp"], reverse=True)
+        embeds = []
+        for partnership in partnerships:
+            representative = ctx.guild.get_member(partnership["representative"])
+            if not representative:
+                representative = await self.bot.fetch_user(partnership["representative"])
+            description = re.sub(r'\\n', '\n', partnership["description"])
+            formatted_description = (
+                f"{description}\n\n"
+                f"Representative: {representative.mention if representative else 'Couldn\'t find the representative'}"
+            )
+            embed = discord.Embed(
+                title=partnership["title"],
+                description=formatted_description,
+                color=BLANK_COLOR
+            ).set_footer(
+                text=f"Partnership ID: {partnership['_id']} | Logged by {ctx.guild.get_member(partnership['logged_by'])}",
+            )
+            if partnership["image"]:
+                embed.set_image(url=partnership["image"])
+            embeds.append(embed)
+        views = [discord.ui.View() for _ in range(len(embeds))]
+        view = Pagination(self.bot, ctx.author.id, embeds, views)
+        await ctx.send(embed=embeds[0], view=view)
+
 async def setup(bot):
     await bot.add_cog(Partnership_Log(bot))
