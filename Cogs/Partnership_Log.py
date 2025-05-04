@@ -246,7 +246,8 @@ class Partnership_Log(commands.Cog):
         description = re.sub(r'\\n', '\n', partnership["description"])
         formatted_description = (
             f"{description}\n\n"
-            f"Representative: {representative.mention}"
+            f"Representative: {representative.mention}\n"
+            f"Timestamp: <t:{int(partnership['timestamp'])}:R>\n"
         )
         embed = discord.Embed(
             title = partnership["title"],

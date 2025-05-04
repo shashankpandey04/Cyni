@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import datetime
 import pymongo
 import motor.motor_asyncio
+import threading
 from cyni import cad_access_check, cad_administrator_check, cad_operator_check
 
 # Load the environment variables
@@ -474,6 +475,52 @@ class APIRoutes:
             await member.send(embed=embed)
 
         return {"message": "LOA status updated successfully"}
+
+    async def POST_start_bot(
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Start a whitelabel bot."""
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+        
+        json_data = await request.json()
+        user_token = json_data.get("token")
+        
+        if not user_token:
+            raise HTTPException(status_code=400, detail="Bot token not provided")
+        
+        def run_custom_bot():
+            try:
+                intents = discord.Intents.default()
+                intents.presences = False
+                intents.message_content = True
+                intents.members = True
+                intents.messages = True
+                intents.moderation = True
+                intents.bans = True
+                intents.webhooks = True
+                intents.guilds = True
+                new_bot = discord.Client(intents=intents, activity=discord.Game(name="Whitelabel Testing"))
+                
+                @new_bot.event
+                async def on_ready():
+                    logging.info(f'Logged in as {new_bot.user}')
+                
+                new_bot.run(user_token)
+            
+            except Exception as e:
+                logging.error(f"Error while running the bot with provided token: {e}")
+        
+        bot_thread = threading.Thread(target=run_custom_bot)
+        bot_thread.start()
+
+        return {"message": "Whitelabel bot started successfully!"}, 200
 
 
 # Discord Bot API Integration Cog
