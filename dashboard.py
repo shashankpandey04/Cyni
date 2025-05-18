@@ -75,7 +75,7 @@ def load_user(user_id):
 
 @app.template_filter('datetime')
 def format_datetime(timestamp):
-    dt = datetime.datetime.fromtimestamp(timestamp)
+    dt = datetime.fromtimestamp(timestamp)
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
 # Routes

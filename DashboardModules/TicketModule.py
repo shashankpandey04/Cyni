@@ -44,12 +44,15 @@ def ticket_settings(guild_id):
     # Get all roles for permission settings
     roles = {role.id: role.name for role in guild.roles}
     
+    discord_categories = {category.id: category.name for category in guild.categories}
+    
     return render_template("tickets/main.html", 
                           guild=guild,
                           ticket_settings=ticket_settings,
                           ticket_categories=ticket_categories,
                           channels=channels,
-                          roles=roles)
+                          roles=roles,
+                          discord_categories=discord_categories)
 
 @ticket_module.route('/dashboard/<guild_id>/settings/ticket/category/new', methods=['GET', 'POST'])
 @login_required
@@ -67,12 +70,20 @@ def new_ticket_category(guild_id):
     
     channels = {channel.id: channel.name for channel in guild.text_channels}
     roles = {role.id: role.name for role in guild.roles}
+    # Get Discord categories for the category selector
+    categories = {category.id: category.name for category in guild.categories}
     
     if request.method == 'POST':
         category_name = request.form.get('category_name')
         category_description = request.form.get('category_description')
         emoji = request.form.get('emoji', '🎫')
         ticket_channel = int(request.form.get('ticket_channel'))
+        transcript_channel = request.form.get('transcript_channel')
+        if transcript_channel:
+            transcript_channel = int(transcript_channel)
+        discord_category = request.form.get('discord_category')
+        if discord_category:
+            discord_category = int(discord_category)
         support_roles = request.form.getlist('support_roles')
         
         # Convert support_roles to integers
@@ -94,6 +105,8 @@ def new_ticket_category(guild_id):
             "description": category_description,
             "emoji": emoji,
             "ticket_channel": ticket_channel,
+            "transcript_channel": transcript_channel,  # Add transcript channel
+            "discord_category": discord_category,
             "support_roles": support_roles,
             "created_at": datetime.datetime.now(),
             "embed": {
@@ -115,7 +128,7 @@ def new_ticket_category(guild_id):
         
         return redirect(url_for('ticket_module.ticket_settings', guild_id=guild_id))
     
-    return render_template("tickets/new_category.html", guild=guild, channels=channels, roles=roles)
+    return render_template("tickets/new_category.html", guild=guild, channels=channels, roles=roles, categories=categories)
 
 @ticket_module.route('/dashboard/<guild_id>/settings/ticket/category/<category_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -139,12 +152,20 @@ def edit_ticket_category(guild_id, category_id):
     
     channels = {channel.id: channel.name for channel in guild.text_channels}
     roles = {role.id: role.name for role in guild.roles}
+    # Get Discord categories for the category selector
+    categories = {category.id: category.name for category in guild.categories}
     
     if request.method == 'POST':
         category_name = request.form.get('category_name')
         category_description = request.form.get('category_description')
         emoji = request.form.get('emoji', '🎫')
         ticket_channel = int(request.form.get('ticket_channel'))
+        transcript_channel = request.form.get('transcript_channel')
+        if transcript_channel:
+            transcript_channel = int(transcript_channel)
+        discord_category = request.form.get('discord_category')
+        if discord_category:
+            discord_category = int(discord_category)
         support_roles = request.form.getlist('support_roles')
         
         # Convert support_roles to integers
@@ -164,6 +185,8 @@ def edit_ticket_category(guild_id, category_id):
                 "description": category_description,
                 "emoji": emoji,
                 "ticket_channel": ticket_channel,
+                "transcript_channel": transcript_channel,  # Add transcript channel
+                "discord_category": discord_category,
                 "support_roles": support_roles,
                 "embed": {
                     "title": embed_title,
@@ -180,7 +203,8 @@ def edit_ticket_category(guild_id, category_id):
                           guild=guild, 
                           category=category, 
                           channels=channels, 
-                          roles=roles)
+                          roles=roles,
+                          categories=categories)
 
 @ticket_module.route('/dashboard/<guild_id>/settings/ticket/category/<category_id>/delete', methods=['POST'])
 @login_required
@@ -331,3 +355,30 @@ def view_ticket(guild_id, ticket_id):
     messages = list(mongo_db["ticket_messages"].find({"ticket_id": ticket_id}).sort("created_at", 1))
     
     return render_template("tickets/view_ticket.html", guild=guild, ticket=ticket, messages=messages)
+
+# Add new route for viewing ticket transcripts
+@ticket_module.route('/transcripts/<transcript_id>', methods=['GET'])
+def view_transcript(transcript_id):
+    # Get the transcript
+    transcript = mongo_db["ticket_transcripts"].find_one({"_id": transcript_id})
+    if not transcript:
+        flash("Transcript not found", "danger")
+        return redirect(url_for('dashboard'))
+    
+    # Get the ticket (if it still exists)
+    ticket = mongo_db["tickets"].find_one({"_id": transcript.get("ticket_id")})
+    
+    # Get the guild
+    guild = bot.get_guild(transcript.get("guild_id"))
+    guild_name = guild.name if guild else "Unknown Server"
+    
+    # Get messages
+    messages = transcript.get("messages", [])
+    
+    return render_template(
+        "tickets/transcript.html", 
+        transcript=transcript, 
+        ticket=ticket, 
+        messages=messages, 
+        guild_name=guild_name
+    )

@@ -61,6 +61,8 @@
                   <th scope="col" class="px-6 py-3">Description</th>
                   <th scope="col" class="px-6 py-3">Emoji</th>
                   <th scope="col" class="px-6 py-3">Channel</th>
+                  <th scope="col" class="px-6 py-3">Category</th>
+                  <th scope="col" class="px-6 py-3">Transcript Channel</th>
                   <th scope="col" class="px-6 py-3 rounded-r-lg">Actions</th>
                 </tr>
               </thead>
@@ -75,6 +77,20 @@
                     #{{ channels[category.ticket_channel] }}
                     {% else %}
                     <span class="text-red-400">Channel not found</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 text-gray-300">
+                    {% if category.discord_category and discord_categories[category.discord_category] %}
+                    {{ discord_categories[category.discord_category] }}
+                    {% else %}
+                    <span class="text-gray-500">None</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 text-gray-300">
+                    {% if category.transcript_channel and channels[category.transcript_channel] %}
+                    #{{ channels[category.transcript_channel] }}
+                    {% else %}
+                    <span class="text-gray-500">None</span>
                     {% endif %}
                   </td>
                   <td class="px-6 py-4">
