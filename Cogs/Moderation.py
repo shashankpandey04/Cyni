@@ -1378,132 +1378,134 @@ class Moderation(commands.Cog):
             )
         )
 
-    @commands.hybrid_group(
-        name="appeal",
-        extras={"category": "Moderation"}
-    )
-    async def appeal(self, ctx):
-        """
-        Appeal a moderation action.
-        """
-        pass
+    #These commands are depricated and removed from the moderation module
+    #Use CYNI Ban Appeal instead
+    # @commands.hybrid_group(
+    #     name="appeal",
+    #     extras={"category": "Moderation"}
+    # )
+    # async def appeal(self, ctx):
+    #     """
+    #     Appeal a moderation action.
+    #     """
+    #     pass
 
-    @appeal.command(
-        name="approve",
-        extras={"category": "Moderation"}
-    )
-    @commands.has_permissions(manage_guild=True)
-    async def appeal_approve(self, ctx, user_id: str):
-        """
-        Approve a ban appeal.
-        """
-        user_id = int(user_id)
-        uid_guild_id = f"{user_id}-{ctx.guild.id}"
+    # @appeal.command(
+    #     name="approve",
+    #     extras={"category": "Moderation"}
+    # )
+    # @commands.has_permissions(manage_guild=True)
+    # async def appeal_approve(self, ctx, user_id: str):
+    #     """
+    #     Approve a ban appeal.
+    #     """
+    #     user_id = int(user_id)
+    #     uid_guild_id = f"{user_id}-{ctx.guild.id}"
         
-        try:
-            ban_appeal = await self.bot.ban_appeals.find_by_id(uid_guild_id)
+    #     try:
+    #         ban_appeal = await self.bot.ban_appeals.find_by_id(uid_guild_id)
 
-            if not ban_appeal:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        description="No appeals found.",
-                        color=discord.Color.red()
-                    )
-                )
+    #         if not ban_appeal:
+    #             return await ctx.send(
+    #                 embed=discord.Embed(
+    #                     description="No appeals found.",
+    #                     color=discord.Color.red()
+    #                 )
+    #             )
             
-            await ctx.guild.unban(discord.Object(id=user_id))
-            await self.bot.ban_appeals.delete_by_id(uid_guild_id)
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Appeal approved.\nUser has been unbanned.",
-                    color=discord.Color.green()
-                ).add_field(
-                    name="User Mention",
-                    value=f"<@{user_id}>"
-                )
-            )
-            #Get user by user_id and send them a message
-            user = self.bot.get_user(user_id)
-            guild_invite_link = await ctx.guild.text_channels[0].create_invite()
-            if user:
-                try:
-                    await user.send(
-                        embed=discord.Embed(
-                            description=f"Your appeal has been approved.\nYou have been unbanned in the {ctx.guild.name} ",
-                            color=discord.Color.green()
-                        ).add_field(
-                            name="Invite Link",
-                            value=guild_invite_link
-                        )
-                    )
-                except discord.Forbidden:
-                    pass
-            else:
-                pass
+    #         await ctx.guild.unban(discord.Object(id=user_id))
+    #         await self.bot.ban_appeals.delete_by_id(uid_guild_id)
+    #         await ctx.send(
+    #             embed=discord.Embed(
+    #                 description="Appeal approved.\nUser has been unbanned.",
+    #                 color=discord.Color.green()
+    #             ).add_field(
+    #                 name="User Mention",
+    #                 value=f"<@{user_id}>"
+    #             )
+    #         )
+    #         #Get user by user_id and send them a message
+    #         user = self.bot.get_user(user_id)
+    #         guild_invite_link = await ctx.guild.text_channels[0].create_invite()
+    #         if user:
+    #             try:
+    #                 await user.send(
+    #                     embed=discord.Embed(
+    #                         description=f"Your appeal has been approved.\nYou have been unbanned in the {ctx.guild.name} ",
+    #                         color=discord.Color.green()
+    #                     ).add_field(
+    #                         name="Invite Link",
+    #                         value=guild_invite_link
+    #                     )
+    #                 )
+    #             except discord.Forbidden:
+    #                 pass
+    #         else:
+    #             pass
 
-        except Exception as e:
-            await ctx.send(
-                embed=discord.Embed(
-                    description=f"An error occurred: {e}",
-                    color=discord.Color.red()
-                )
-            )
+    #     except Exception as e:
+    #         await ctx.send(
+    #             embed=discord.Embed(
+    #                 description=f"An error occurred: {e}",
+    #                 color=discord.Color.red()
+    #             )
+    #         )
 
-    @appeal.command(
-        name="deny",
-        extras={"category": "Moderation"}
-    )
-    @commands.has_permissions(manage_guild=True)
-    async def appeal_deny(self, ctx, user_id: str):
-        """
-        Deny a ban appeal.
-        """
-        user_id = int(user_id)
-        uid_guild_id = f"{user_id}-{ctx.guild.id}"
+    # @appeal.command(
+    #     name="deny",
+    #     extras={"category": "Moderation"}
+    # )
+    # @commands.has_permissions(manage_guild=True)
+    # async def appeal_deny(self, ctx, user_id: str):
+    #     """
+    #     Deny a ban appeal.
+    #     """
+    #     user_id = int(user_id)
+    #     uid_guild_id = f"{user_id}-{ctx.guild.id}"
 
-        try:
-            ban_appeal = await self.bot.ban_appeals.find_by_id(uid_guild_id)
+    #     try:
+    #         ban_appeal = await self.bot.ban_appeals.find_by_id(uid_guild_id)
             
-            if not ban_appeal:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        description="No appeals found.",
-                        color=discord.Color.red()
-                    )
-                )
+    #         if not ban_appeal:
+    #             return await ctx.send(
+    #                 embed=discord.Embed(
+    #                     description="No appeals found.",
+    #                     color=discord.Color.red()
+    #                 )
+    #             )
             
-            await self.bot.ban_appeals.delete_by_id(uid_guild_id)
-            await ctx.send(
-                embed=discord.Embed(
-                    description="Appeal denied.",
-                    color=discord.Color.green()
-                ).add_field(
-                    name="User Mention",
-                    value=f"<@{user_id}>"
-                )
-            )
-            #Get user by user_id and send them a message
-            user = self.bot.get_user(user_id)
-            if user:
-                try:
-                    await user.send(
-                        embed=discord.Embed(
-                            description=f"Your appeal has been denied in the {ctx.guild.name}.",
-                            color=discord.Color.red()
-                        )
-                    )
-                except discord.Forbidden:
-                    pass
-            else:
-                pass
+    #         await self.bot.ban_appeals.delete_by_id(uid_guild_id)
+    #         await ctx.send(
+    #             embed=discord.Embed(
+    #                 description="Appeal denied.",
+    #                 color=discord.Color.green()
+    #             ).add_field(
+    #                 name="User Mention",
+    #                 value=f"<@{user_id}>"
+    #             )
+    #         )
+    #         #Get user by user_id and send them a message
+    #         user = self.bot.get_user(user_id)
+    #         if user:
+    #             try:
+    #                 await user.send(
+    #                     embed=discord.Embed(
+    #                         description=f"Your appeal has been denied in the {ctx.guild.name}.",
+    #                         color=discord.Color.red()
+    #                     )
+    #                 )
+    #             except discord.Forbidden:
+    #                 pass
+    #         else:
+    #             pass
 
-        except Exception as e:
-            await ctx.send(
-                embed=discord.Embed(
-                    description=f"An error occurred: {e}",
-                    color=discord.Color.red()
-                )
-            )
+    #     except Exception as e:
+    #         await ctx.send(
+    #             embed=discord.Embed(
+    #                 description=f"An error occurred: {e}",
+    #                 color=discord.Color.red()
+    #             )
+    #         )
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))

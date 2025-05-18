@@ -58,6 +58,20 @@ class Document:
         if not await self.db.find_one(query):
             await self.db.insert_one(query)
         await self.db.update_one(query, {'$set': update})
+
+    async def update_one(self, query, update):
+        """
+        Update a document in the database.
+        :param query (dict): The query to find the document.
+        :param update (dict): The update to apply to the document.
+        """
+        if not isinstance(query, collections.abc.Mapping):
+            raise TypeError('query must be a dictionary')
+        
+        if not await self.db.find_one(query):
+            await self.db.insert_one(query)
+        
+        await self.db.update_one(query, {'$set': update})
     
     async def find_by_id(self, id):
         """

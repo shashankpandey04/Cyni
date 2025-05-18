@@ -8,6 +8,8 @@ from utils.utils import log_command_usage, parse_duration
 import collections.abc
 import re
 from discord import app_commands
+import traceback
+import sys
 
 class Giveaway(commands.Cog):
     def __init__(self, bot):
@@ -20,7 +22,82 @@ class Giveaway(commands.Cog):
         }
     )
     async def giveaway(self, ctx):
-        pass
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Please use a subcommand like `create`, `list`, or `roll`.")
+
+    async def fallback_handler(self, ctx, title, description, duration, total_winner, host):
+        """Fallback handler for when hybrid commands fail"""
+        try:
+            # Log command usage (for non-interaction context)
+            if isinstance(ctx, commands.Context):
+                await log_command_usage(self.bot, ctx.guild, ctx.author, f"Giveaway Create for {title}")
+            
+            # Process the duration
+            duration_seconds = parse_duration(duration)
+            if duration_seconds is None:
+                await ctx.send("Invalid duration format. Please use formats like '2d', '1w', '3h', '45m', '30s'.")
+                return
+            
+            # Calculate end time
+            end_time = datetime.now() + timedelta(seconds=duration_seconds)
+            end_time_epoch = int(end_time.timestamp())
+            description = re.sub(r'\\n', '\n', description)
+            formatted_description = (
+                f"{description}\n\n"
+                f"Ends At: <t:{end_time_epoch}:F>\n"
+                f"Total Winner: {total_winner}\n"
+                f"Host: {host.mention}"
+            )
+
+            # Create embed
+            embed = discord.Embed(
+                title=f"<:giveaway:1268849874233725000> {title}",
+                description=formatted_description,
+                color=BLANK_COLOR
+            )
+            
+            # Send initial message
+            msg = await ctx.send(embed=embed)
+            message_id = msg.id
+            channel_id = msg.channel.id
+            
+            # Create view with button
+            view = discord.ui.View()
+            embed.set_footer(text=f"Giveaway ID: {message_id}")
+            button = discord.ui.Button(
+                label="View Giveaway",
+                style=discord.ButtonStyle.link,
+                url=f"https://cyni.quprdigital.tk/giveaway/{message_id}",
+                emoji="🎉"
+            )
+            view.add_item(button)
+            
+            # Update message with view
+            await msg.edit(embed=embed, view=view)
+            await msg.add_reaction("🎉")
+            
+            # Store in database
+            await self.bot.giveaways.insert_one({
+                "message_id": message_id,
+                "channel_id": channel_id,
+                "guild_id": ctx.guild.id,
+                "title": title,
+                "description": description,
+                "duration_epoch": end_time_epoch,
+                "total_winner": total_winner,
+                "host": host.id,
+                "participants": []
+            })
+            
+            return True
+        except Exception as e:
+            error_text = f"An error occurred: {str(e)}\n{traceback.format_exc()}"
+            print(error_text)
+            try:
+                await ctx.send(f"An error occurred: {str(e)}")
+            except:
+                pass
+            return False
 
     @giveaway.command(
         name="create",
@@ -29,61 +106,78 @@ class Giveaway(commands.Cog):
         }
     )
     @is_management()
-    @app_commands.describe(title = "Giveaway Embed Title",)
+    @app_commands.describe(title = "Giveaway Embed Title")
     @app_commands.describe(description = "Write the description & for new line use \\n\\n")
     @app_commands.describe(duration = "Duration of the giveaway")
     @app_commands.describe(total_winner = "Total winner of the giveaway")
     @app_commands.describe(host = "Host of the giveaway")
-    async def create(self, ctx, title: str, *, description: str, duration: str, total_winner: int, host: discord.Member):
+    async def create(self, ctx, title: str, description: str, duration: str, total_winner: int, host: discord.Member):
         """
         Create a giveaway.
         """
-        if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Giveaway Create for {title}")
-        duration_seconds = parse_duration(duration)
-        if duration_seconds is None:
-            await ctx.send("Invalid duration format. Please use formats like '2d', '1w', '3h', '45m', '30s'.")
-            return
-        
-        end_time = datetime.now() + timedelta(seconds=duration_seconds)
-        end_time_epoch = int(end_time.timestamp())
-        description = re.sub(r'\\n', '\n', description)
-        formatted_description = (
-            f"{description}\n\n"
-            f"Ends At: <t:{end_time_epoch}:F>\n"
-            f"Total Winner: {total_winner}\n"
-            f"Host: {host.mention}"
-        )
+        try:
+            # Try to use the normal hybrid command flow
+            if isinstance(ctx, commands.Context):
+                await log_command_usage(self.bot, ctx.guild, ctx.author, f"Giveaway Create for {title}")
+            
+            duration_seconds = parse_duration(duration)
+            if duration_seconds is None:
+                await ctx.send("Invalid duration format. Please use formats like '2d', '1w', '3h', '45m', '30s'.")
+                return
+            
+            end_time = datetime.now() + timedelta(seconds=duration_seconds)
+            end_time_epoch = int(end_time.timestamp())
+            description = re.sub(r'\\n', '\n', description)
+            formatted_description = (
+                f"{description}\n\n"
+                f"Ends At: <t:{end_time_epoch}:F>\n"
+                f"Total Winner: {total_winner}\n"
+                f"Host: {host.mention}"
+            )
 
-        view = discord.ui.View()
-        #add url to the button
-        embed = discord.Embed(
-            title=f"<:giveaway:1268849874233725000> {title}",
-            description=formatted_description,
-            color=BLANK_COLOR
-        )
-        msg = await ctx.send(embed=embed)
-        message_id = msg.id
-        embed.set_footer(text=f"Giveaway ID: {message_id}")
-        button = discord.ui.Button(
-            label="View Giveaway",
-            style=discord.ButtonStyle.link,
-            url=f"https://cyni.quprdigital.tk/giveaway/{message_id}",
-            emoji="🎉"
-        )
-        view.add_item(button)
-        await msg.edit(embed=embed, view=view)
-        await msg.add_reaction("🎉")
-        await self.bot.giveaways.insert_one({
-            "message_id": message_id,
-            "guild_id": ctx.guild.id,
-            "title": title,
-            "description": description,
-            "duration_epoch": end_time_epoch,
-            "total_winner": total_winner,
-            "host": host.id,
-            "participants": []
-        })
+            view = discord.ui.View()
+            embed = discord.Embed(
+                title=f"<:giveaway:1268849874233725000> {title}",
+                description=formatted_description,
+                color=BLANK_COLOR
+            )
+            
+            msg = await ctx.send(embed=embed)
+            message_id = msg.id
+            channel_id = msg.channel.id
+
+            embed.set_footer(text=f"Giveaway ID: {message_id}")
+            button = discord.ui.Button(
+                label="View Giveaway",
+                style=discord.ButtonStyle.link,
+                url=f"https://cyni.quprdigital.tk/giveaway/{message_id}",
+                emoji="🎉"
+            )
+            view.add_item(button)
+            
+            await msg.edit(embed=embed, view=view)
+            await msg.add_reaction("🎉")
+            
+            # Store in database
+            await self.bot.giveaways.insert_one({
+                "message_id": message_id,
+                "channel_id": channel_id,
+                "guild_id": ctx.guild.id,
+                "title": title,
+                "description": description,
+                "duration_epoch": end_time_epoch,
+                "total_winner": total_winner,
+                "host": host.id,
+                "participants": []
+            })
+        except Exception as e:
+            error_text = f"Error in hybrid command: {str(e)}\n{traceback.format_exc()}"
+            print(error_text)
+            
+            # Fall back to a simpler implementation if the hybrid command fails
+            success = await self.fallback_handler(ctx, title, description, duration, total_winner, host)
+            if not success:
+                await ctx.send("Command failed. Try using the regular command prefix instead.")
 
     @giveaway.command(
         name="roll",
@@ -165,8 +259,15 @@ class Giveaway(commands.Cog):
             return
 
         if user.id not in giveaway["participants"]:
-            giveaway["participants"].append(user.id)
-            await self.bot.giveaways.update({"message_id": message_id}, {"participants": giveaway["participants"]})
+            participants = giveaway["participants"]
+            participants.append(user.id)
+            
+            # Use update_one instead of update
+            await self.bot.giveaways.update_one(
+                {"message_id": message_id}, 
+                {"participants": participants}
+            )
+            
             await reaction.message.channel.send(f"{user.mention} has entered the giveaway!", delete_after=2)
 
     @commands.Cog.listener()
@@ -186,8 +287,15 @@ class Giveaway(commands.Cog):
             return
 
         if user.id in giveaway["participants"]:
-            giveaway["participants"].remove(user.id)
-            await self.bot.giveaways.update({"message_id": message_id}, {"participants": giveaway["participants"]})
+            participants = giveaway["participants"]
+            participants.remove(user.id)
+            
+            # Use update_one instead of update
+            await self.bot.giveaways.update_one(
+                {"message_id": message_id}, 
+                {"participants": participants}
+            )
+            
             await reaction.message.channel.send(f"{user.mention} has left the giveaway!", delete_after=2)
 
 async def setup(bot):

@@ -31,6 +31,7 @@ from Datamodels.Partnership import Partnership
 from Datamodels.LOA import LOA
 
 from Tasks.loa_check import loa_check
+from Tasks.GiveawayRoll import giveaway_roll
 
 from utils.prc_api import PRC_API_Client
 from decouple import config
@@ -157,6 +158,7 @@ class Bot(commands.AutoShardedBot):
 
         change_status.start()
         loa_check.start(self)
+        giveaway_roll.start(self)
 
         logging.info(f"Logged in as {bot.user}")
 
@@ -408,6 +410,14 @@ else:
     bot_token = os.getenv("DEV_TOKEN")
     logging.info("Using Development Token")
 
+def run_whitelabel_bot(token: str):
+    """Run a whitelabel version of the bot using a custom token."""
+    bot_token = token
+    logging.info("Running whitelabel bot")
+    try:
+        bot.run(bot_token)
+    except Exception as e:
+        logging.error(f"Error: {e}", exc_info=True)
 
 def run():
     try:

@@ -1,6 +1,7 @@
 import datetime
 import os
 import traceback
+import logging
 from utils.utils import gen_error_uid
 from cyni import PremiumRequired
 
@@ -15,14 +16,19 @@ from utils.constants import BLANK_COLOR
 
 load_dotenv()
 
-class OnCommandError(commands.Cog):
+class CommandErrorHandler(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Cog.listener("on_command_error")
+    @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
+        """The event triggered when an error is raised while invoking a command."""
         
-        error_id = gen_error_uid()
+        # Get the original exception
+        error = getattr(error, 'original', error)
+        
+        if hasattr(ctx.command, 'on_error'):
+            return
         
         if isinstance(error, commands.CommandNotFound):
             return
@@ -46,13 +52,8 @@ class OnCommandError(commands.Cog):
             )
         
         if isinstance(error, commands.MissingPermissions):
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Error",
-                    description="You are missing the required permissions.",
-                    color=discord.Color.red()
-                )
-            )
+            await ctx.send(f"You don't have the required permissions to use this command: {error}")
+            return
         
         if isinstance(error, commands.BotMissingPermissions):
             return await ctx.send(
@@ -126,20 +127,20 @@ class OnCommandError(commands.Cog):
                 )
             )
         
-        await self.bot.errors_document.insert_one({
-            "_id": error_id,
-            "error": str(error),
-            "traceback": traceback.format_exc(),
-            "time": datetime.datetime.now() + datetime.timedelta(hours=5, minutes=30),
-        })
-        return await ctx.send(
-            embed=discord.Embed(
-                title="An Error Occured",
-                description=f"An error occurred. Please report this error to the Support Team.\n\nError ID: `{error_id}`",
-                color=discord.Color.red()
-            )
-        )
+        # AutoShardedConnectionState error handling
+        if "'AutoShardedConnectionState' object has no attribute '_interaction'" in str(error):
+            try:
+                await ctx.send("There was an issue processing this command as a hybrid command. Try using the regular command prefix.")
+            except:
+                pass
+            return
+            
+        # Log all other errors
+        error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+        logging.error(f"Command {ctx.command} error: {error_message}")
+        
+        # Notify the user
+        await ctx.send(f"An error occurred: {str(error)}")
 
 async def setup(bot):
-    await bot.add_cog(OnCommandError(bot))
-        
+    await bot.add_cog(CommandErrorHandler(bot))

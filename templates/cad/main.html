@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEO Games - CAD System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a237e;
+            --secondary: #5c6bc0;
+            --accent: #ff4081;
+            --light: #f5f5f5;
+            --dark: #121212;
+            --success: #00c853;
+            --warning: #ffd600;
+            --danger: #d50000;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 2.5rem 0;
+            margin-bottom: 3rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            border-bottom-left-radius: 50px;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiPjxwYXRoIGQ9Ik0wIDIwIGgyMHYyMGgyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuMSkiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3QgZmlsbD0idXJsKCNwYXR0ZXJuKSIgaGVpZ2h0PSIxMDAlIiB3aWR0aD0iMTAwJSIvPjwvc3ZnPg==');
+            opacity: 0.3;
+        }
+        
+        .card {
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 100%;
+            border: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-img-top {
+            height: 180px;
+            object-fit: cover;
+            background: linear-gradient(45deg, var(--secondary), var(--primary));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            color: white;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+        }
+        
+        .card-text {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        .footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 1rem 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        
+        .badge-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+        }
+        
+        .btn-action {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 500;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 30px;
+            transition: all 0.2s;
+        }
+        
+        .btn-action:hover {
+            background-color: var(--accent);
+            transform: scale(1.05);
+        }
+        
+        .navbar-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo-badge {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.4rem;
+            margin-left: 0.5rem;
+            background-color: var(--accent);
+            border-radius: 4px;
+            vertical-align: middle;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem 0;
+                margin-bottom: 2rem;
+            }
+            
+            .card-img-top {
+                height: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="#" class="navbar-logo">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    LEO Games CAD
+                    <span class="logo-badge">2025</span>
+                </a>
+                <div class="d-flex align-items-center">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="text-white">
+                        <div class="fw-bold">Officer</div>
+                        <small>On Duty</small>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold">Computer Aided Dispatch</h1>
+                    <p class="lead">Advanced law enforcement management system</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="fw-bold mb-4">Command Center</h2>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <!-- Unit Management -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="badge-status">
+                        <span class="badge bg-success">Active</span>
+                    </div>
+                    <div class="card-img-top">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Unit Management</h5>
+                        <p class="card-text">Manage statuses, callsigns and unit assignments. Track real-time availability and locations.</p>
+                        <a href="#" class="btn btn-action mt-2">
+                            <i class="fas fa-arrow-right me-1"></i> Access Units
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Call Management -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="badge-status">
+                        <span class="badge bg-danger">4 Priority Calls</span>
+                    </div>
+                    <div class="card-img-top">
+                        <i class="fas fa-phone-alt"></i>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Call Management</h5>
+                        <p class="card-text">Create, edit and manage calls for service. Assign priority levels and track response status.</p>
+                        <a href="#" class="btn btn-action mt-2">
+                            <i class="fas fa-arrow-right me-1"></i> View Calls
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- BOLOs -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="badge-status">
+                        <span class="badge bg-warning text-dark">3 New</span>
+                    </div>
+                    <div class="card-img-top">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">BOLOs</h5>
+                        <p class="card-text">Track and manage Be On the Lookout alerts. View vehicle descriptions, suspect details and more.</p>
+                        <a href="#" class="btn btn-action mt-2">
+                            <i class="fas fa-arrow-right me-1"></i> Check BOLOs
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Civilian Database -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-img-top">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Civilian Database</h5>
+                        <p class="card-text">Comprehensive civilian records with personal information, licenses, criminal history and more.</p>
+                        <a href="#" class="btn btn-action mt-2">
+                            <i class="fas fa-arrow-right me-1"></i> Search Records
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vehicle Database -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-img-top">
+                        <i class="fas fa-car"></i>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Vehicle Database</h5>
+                        <p class="card-text">Look up vehicle information including registration status, insurance, and flags such as stolen status.</p>
+                        <a href="#" class="btn btn-action mt-2">
+                            <i class="fas fa-arrow-right me-1"></i> Check Vehicles
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reports & Citations -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-img-top">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Reports & Citations</h5>
+                        <p class="card-text">Create and manage arrest reports, incident reports, citations, and warnings in one place.</p>
+                        <a href="#" class="btn btn-action mt-2">
+                            <i class="fas fa-arrow-right me-1"></i> File Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card p-4 bg-dark text-white">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4>System Status</h4>
+                            <p class="mb-0">All systems operational. Last updated: <span id="lastUpdated">Loading...</span></p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <button class="btn btn-outline-light rounded-pill">
+                                <i class="fas fa-sync-alt me-2"></i> Refresh Status
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer mt-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>LEO Games CAD System &copy; 2025</div>
+                <div>
+                    <a href="#" class="text-white me-3"><i class="fas fa-cog"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fas fa-question-circle"></i></a>
+                    <a href="#" class="text-white"><i class="fas fa-sign-out-alt"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update last updated time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = now.toLocaleString();
+        }
+        
+        // Initial call
+        updateTime();
+        
+        // Update every minute
+        setInterval(updateTime, 60000);
+        
+        // Add subtle hover effects
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>

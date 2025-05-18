@@ -42,4 +42,4 @@ async def loa_check(bot):
         except:
             print(f"Could not DM {user} about accepted LOA in {guild}")
 
-    print(f"LOA Check took {time.time() - start_time} seconds.")
+    #print(f"LOA Check took {time.time() - start_time} seconds.")

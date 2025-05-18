@@ -15,6 +15,7 @@ import mimetypes
 import markdown
 
 from DashboardModules.WelcomeModule import welcome_route
+from DashboardModules.CAD import cad_route
 
 FILES_URL = "https://files.cyni.quprdigital.tk/upload"
 
@@ -46,6 +47,7 @@ Session(app)
 
 # Register Blueprint
 app.register_blueprint(welcome_route)
+app.register_blueprint(cad_route)
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)
@@ -432,7 +434,7 @@ def manage_application(guild_id, application_id):
     if request.method == "POST":
         application_name = request.form.get("application_name")
         application_description = request.form.get("application_description")
-        required_roles = [int(role) for role in request.form.getlist("required_roles")]
+        required_roles = [int(role) for role in request.form.getlist("required_roles") if role.strip()] if request.form.getlist("required_roles") else []
         application_channel = int(request.form.get("application_channel"))
         all_questions = request.form.getlist("question")
         pass_role = int(request.form.get("pass_role"))
@@ -484,79 +486,119 @@ def manage_application(guild_id, application_id):
 @login_required
 def apply(guild_id, application_id):
     if request.method == "GET":
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            flash("Guild not found.", "error")
-            return redirect(url_for("dashboard"))
-        application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
-        if not application:
-            return redirect(url_for("applications", guild_id=guild_id))
-        
-        member = guild.get_member(int(session["user_id"]))
-        if not member:
-            return redirect(url_for("dashboard"))
+        try:
+            guild = bot.get_guild(int(guild_id))
+            if not guild:
+                flash("Guild not found.", "error")
+                return redirect(url_for("dashboard"))
+            
+            try:
+                # Handle string ID conversion properly
+                if ObjectId.is_valid(application_id):
+                    application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
+                else:
+                    application = mongo_db["applications"].find_one({"_id": application_id})
+                    
+                if not application:
+                    flash("Application not found.", "error")
+                    return redirect(url_for("applications", guild_id=guild_id))
+            except Exception as e:
+                print(f"Error finding application: {e}")
+                flash("Error loading application.", "error")
+                return redirect(url_for("dashboard"))
+            
+            member = guild.get_member(int(session["user_id"]))
+            if not member:
+                flash("You are not a member of this guild.", "error")
+                return redirect(url_for("dashboard"))
 
-        required_roles = application.get("required_roles", [])
-        if not any(role in [role.id for role in member.roles] for role in required_roles):
-            return redirect(url_for("dashboard"))
+            required_roles = application.get("required_roles", [])
+            if required_roles and not any(role.id in required_roles for role in member.roles):
+                flash("You don't have the required roles to apply.", "error")
+                return redirect(url_for("dashboard"))
 
-        existing_application = mongo_db["user_applications"].find_one({
-            "user_id": session["user_id"],
-            "application_id": application_id,
-            "status": "pending"
-        })
-        if existing_application:
+            existing_application = mongo_db["user_applications"].find_one({
+                "user_id": session["user_id"],
+                "application_id": str(application_id),
+                "status": "pending"
+            })
+            if existing_application:
+                flash("You have already applied for this application.", "error")
+                return redirect(url_for("dashboard"))
+            
+            markdown_application_description = application.get("description", "")
+            application['description'] = markdown.markdown(markdown_application_description, extensions=['extra', 'codehilite', 'smarty'])
+            
+            return render_template("apply.html", guild=guild, application=application)
+            
+        except Exception as e:
+            print(f"Error in application GET route: {e}")
+            flash("An error occurred while loading the application.", "error")
             return redirect(url_for("dashboard"))
-        
-        markedown_application_description = application.get("description")
-        application['description'] = markdown.markdown(markedown_application_description, extensions=['extra', 'codehilite', 'smarty'])
-        
-        return render_template("apply.html", guild=guild, application=application)
     
     if request.method == "POST":
-        application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
-        if not application:
-            return redirect(url_for("applications", guild_id=guild_id))
-        
-        member = bot.get_guild(int(guild_id)).get_member(int(session["user_id"]))
-        if not member:
+        try:
+            # Handle string ID conversion properly
+            if ObjectId.is_valid(application_id):
+                application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
+            else:
+                application = mongo_db["applications"].find_one({"_id": application_id})
+                
+            if not application:
+                flash("Application not found.", "error")
+                return redirect(url_for("applications", guild_id=guild_id))
+            
+            member = bot.get_guild(int(guild_id)).get_member(int(session["user_id"]))
+            if not member:
+                flash("You are not a member of this guild.", "error")
+                return redirect(url_for("dashboard"))
+            
+            existing_application = mongo_db["user_applications"].find_one({
+                "user_id": session["user_id"],
+                "application_id": str(application_id),
+                "status": "pending"
+            })
+            if existing_application:
+                flash("You have already applied for this application.", "error")
+                return redirect(url_for("dashboard"))
+            
+            answers = [request.form.get(f"answer_{i}") for i in range(1, len(application["questions"]) + 1)]
+            if len(answers) != len(application["questions"]):
+                flash("Please answer all questions.", "error")
+                return redirect(url_for("apply", guild_id=guild_id, application_id=application_id))
+            
+            application_data = {
+                "guild_id": int(guild_id),
+                "name": str(member.name),
+                "user_id": str(member.id),
+                "application_id": str(application_id),
+                "application_name": application["name"],
+                "answers": [{"question": q["question"], "answer": a} for q, a in zip(application["questions"], answers)],
+                "status": "pending",
+                "created_at": datetime.datetime.now().timestamp()
+            }
+            
+            data = {
+                "guild_id": int(guild_id),
+                "user_id": str(member.id),
+                "application_name": application["name"],
+                "application_channel": application["application_channel"]
+            }
+            headers = {"Authorization": bot_token}
+            URL = 'http://127.0.0.1:5000/notify_application_submission'
+            try:
+                response = requests.post(URL, headers=headers, json=data)
+            except Exception as e:
+                print(f"Error notifying about application submission: {e}")
+                
+            mongo_db["user_applications"].insert_one(application_data)
+            flash("Application submitted successfully!", "success")
             return redirect(url_for("dashboard"))
-        
-        existing_application = mongo_db["user_applications"].find_one({
-            "user_id": session["user_id"],
-            "application_id": application_id,
-            "status": "pending"
-        })
-        if existing_application:
+            
+        except Exception as e:
+            print(f"Error in application POST route: {e}")
+            flash("An error occurred while submitting your application.", "error")
             return redirect(url_for("dashboard"))
-        
-        answers = [request.form.get(f"answer_{i}") for i in range(1, len(application["questions"]) + 1)]
-        print(len(answers), len(application["questions"]))
-        if len(answers) != len(application["questions"]):
-            return redirect(url_for("apply", guild_id=guild_id, application_id=application_id))
-        
-        application_data = {
-            "guild_id": int(guild_id),
-            "name": str(member.name),
-            "user_id": str(member.id),
-            "application_id": application_id,
-            "application_name": application["name"],
-            "answers": [{"answer": answer} for answer in answers],
-            "status": "pending",
-            "guild_id": int(guild_id),
-            "created_at": datetime.now().timestamp()
-        }
-        data = {
-            "guild_id": int(guild_id),
-            "user_id": str(member.id),
-            "application_name": application["name"],
-            "application_channel": application["application_channel"]
-        }
-        headers = {"Authorization": bot_token}
-        URL = 'http://127.0.0.1:5000/notify_application_submission'
-        #response = requests.post(URL, headers=headers, json=data)
-        mongo_db["user_applications"].insert_one(application_data)
-        return redirect(url_for("dashboard"))
     
 @app.route('/applications/logs/<guild_id>', methods=["GET"])
 @login_required
