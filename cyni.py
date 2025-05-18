@@ -238,7 +238,8 @@ async def AutoDefer(ctx: commands.Context):
 async def change_status():
     await bot.wait_until_ready()
     logging.info("Changing status")
-    status = "Cyni Dashboard"
+    guild_count = len(bot.guilds)
+    status = "Watching over " + str(guild_count) + "+ servers"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
     )
