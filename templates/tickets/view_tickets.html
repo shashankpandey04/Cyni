@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <!-- Include the sidebar -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area -->
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-extrabold text-white mb-2">Ticket Management</h1>
+          <p class="text-gray-400">View and manage all tickets in your server</p>
+        </div>
+        <a href="{{ url_for('ticket_module.ticket_settings', guild_id=guild.id) }}" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+          <i class="fas fa-cog mr-2"></i> Ticket Settings
+        </a>
+      </div>
+      
+      <!-- Tickets Panel -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden mb-8">
+        <div class="border-b border-gray-700/50 p-6">
+          <h3 class="text-xl font-semibold text-white">All Tickets</h3>
+          <p class="text-sm text-gray-400 mt-1">Manage and view tickets from your server</p>
+        </div>
+        
+        <div class="p-6">
+          <!-- Tab Navigation -->
+          <div class="border-b border-gray-700/30">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" role="tablist">
+              <li class="mr-2" role="presentation">
+                <button 
+                  class="inline-block p-4 border-b-2 border-amber-500 text-amber-500 rounded-t-lg active" 
+                  id="open-tickets-tab" 
+                  data-bs-toggle="tab" 
+                  data-bs-target="#open-tickets" 
+                  type="button" 
+                  role="tab" 
+                  aria-controls="open-tickets" 
+                  aria-selected="true">
+                  <i class="fas fa-envelope-open-text mr-2"></i> Open Tickets
+                </button>
+              </li>
+              <li class="mr-2" role="presentation">
+                <button 
+                  class="inline-block p-4 border-b-2 border-transparent hover:text-gray-300 hover:border-gray-300 rounded-t-lg" 
+                  id="closed-tickets-tab" 
+                  data-bs-toggle="tab" 
+                  data-bs-target="#closed-tickets" 
+                  type="button" 
+                  role="tab" 
+                  aria-controls="closed-tickets" 
+                  aria-selected="false">
+                  <i class="fas fa-envelope mr-2"></i> Closed Tickets
+                </button>
+              </li>
+            </ul>
+          </div>
+          
+          <!-- Tab Content -->
+          <div class="tab-content pt-6" id="ticketTabsContent">
+            <!-- Open Tickets Tab -->
+            <div class="tab-pane fade show active" id="open-tickets" role="tabpanel" aria-labelledby="open-tickets-tab">
+              {% set open_tickets = tickets|selectattr('status', 'equalto', 'open')|list %}
+              {% if open_tickets %}
+              <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                  <thead class="text-xs text-gray-400 uppercase bg-gray-800/30">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 rounded-l-lg">ID</th>
+                      <th scope="col" class="px-6 py-3">User</th>
+                      <th scope="col" class="px-6 py-3">Category</th>
+                      <th scope="col" class="px-6 py-3">Created</th>
+                      <th scope="col" class="px-6 py-3 rounded-r-lg">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ticket in open_tickets %}
+                    <tr class="border-b border-gray-700/30">
+                      <td class="px-6 py-4 text-gray-300">{{ loop.index }}</td>
+                      <td class="px-6 py-4 text-white">{{ ticket.username }}</td>
+                      <td class="px-6 py-4 text-amber-500">{{ ticket.category_name }}</td>
+                      <td class="px-6 py-4 text-gray-300">{{ ticket.created_at|int|datetime }}</td>
+                      <td class="px-6 py-4">
+                        <a href="{{ url_for('ticket_module.view_ticket', guild_id=guild.id, ticket_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                          <i class="fas fa-eye mr-2"></i> View
+                        </a>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="bg-gray-800/40 rounded-lg p-6 text-center">
+                <p class="text-gray-300">No open tickets found.</p>
+              </div>
+              {% endif %}
+            </div>
+            
+            <!-- Closed Tickets Tab -->
+            <div class="tab-pane fade" id="closed-tickets" role="tabpanel" aria-labelledby="closed-tickets-tab">
+              {% set closed_tickets = tickets|selectattr('status', 'equalto', 'closed')|list %}
+              {% if closed_tickets %}
+              <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                  <thead class="text-xs text-gray-400 uppercase bg-gray-800/30">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 rounded-l-lg">ID</th>
+                      <th scope="col" class="px-6 py-3">User</th>
+                      <th scope="col" class="px-6 py-3">Category</th>
+                      <th scope="col" class="px-6 py-3">Created</th>
+                      <th scope="col" class="px-6 py-3 rounded-r-lg">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for ticket in closed_tickets %}
+                    <tr class="border-b border-gray-700/30">
+                      <td class="px-6 py-4 text-gray-300">{{ loop.index }}</td>
+                      <td class="px-6 py-4 text-white">{{ ticket.username }}</td>
+                      <td class="px-6 py-4 text-amber-500">{{ ticket.category_name }}</td>
+                      <td class="px-6 py-4 text-gray-300">{{ ticket.created_at|int|datetime }}</td>
+                      <td class="px-6 py-4">
+                        <a href="{{ url_for('ticket_module.view_ticket', guild_id=guild.id, ticket_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                          <i class="fas fa-eye mr-2"></i> View
+                        </a>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="bg-gray-800/40 rounded-lg p-6 text-center">
+                <p class="text-gray-300">No closed tickets found.</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Help Section -->
+      <div class="mt-8 bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="p-6">
+          <h3 class="text-lg font-semibold text-white mb-4">Ticket Management Tips</h3>
+          <ul class="space-y-3 text-gray-300 text-sm">
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Click on "View" to see the contents of a ticket and its message history.</span>
+            </li>
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Closed tickets are saved in the archive and can be referenced later.</span>
+            </li>
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Support staff should always close tickets when the issue is resolved.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <!-- Include the sidebar -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area -->
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-extrabold text-white mb-2">Ticket #{{ ticket._id|truncate(8, True, '') }}</h1>
+          <p class="text-gray-400">{{ ticket.category_name }} ticket from {{ ticket.username }}</p>
+        </div>
+        <a href="{{ url_for('ticket_module.view_tickets', guild_id=guild.id) }}" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+          <i class="fas fa-arrow-left mr-2"></i> Back to Tickets
+        </a>
+      </div>
+      
+      <!-- Ticket Information Card -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-amber-500/10 overflow-hidden mb-8">
+        <div class="p-6">
+          <h3 class="text-xl font-semibold text-white mb-4">Ticket Information</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p class="text-gray-400 mb-2">Category: <span class="text-amber-500">{{ ticket.category_name }}</span></p>
+              <p class="text-gray-400 mb-2">Created By: <span class="text-white">{{ ticket.username }}</span></p>
+              <p class="text-gray-400 mb-2">Status: 
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {% if ticket.status == 'open' %}bg-green-500/20 text-green-400{% else %}bg-red-500/20 text-red-400{% endif %}">
+                  {{ ticket.status|capitalize }}
+                </span>
+              </p>
+            </div>
+            <div>
+              <p class="text-gray-400 mb-2">Created At: <span class="text-white">{{ ticket.created_at|int|datetime }}</span></p>
+              <p class="text-gray-400 mb-2">Ticket ID: <span class="text-white">{{ ticket._id }}</span></p>
+              <p class="text-gray-400 mb-2">Channel: 
+                <span class="text-white">#ticket-{{ ticket._id|truncate(6, True, '') }}-{{ ticket.username }}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Ticket Messages Card -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="border-b border-gray-700/50 p-6">
+          <h3 class="text-xl font-semibold text-white">Ticket Messages</h3>
+          <p class="text-sm text-gray-400 mt-1">Message history for this ticket</p>
+        </div>
+        
+        <div class="p-6">
+          {% if messages %}
+          <div class="ticket-messages max-h-96 overflow-y-auto pr-2">
+            {% for message in messages %}
+            <div class="message mb-4 {% if message.author_id|string == session.user_id %}ml-auto max-w-3/4 bg-amber-600/20 border border-amber-600/20{% else %}mr-auto max-w-3/4 bg-gray-700/50 border border-gray-700/50{% endif %} rounded-lg p-4">
+              <div class="flex items-center mb-2">
+                <span class="font-medium text-white">{{ message.author_name }}</span>
+                <span class="ml-auto text-xs text-gray-400">{{ message.created_at|int|datetime }}</span>
+              </div>
+              <div class="text-gray-200 whitespace-pre-wrap">{{ message.content }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="bg-gray-800/40 rounded-lg p-6 text-center">
+            <p class="text-gray-300">No message history found for this ticket.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Help Section -->
+      <div class="mt-8 bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="p-6">
+          <h3 class="text-lg font-semibold text-white mb-4">About Ticket Archives</h3>
+          <p class="text-gray-300 text-sm">When a ticket is closed, its message history is archived here for future reference. This allows staff to review past interactions and maintain a record of support provided.</p>
+          
+          <div class="mt-4 flex items-center justify-between">
+            <div class="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="text-gray-300 text-sm">Ticket messages cannot be edited after archiving</span>
+            </div>
+            
+            <a href="{{ url_for('ticket_module.view_tickets', guild_id=guild.id) }}" class="text-amber-500 hover:text-amber-400 text-sm">
+              Return to all tickets <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Adding some additional styling for the message bubbles */
+  .ticket-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .ticket-messages::-webkit-scrollbar-track {
+    background: rgba(31, 41, 55, 0.5);
+    border-radius: 10px;
+  }
+  
+  .ticket-messages::-webkit-scrollbar-thumb {
+    background: rgba(251, 191, 36, 0.3);
+    border-radius: 10px;
+  }
+  
+  .ticket-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 191, 36, 0.5);
+  }
+  
+  .message {
+    max-width: 80%;
+  }
+</style>
+{% endblock %}

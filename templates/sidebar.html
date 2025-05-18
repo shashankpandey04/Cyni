@@ -159,6 +159,45 @@
           </div>
         </div>
       </div>
+      <div class="mt-6">
+        <div class="px-4 pb-2">
+          <button class="flex items-center w-full text-left text-sm font-medium text-white hover:text-amber-500 transition" 
+                  data-collapse-toggle="ticketNav" 
+                  aria-expanded="false" 
+                  aria-controls="ticketNav">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z" clip-rule="evenodd" />
+            </svg>
+            <span>Ticket System</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+        <div id="ticketNav" class="hidden">
+          <div class="space-y-1 px-2 py-2 ml-4 border-l border-amber-500/20">
+            <a href="{{ url_for('ticket_module.ticket_settings', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Ticket Settings
+            </a>
+            <a href="{{ url_for('ticket_module.new_ticket_category', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Create Ticket Category
+            </a>
+            <a href="{{ url_for('ticket_module.view_tickets', guild_id=guild.id) }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-lg text-white hover:bg-amber-500/10 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              View Tickets
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="px-4 py-4 border-t border-amber-500/20">
       <div class="flex items-center justify-between">

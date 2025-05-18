@@ -16,6 +16,7 @@ import markdown
 
 from DashboardModules.WelcomeModule import welcome_route
 from DashboardModules.CAD import cad_route
+from DashboardModules.TicketModule import ticket_module
 
 FILES_URL = "https://files.cyni.quprdigital.tk/upload"
 
@@ -48,6 +49,7 @@ Session(app)
 # Register Blueprint
 app.register_blueprint(welcome_route)
 app.register_blueprint(cad_route)
+app.register_blueprint(ticket_module)
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)
@@ -70,6 +72,11 @@ users = {}
 @login_manager.user_loader
 def load_user(user_id):
     return users.get(user_id)
+
+@app.template_filter('datetime')
+def format_datetime(timestamp):
+    dt = datetime.datetime.fromtimestamp(timestamp)
+    return dt.strftime('%Y-%m-%d %H:%M:%S')
 
 # Routes
 @app.route("/", methods=["GET", "POST"])
@@ -629,6 +636,7 @@ def user_application(guild_id, application_id, user_id):
         
         sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
         management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+
         if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
             return redirect(url_for("dashboard"))
         
@@ -653,6 +661,7 @@ def user_application(guild_id, application_id, user_id):
         
         sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
         management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+
         if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
             return redirect(url_for("dashboard"))
         

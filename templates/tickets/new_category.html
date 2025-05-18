@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <!-- Include the sidebar -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area -->
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-extrabold text-white mb-2">Create Ticket Category</h1>
+          <p class="text-gray-400">Set up a new type of ticket for your server</p>
+        </div>
+        <a href="{{ url_for('ticket_module.ticket_settings', guild_id=guild.id) }}" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+          <i class="fas fa-arrow-left mr-2"></i> Back
+        </a>
+      </div>
+      
+      <!-- Form Card -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="border-b border-gray-700/50 p-6">
+          <h3 class="text-xl font-semibold text-white">Category Details</h3>
+          <p class="text-sm text-gray-400 mt-1">Configure how this ticket category will work</p>
+        </div>
+        
+        <div class="p-6">
+          <form method="POST" action="{{ url_for('ticket_module.new_ticket_category', guild_id=guild.id) }}">
+            <!-- Basic Settings -->
+            <div class="mb-6">
+              <label for="category_name" class="block text-sm font-medium text-gray-300 mb-2">Category Name</label>
+              <input 
+                type="text" 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="category_name" 
+                name="category_name" 
+                required 
+                placeholder="Support Request">
+              <p class="mt-2 text-sm text-gray-400">The name that will display on the ticket button</p>
+            </div>
+            
+            <div class="mb-6">
+              <label for="category_description" class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+              <textarea 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="category_description" 
+                name="category_description" 
+                rows="3" 
+                placeholder="General support requests for server issues"></textarea>
+              <p class="mt-2 text-sm text-gray-400">Brief description of what this ticket category is for</p>
+            </div>
+            
+            <div class="mb-6">
+              <label for="emoji" class="block text-sm font-medium text-gray-300 mb-2">Button Emoji</label>
+              <input 
+                type="text" 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="emoji" 
+                name="emoji" 
+                value="🎫">
+              <p class="mt-2 text-sm text-gray-400">Emoji to display on the ticket button</p>
+            </div>
+            
+            <!-- Channel Selection -->
+            <div class="mb-6">
+              <label for="ticket_channel" class="block text-sm font-medium text-gray-300 mb-2">Ticket Panel Channel</label>
+              <div class="relative">
+                <select 
+                  class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+                  id="ticket_channel" 
+                  name="ticket_channel" 
+                  required>
+                  <option value="" selected disabled>Select a channel</option>
+                  {% for id, name in channels.items() %}
+                  <option value="{{ id }}">#{{ name }}</option>
+                  {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+              <p class="mt-2 text-sm text-gray-400">Select the channel where the ticket panel will be sent</p>
+            </div>
+            
+            <!-- Support Roles -->
+            <div class="mb-6">
+              <label for="support_roles" class="block text-sm font-medium text-gray-300 mb-2">Support Roles</label>
+              <div class="relative">
+                <select 
+                  class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                  id="support_roles" 
+                  name="support_roles" 
+                  multiple 
+                  required>
+                  {% for id, name in roles.items() %}
+                  <option value="{{ id }}">{{ name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <p class="mt-2 text-sm text-gray-400">Roles that can see and manage tickets (hold Ctrl/Cmd to select multiple)</p>
+            </div>
+            
+            <hr class="border-gray-700 my-8">
+            
+            <!-- Embed Settings -->
+            <h4 class="text-lg font-medium text-white mb-4">Embed Settings</h4>
+            
+            <div class="mb-6">
+              <label for="embed_title" class="block text-sm font-medium text-gray-300 mb-2">Embed Title</label>
+              <input 
+                type="text" 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="embed_title" 
+                name="embed_title" 
+                value="Support Ticket">
+              <p class="mt-2 text-sm text-gray-400">Title for the ticket panel embed</p>
+            </div>
+            
+            <div class="mb-6">
+              <label for="embed_description" class="block text-sm font-medium text-gray-300 mb-2">Embed Description</label>
+              <textarea 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="embed_description" 
+                name="embed_description" 
+                rows="3">Click the button below to create a ticket</textarea>
+              <p class="mt-2 text-sm text-gray-400">Description text for the ticket panel embed</p>
+            </div>
+            
+            <div class="mb-6">
+              <label for="embed_color" class="block text-sm font-medium text-gray-300 mb-2">Embed Color</label>
+              <div class="flex items-center">
+                <input 
+                  type="color" 
+                  class="h-10 w-12 rounded mr-2 bg-transparent border-0 cursor-pointer" 
+                  id="embed_color" 
+                  name="embed_color" 
+                  value="#5865F2">
+                <span class="text-gray-400 text-sm">Color for the embed's sidebar</span>
+              </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-3 mt-8">
+              <button 
+                type="reset" 
+                class="px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+                Reset
+              </button>
+              <button 
+                type="submit" 
+                class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+                Create Category
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

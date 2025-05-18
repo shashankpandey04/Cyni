@@ -13,6 +13,7 @@ import pymongo
 import motor.motor_asyncio
 import threading
 from cyni import cad_access_check, cad_administrator_check, cad_operator_check
+import uuid
 
 # Load the environment variables
 load_dotenv()
@@ -60,6 +61,10 @@ class CAD_Log(BaseModel):
     punishment: str
     reason: str | None = None
     created_at: int
+
+class TicketEmbedRequest(BaseModel):
+    guild_id: int
+    category_id: str
 
 
 # Authorization validation function
@@ -476,51 +481,252 @@ class APIRoutes:
 
         return {"message": "LOA status updated successfully"}
 
-    # async def POST_start_bot(
-    #     authorization: Annotated[str | None, Header()],
-    #     request: Request
-    # ):
-    #     """Start a whitelabel bot."""
-    #     if not authorization:
-    #         logger.warning("Authorization header is missing.")
-    #         raise HTTPException(status_code=401, detail="Invalid authorization")
+    async def POST_send_ticket_embed(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Send a ticket embed to a Discord channel."""
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
 
-    #     if authorization != bot_token:
-    #         logger.warning("Invalid or expired authorization for user.")
-    #         raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
-        
-    #     json_data = await request.json()
-    #     user_token = json_data.get("token")
-        
-    #     if not user_token:
-    #         raise HTTPException(status_code=400, detail="Bot token not provided")
-        
-    #     def run_custom_bot():
-    #         try:
-    #             intents = discord.Intents.default()
-    #             intents.presences = False
-    #             intents.message_content = True
-    #             intents.members = True
-    #             intents.messages = True
-    #             intents.moderation = True
-    #             intents.bans = True
-    #             intents.webhooks = True
-    #             intents.guilds = True
-    #             new_bot = discord.Client(intents=intents, activity=discord.Game(name="Whitelabel Testing"))
-                
-    #             @new_bot.event
-    #             async def on_ready():
-    #                 logging.info(f'Logged in as {new_bot.user}')
-                
-    #             new_bot.run(user_token)
-            
-    #         except Exception as e:
-    #             logging.error(f"Error while running the bot with provided token: {e}")
-        
-    #     bot_thread = threading.Thread(target=run_custom_bot)
-    #     bot_thread.start()
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
 
-    #     return {"message": "Whitelabel bot started successfully!"}, 200
+        json_data = await request.json()
+        guild_id = json_data.get("guild_id")
+        category_id = json_data.get("category_id")
+        
+        if not guild_id or not category_id:
+            raise HTTPException(status_code=400, detail="Missing required parameters")
+        
+        # Get guild
+        guild = self.bot.get_guild(int(guild_id))
+        if not guild:
+            raise HTTPException(status_code=404, detail="Guild not found")
+        
+        # Get ticket category
+        category = await db.ticket_categories.find_one({"_id": category_id, "guild_id": int(guild_id)})
+        if not category:
+            raise HTTPException(status_code=404, detail="Ticket category not found")
+        
+        # Get channel
+        channel = guild.get_channel(int(category.get("ticket_channel")))
+        if not channel:
+            raise HTTPException(status_code=404, detail="Channel not found")
+        
+        # Create embed
+        embed = discord.Embed(
+            title=category.get("embed", {}).get("title", "Support Ticket"),
+            description=category.get("embed", {}).get("description", "Click the button below to create a ticket"),
+            color=category.get("embed", {}).get("color", 0x5865F2)
+        )
+        
+        if guild.icon:
+            embed.set_footer(text=f"{guild.name}", icon_url=guild.icon.url)
+        else:
+            embed.set_footer(text=f"{guild.name}")
+        
+        # Create button for ticket creation
+        class TicketButton(discord.ui.Button):
+            def __init__(self, emoji, label, custom_id, style):
+                super().__init__(emoji=emoji, label=label, custom_id=custom_id, style=style)
+                
+            async def callback(self, interaction: discord.Interaction):
+                # Create a ticket
+                await interaction.response.defer(ephemeral=True)
+                
+                # Check if user already has an open ticket in this category
+                existing_ticket = await db.tickets.find_one({
+                    "guild_id": guild.id,
+                    "user_id": interaction.user.id,
+                    "category_id": category_id,
+                    "status": "open"
+                })
+                
+                if existing_ticket:
+                    channel_id = existing_ticket.get("channel_id")
+                    channel = guild.get_channel(channel_id)
+                    if channel:
+                        return await interaction.followup.send(
+                            f"You already have an open ticket: {channel.mention}", 
+                            ephemeral=True
+                        )
+                
+                # Create ticket channel
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                    guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                }
+                
+                # Add permissions for support roles
+                for role_id in category.get("support_roles", []):
+                    role = guild.get_role(role_id)
+                    if role:
+                        overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                
+                # Create the ticket channel
+                ticket_id = str(await db.tickets.count_documents({"guild_id": guild.id})) + 1
+                channel_name = f"ticket-{ticket_id}-{interaction.user.name}"
+                
+                try:
+                    ticket_channel = await guild.create_text_channel(
+                        name=channel_name[:100],  # Discord has a character limit for channel names
+                        overwrites=overwrites,
+                        reason=f"Ticket created by {interaction.user.name}"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to create ticket channel: {e}")
+                    return await interaction.followup.send(
+                        "Failed to create ticket channel. Please contact an administrator.",
+                        ephemeral=True
+                    )
+                
+                # Create ticket record in database
+                ticket_data = {
+                    "_id": str(uuid.uuid4()),
+                    "guild_id": guild.id,
+                    "user_id": interaction.user.id,
+                    "username": interaction.user.name,
+                    "category_id": category_id,
+                    "category_name": category.get("name"),
+                    "channel_id": ticket_channel.id,
+                    "status": "open",
+                    "created_at": datetime.datetime.now().timestamp()
+                }
+                
+                await db.tickets.insert_one(ticket_data)
+                
+                # Send welcome message in ticket channel
+                welcome_embed = discord.Embed(
+                    title=f"Ticket: {category.get('name')}",
+                    description=f"Thank you for creating a ticket, {interaction.user.mention}!\n\nSupport will be with you shortly.",
+                    color=0x5865F2,
+                    timestamp=datetime.datetime.now()
+                )
+                
+                # Create UI components for ticket management
+                close_button = discord.ui.Button(
+                    style=discord.ButtonStyle.danger, 
+                    label="Close Ticket", 
+                    custom_id=f"close_ticket:{ticket_data['_id']}"
+                )
+                
+                class TicketActionView(discord.ui.View):
+                    def __init__(self):
+                        super().__init__(timeout=None)
+                        self.add_item(close_button)
+                    
+                    @discord.ui.button(style=discord.ButtonStyle.danger, label="Close Ticket", custom_id=f"close_ticket:{ticket_data['_id']}")
+                    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+                        # Check if user is ticket creator or has support role
+                        is_creator = interaction.user.id == ticket_data["user_id"]
+                        has_support_role = False
+                        
+                        for role_id in category.get("support_roles", []):
+                            role = guild.get_role(role_id)
+                            if role and role in interaction.user.roles:
+                                has_support_role = True
+                                break
+                                
+                        if not (is_creator or has_support_role):
+                            return await interaction.response.send_message(
+                                "You don't have permission to close this ticket.",
+                                ephemeral=True
+                            )
+                        
+                        # Update ticket status
+                        await db.tickets.update_one(
+                            {"_id": ticket_data["_id"]},
+                            {"$set": {"status": "closed"}}
+                        )
+                        
+                        # Send closing message
+                        closing_embed = discord.Embed(
+                            title="Ticket Closed",
+                            description=f"This ticket has been closed by {interaction.user.mention}.",
+                            color=0xED4245,
+                            timestamp=datetime.datetime.now()
+                        )
+                        
+                        delete_button = discord.ui.Button(
+                            style=discord.ButtonStyle.danger, 
+                            label="Delete Ticket", 
+                            custom_id=f"delete_ticket:{ticket_data['_id']}"
+                        )
+                        
+                        class DeleteView(discord.ui.View):
+                            def __init__(self):
+                                super().__init__(timeout=None)
+                                self.add_item(delete_button)
+                            
+                            @discord.ui.button(style=discord.ButtonStyle.danger, label="Delete Ticket", custom_id=f"delete_ticket:{ticket_data['_id']}")
+                            async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+                                if not has_support_role:
+                                    return await interaction.response.send_message(
+                                        "Only staff can delete tickets.",
+                                        ephemeral=True
+                                    )
+                                
+                                await interaction.response.defer()
+                                
+                                # Archive ticket messages
+                                messages = []
+                                async for message in ticket_channel.history(limit=None, oldest_first=True):
+                                    if message.content:
+                                        messages.append({
+                                            "author_id": message.author.id,
+                                            "author_name": message.author.name,
+                                            "content": message.content,
+                                            "created_at": message.created_at.timestamp()
+                                        })
+                                
+                                # Save messages to database
+                                if messages:
+                                    await db.ticket_messages.insert_many([
+                                        {
+                                            "ticket_id": ticket_data["_id"],
+                                            "guild_id": guild.id,
+                                            **msg
+                                        } for msg in messages
+                                    ])
+                                
+                                # Delete channel
+                                try:
+                                    await ticket_channel.delete(reason=f"Ticket deleted by {interaction.user.name}")
+                                except Exception as e:
+                                    logger.error(f"Failed to delete ticket channel: {e}")
+                        
+                        await interaction.response.send_message(embed=closing_embed, view=DeleteView())
+                
+                await ticket_channel.send(f"{interaction.user.mention} {' '.join([f'<@&{role_id}>' for role_id in category.get('support_roles', [])])}", embed=welcome_embed, view=TicketActionView())
+                
+                # Let the user know the ticket was created
+                await interaction.followup.send(
+                    f"Ticket created successfully! Please check {ticket_channel.mention}",
+                    ephemeral=True
+                )
+        
+        # Create the view with the button
+        view = discord.ui.View(timeout=None)
+        button = TicketButton(
+            emoji=category.get("emoji", "🎫"),
+            label=f"Create {category.get('name')} Ticket",
+            custom_id=f"create_ticket:{category_id}",
+            style=discord.ButtonStyle.primary
+        )
+        view.add_item(button)
+        
+        # Send the embed with the button
+        try:
+            await channel.send(embed=embed, view=view)
+            return {"message": "Ticket embed sent successfully"}
+        except Exception as e:
+            logger.error(f"Failed to send ticket embed: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to send ticket embed: {str(e)}")
 
 
 # Discord Bot API Integration Cog
