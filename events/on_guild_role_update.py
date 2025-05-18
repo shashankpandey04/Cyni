@@ -27,6 +27,8 @@ class OnGuildRoleUpdate(commands.Cog):
         if sett.get("moderation_module", {}).get("audit_log") is None:
             return
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
+        if not guild_log_channel:
+            return
         created_at = discord_time(datetime.datetime.now())
 
         #webhooks = await guild_log_channel.webhooks()

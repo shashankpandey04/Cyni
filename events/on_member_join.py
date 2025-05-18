@@ -25,6 +25,8 @@ class OnMemberJoin(commands.Cog):
         if sett.get("moderation_module", {}).get("enabled", False) is True:
             if sett.get("moderation_module", {}).get("audit_log") is not None:
                 guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
+                if not guild_log_channel:
+                    return
                 joined_at = discord_time(datetime.datetime.now())
                 embed = discord.Embed(
                         title= " ",

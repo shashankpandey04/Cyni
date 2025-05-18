@@ -27,7 +27,8 @@ class OnThreadCreate(commands.Cog):
         if sett.get("moderation_module", {}).get("audit_log") is None:
             return
         guild_log_channel = thread.guild.get_channel(sett["moderation_module"]["audit_log"])
-
+        if not guild_log_channel:
+            return
         #webhooks = await guild_log_channel.webhooks()
         #cyni_webhook = None
         #for webhook in webhooks:
