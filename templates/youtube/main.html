@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <!-- Include the sidebar -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area -->
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-extrabold text-white mb-2">YouTube Notifications</h1>
+          <p class="text-gray-400">Notify your server when new videos are uploaded</p>
+        </div>
+        <button 
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+          onclick="document.getElementById('addYouTubeModal').classList.remove('hidden')">
+          <i class="fab fa-youtube mr-2"></i> Add YouTube Channel
+        </button>
+      </div>
+      
+      <!-- Status Card -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-red-500/10 overflow-hidden mb-8">
+        <div class="p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-12 w-12 bg-red-500/20 rounded-lg flex items-center justify-center">
+              <i class="fab fa-youtube text-red-500 text-2xl"></i>
+            </div>
+            <div class="ml-4">
+              <h2 class="text-lg font-semibold text-white">YouTube Notification Status</h2>
+              <p class="text-sm text-gray-400">
+                {% if youtube_config.channels %}
+                  Currently tracking <span class="text-red-500">{{ youtube_config.channels|length }}</span> YouTube channels
+                {% else %}
+                  Not tracking any YouTube channels yet. Add one to get started.
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- YouTube Channels Table -->
+      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden mb-8">
+        <div class="border-b border-gray-700/50 p-6">
+          <h3 class="text-xl font-semibold text-white">Tracked YouTube Channels</h3>
+          <p class="text-sm text-gray-400 mt-1">Channels that will trigger notifications when new videos are uploaded</p>
+        </div>
+        
+        <div class="p-6">
+          {% if youtube_config.channels %}
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="text-xs text-gray-400 uppercase bg-gray-800/30">
+                <tr>
+                  <th scope="col" class="px-6 py-3 rounded-l-lg">Channel Name</th>
+                  <th scope="col" class="px-6 py-3">Discord Channel</th>
+                  <th scope="col" class="px-6 py-3">Last Check</th>
+                  <th scope="col" class="px-6 py-3 rounded-r-lg">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for channel in youtube_config.channels %}
+                <tr class="border-b border-gray-700/30">
+                  <td class="px-6 py-4 text-white">
+                    <div class="flex items-center">
+                      <i class="fab fa-youtube text-red-500 mr-2"></i>
+                      {{ channel.channel_name }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 text-gray-300">
+                    {% if channels[channel.discord_channel_id] %}
+                    #{{ channels[channel.discord_channel_id] }}
+                    {% else %}
+                    <span class="text-red-400">Channel not found</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 text-gray-300">
+                    {{ channel.last_check|int|datetime }}
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="flex space-x-2">
+                      <button
+                        onclick="openEditModal('{{ channel.youtube_id }}', '{{ channel.discord_channel_id }}', '{{ channel.message_format }}')"
+                        class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <form method="POST" action="{{ url_for('youtube_module.remove_youtube_channel', guild_id=guild.id) }}" class="inline" onsubmit="return confirm('Are you sure you want to remove this YouTube channel?');">
+                        <input type="hidden" name="youtube_id" value="{{ channel.youtube_id }}">
+                        <input type="hidden" name="discord_channel_id" value="{{ channel.discord_channel_id }}">
+                        <button type="submit" class="p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="bg-gray-800/40 rounded-lg p-6 text-center">
+            <p class="text-gray-300 mb-4">No YouTube channels found. Add one to get started!</p>
+            <button 
+              class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              onclick="document.getElementById('addYouTubeModal').classList.remove('hidden')">
+              <i class="fab fa-youtube mr-2"></i> Add YouTube Channel
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Help Section -->
+      <div class="mt-8 bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="p-6">
+          <h3 class="text-lg font-semibold text-white mb-4">Help & Tips</h3>
+          <ul class="space-y-3 text-gray-300 text-sm">
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>YouTube channels are checked every 2 minutes for new uploads.</span>
+            </li>
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Only videos published in the last hour will trigger notifications.</span>
+            </li>
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>You can customize the notification message with placeholders like {video_url}, {video_title}, {channel_name}, etc.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add YouTube Channel Modal -->
+<div id="addYouTubeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-gray-800 rounded-lg w-full max-w-md p-6 border border-gray-700">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-semibold text-white">Add YouTube Channel</h3>
+      <button 
+        class="text-gray-400 hover:text-white"
+        onclick="document.getElementById('addYouTubeModal').classList.add('hidden')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <form method="POST" action="{{ url_for('youtube_module.add_youtube_channel', guild_id=guild.id) }}">
+      <div class="mb-4">
+        <label for="youtube_url" class="block text-sm font-medium text-gray-300 mb-2">YouTube Channel URL or ID</label>
+        <input 
+          type="text" 
+          class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400" 
+          id="youtube_url" 
+          name="youtube_url" 
+          required 
+          placeholder="https://www.youtube.com/channel/...">
+        <p class="mt-1 text-xs text-gray-400">Enter the full YouTube channel URL</p>
+      </div>
+      
+      <div class="mb-4">
+        <label for="discord_channel_id" class="block text-sm font-medium text-gray-300 mb-2">Discord Channel</label>
+        <select 
+          class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white appearance-none" 
+          id="discord_channel_id" 
+          name="discord_channel_id" 
+          required>
+          <option value="" disabled selected>Select a channel</option>
+          {% for id, name in channels.items() %}
+          <option value="{{ id }}">#{{ name }}</option>
+          {% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-gray-400">Select the channel where notifications will be sent</p>
+      </div>
+      
+      <div class="mb-4">
+        <label for="message_format" class="block text-sm font-medium text-gray-300 mb-2">Notification Message Format</label>
+        <textarea 
+          class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400" 
+          id="message_format" 
+          name="message_format" 
+          rows="3">@everyone New video from **{channel_name}**!
+{video_url}</textarea>
+        <p class="mt-1 text-xs text-gray-400">
+          Available placeholders:
+          <span class="text-red-400">{video_url}</span>, 
+          <span class="text-red-400">{video_title}</span>, 
+          <span class="text-red-400">{channel_name}</span>, 
+          <span class="text-red-400">{everyone}</span>, 
+          <span class="text-red-400">{here}</span>
+        </p>
+      </div>
+      
+      <div class="flex justify-end mt-6">
+        <button 
+          type="button" 
+          class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg mr-2"
+          onclick="document.getElementById('addYouTubeModal').classList.add('hidden')">
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+          Add Channel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit YouTube Channel Modal -->
+<div id="editYouTubeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-gray-800 rounded-lg w-full max-w-md p-6 border border-gray-700">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-semibold text-white">Edit YouTube Notification</h3>
+      <button 
+        class="text-gray-400 hover:text-white"
+        onclick="document.getElementById('editYouTubeModal').classList.add('hidden')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <form method="POST" action="{{ url_for('youtube_module.edit_youtube_channel', guild_id=guild.id) }}" id="editYouTubeForm">
+      <input type="hidden" id="edit_youtube_id" name="youtube_id">
+      <input type="hidden" id="edit_discord_channel_id" name="discord_channel_id">
+      
+      <div class="mb-4">
+        <label for="edit_message_format" class="block text-sm font-medium text-gray-300 mb-2">Notification Message Format</label>
+        <textarea 
+          class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400" 
+          id="edit_message_format" 
+          name="message_format" 
+          rows="3"></textarea>
+        <p class="mt-1 text-xs text-gray-400">
+          Available placeholders:
+          <span class="text-red-400">{video_url}</span>, 
+          <span class="text-red-400">{video_title}</span>, 
+          <span class="text-red-400">{channel_name}</span>, 
+          <span class="text-red-400">{everyone}</span>, 
+          <span class="text-red-400">{here}</span>
+        </p>
+      </div>
+      
+      <div class="flex justify-end mt-6">
+        <button 
+          type="button" 
+          class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg mr-2"
+          onclick="document.getElementById('editYouTubeModal').classList.add('hidden')">
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+          Update
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEditModal(youtubeId, discordChannelId, messageFormat) {
+    document.getElementById('edit_youtube_id').value = youtubeId;
+    document.getElementById('edit_discord_channel_id').value = discordChannelId;
+    document.getElementById('edit_message_format').value = messageFormat;
+    document.getElementById('editYouTubeModal').classList.remove('hidden');
+  }
+</script>
+{% endblock %}

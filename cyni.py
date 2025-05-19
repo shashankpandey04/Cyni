@@ -29,6 +29,7 @@ from Datamodels.Erlc_keys import ERLC_Keys
 from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
 from Datamodels.LOA import LOA
+from Datamodels.YouTubeConfig import YouTubeConfig
 
 from Tasks.loa_check import loa_check
 from Tasks.GiveawayRoll import giveaway_roll
@@ -105,6 +106,7 @@ class Bot(commands.AutoShardedBot):
         self.applications = Applications(self.db, 'applications')
         self.partnership = Partnership(self.db, 'partnership')
         self.loa = LOA(self.db, 'loa')
+        self.youtube_config = YouTubeConfig(self.db, 'youtube_config')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
