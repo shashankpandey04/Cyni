@@ -18,6 +18,7 @@ from DashboardModules.WelcomeModule import welcome_route
 from DashboardModules.CAD import cad_route
 from DashboardModules.TicketModule import ticket_module
 from DashboardModules.YouTubeModule import youtube_module
+from DashboardModules.AutoModModule import automod
 
 FILES_URL = "https://files.cyni.quprdigital.tk/upload"
 
@@ -52,6 +53,7 @@ app.register_blueprint(welcome_route)
 app.register_blueprint(cad_route)
 app.register_blueprint(ticket_module)
 app.register_blueprint(youtube_module)
+#app.register_blueprint(automod)
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)

@@ -1,0 +1,149 @@
+{% extends 'automod/base_automod.html' %}
+
+{% block automod_title %}Raid Detection{% endblock %}
+{% block automod_subtitle %}Automatically detect and handle rapid server joins{% endblock %}
+
+{% block status_title %}Raid Detection Status{% endblock %}
+{% block status_text %}
+  {% if raid_settings.get('enabled', False) %}
+    Raid Detection is <span class="text-green-400">Enabled</span> - Currently monitoring join patterns
+  {% else %}
+    Raid Detection is <span class="text-red-400">Disabled</span> - Enable below to start monitoring
+  {% endif %}
+{% endblock %}
+
+{% block automod_content %}
+<!-- Settings Form -->
+<div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+  <div class="border-b border-gray-700/50 p-6">
+    <h3 class="text-xl font-semibold text-white">Raid Detection Settings</h3>
+    <p class="text-sm text-gray-400 mt-1">Configure how the bot detects and responds to potential raids</p>
+  </div>
+  
+  <div class="p-6">
+    <form method="POST" action="{{ url_for('automod.raid_detection', guild_id=guild.id) }}">
+      <!-- Enable/Disable Toggle -->
+      <div class="mb-6 flex items-center justify-between bg-gray-700/30 rounded-lg p-4 border border-gray-700/50">
+        <div>
+          <h4 class="text-white font-medium">Enable Raid Detection</h4>
+          <p class="text-sm text-gray-400">Detect and take action when multiple users join in a short period</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" name="enabled" class="sr-only peer" {% if raid_settings.get('enabled', False) %}checked{% endif %}>
+          <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+        </label>
+      </div>
+      
+      <!-- Join Threshold -->
+      <div class="mb-6">
+        <label for="join_threshold" class="block text-sm font-medium text-gray-300 mb-2">Join Threshold</label>
+        <div class="flex items-center">
+          <input 
+            type="number" 
+            class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+            id="join_threshold" 
+            name="join_threshold" 
+            min="3" 
+            max="100" 
+            value="{{ raid_settings.get('join_threshold', 5) }}">
+        </div>
+        <p class="mt-2 text-sm text-gray-400">Number of joins to trigger detection (3-100)</p>
+      </div>
+      
+      <!-- Time Window -->
+      <div class="mb-6">
+        <label for="time_window" class="block text-sm font-medium text-gray-300 mb-2">Time Window (seconds)</label>
+        <input 
+          type="number" 
+          class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+          id="time_window" 
+          name="time_window" 
+          min="5" 
+          max="300" 
+          value="{{ raid_settings.get('time_window', 10) }}">
+        <p class="mt-2 text-sm text-gray-400">Time period in seconds to monitor join rate (5-300)</p>
+      </div>
+      
+      <!-- Action Selection -->
+      <div class="mb-6">
+        <label for="action" class="block text-sm font-medium text-gray-300 mb-2">Action to Take</label>
+        <div class="relative">
+          <select 
+            class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+            id="action" 
+            name="action">
+            <option value="alert" {% if raid_settings.get('action') == 'alert' %}selected{% endif %}>Alert Only</option>
+            <option value="kick" {% if raid_settings.get('action') == 'kick' %}selected{% endif %}>Kick New Users</option>
+            <option value="ban" {% if raid_settings.get('action') == 'ban' %}selected{% endif %}>Ban New Users</option>
+            <option value="lockdown" {% if raid_settings.get('action') == 'lockdown' %}selected{% endif %}>Server Lockdown</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        <p class="mt-2 text-sm text-gray-400">Action to take when raid detection is triggered</p>
+      </div>
+      
+      <!-- Alert Channel -->
+      <div class="mb-6">
+        <label for="alert_channel" class="block text-sm font-medium text-gray-300 mb-2">Alert Channel</label>
+        <div class="relative">
+          <select 
+            class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+            id="alert_channel" 
+            name="alert_channel">
+            <option value="">Select a channel</option>
+            {% for id, name in channels.items() %}
+            <option value="{{ id }}" {% if raid_settings.get('alert_channel') == id %}selected{% endif %}>#{{ name }}</option>
+            {% endfor %}
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        <p class="mt-2 text-sm text-gray-400">Channel to send raid alerts to (optional)</p>
+      </div>
+      
+      <div class="flex justify-end mt-8">
+        <button 
+          type="submit" 
+          class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+          Save Settings
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block help_title %}Raid Detection Help{% endblock %}
+{% block help_content %}
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Raid detection monitors patterns of users joining your server in rapid succession.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>If more than the specified number of users join within the time window, the selected action will be taken.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Server lockdown will prevent new members from joining and restrict messaging for normal users.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Recommended: Start with "Alert Only" and monitor before enabling automatic actions.</span>
+</li>
+{% endblock %}

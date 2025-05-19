@@ -1,0 +1,179 @@
+{% extends 'automod/base_automod.html' %}
+
+{% block automod_title %}Custom Keywords{% endblock %}
+{% block automod_subtitle %}Filter specific words or phrases from your server{% endblock %}
+
+{% block status_title %}Custom Keywords Status{% endblock %}
+{% block status_text %}
+  {% if keyword_settings.get('enabled', False) %}
+    Keyword Filter is <span class="text-green-400">Enabled</span> - 
+    {% if keyword_settings.get('keywords', [])|length > 0 %}
+      Monitoring {{ keyword_settings.get('keywords', [])|length }} keywords
+    {% else %}
+      No keywords added yet
+    {% endif %}
+  {% else %}
+    Keyword Filter is <span class="text-red-400">Disabled</span> - Enable below to start filtering
+  {% endif %}
+{% endblock %}
+
+{% block automod_content %}
+<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+  <!-- Keyword List Card -->
+  <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden lg:col-span-2">
+    <div class="border-b border-gray-700/50 p-6">
+      <h3 class="text-xl font-semibold text-white">Filtered Keywords</h3>
+      <p class="text-sm text-gray-400 mt-1">Words and phrases that will trigger the filter</p>
+    </div>
+    
+    <div class="p-6">
+      {% if keyword_settings.get('keywords', [])|length > 0 %}
+      <div class="mb-6">
+        <div class="flex flex-wrap gap-2">
+          {% for keyword in keyword_settings.get('keywords', []) %}
+          <div class="bg-amber-500/10 rounded-full px-3 py-1 flex items-center text-sm">
+            <span class="text-amber-300 font-medium">{{ keyword }}</span>
+            <form method="POST" action="{{ url_for('automod.custom_keyword', guild_id=guild.id) }}" class="inline ml-2">
+              <input type="hidden" name="keyword" value="{{ keyword }}">
+              <button type="submit" name="delete_keyword" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="bg-gray-800/40 rounded-lg p-4 text-center mb-6">
+        <p class="text-gray-300">No keywords added yet. Add some below.</p>
+      </div>
+      {% endif %}
+      
+      <form method="POST" action="{{ url_for('automod.custom_keyword', guild_id=guild.id) }}" class="flex gap-2">
+        <input 
+          type="text" 
+          class="flex-grow bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+          id="keyword" 
+          name="keyword" 
+          placeholder="Enter a new keyword or phrase..." 
+          required>
+        <button 
+          type="submit" 
+          name="add_keyword"
+          class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none">
+          <i class="fas fa-plus mr-2"></i> Add
+        </button>
+      </form>
+      
+      <div class="mt-4 text-sm text-gray-400">
+        <i class="fas fa-info-circle mr-1"></i> Keywords are case-insensitive and will match within larger words.
+      </div>
+    </div>
+  </div>
+  
+  <!-- Settings Card -->
+  <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+    <div class="border-b border-gray-700/50 p-6">
+      <h3 class="text-xl font-semibold text-white">Filter Settings</h3>
+      <p class="text-sm text-gray-400 mt-1">Configure how the keyword filter behaves</p>
+    </div>
+    
+    <div class="p-6">
+      <form method="POST" action="{{ url_for('automod.custom_keyword', guild_id=guild.id) }}">
+        <!-- Enable/Disable Toggle -->
+        <div class="mb-6 flex items-center justify-between bg-gray-700/30 rounded-lg p-4 border border-gray-700/50">
+          <div>
+            <h4 class="text-white font-medium">Enable Keyword Filter</h4>
+            <p class="text-sm text-gray-400">Filter messages containing banned words</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="enabled" class="sr-only peer" {% if keyword_settings.get('enabled', False) %}checked{% endif %}>
+            <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+        
+        <!-- Action Selection -->
+        <div class="mb-6">
+          <label for="action" class="block text-sm font-medium text-gray-300 mb-2">Action to Take</label>
+          <div class="relative">
+            <select 
+              class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+              id="action" 
+              name="action">
+              <option value="delete" {% if keyword_settings.get('action') == 'delete' %}selected{% endif %}>Delete Message</option>
+              <option value="warn" {% if keyword_settings.get('action') == 'warn' %}selected{% endif %}>Delete + Warn User</option>
+              <option value="mute" {% if keyword_settings.get('action') == 'mute' %}selected{% endif %}>Delete + Timeout User</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </div>
+          </div>
+          <p class="mt-2 text-sm text-gray-400">Action to take when a filtered word is detected</p>
+        </div>
+        
+        <!-- Alert Channel -->
+        <div class="mb-6">
+          <label for="alert_channel" class="block text-sm font-medium text-gray-300 mb-2">Alert Channel</label>
+          <div class="relative">
+            <select 
+              class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+              id="alert_channel" 
+              name="alert_channel">
+              <option value="">Select a channel</option>
+              {% for id, name in channels.items() %}
+              <option value="{{ id }}" {% if keyword_settings.get('alert_channel') == id %}selected{% endif %}>#{{ name }}</option>
+              {% endfor %}
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </div>
+          </div>
+          <p class="mt-2 text-sm text-gray-400">Channel to log filter triggers (optional)</p>
+        </div>
+        
+        <div class="flex justify-end mt-8">
+          <button 
+            type="submit" 
+            class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+            Save Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block help_title %}Keyword Filter Help{% endblock %}
+{% block help_content %}
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Add offensive or prohibited words and phrases to automatically filter out unwanted content.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>You can add multi-word phrases like "bad phrase" and they'll be detected as a whole.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>The system will detect keywords even when they're part of a larger word or have characters mixed in.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>When using "Delete + Timeout User", the user will receive a 10-minute timeout by default.</span>
+</li>
+{% endblock %}

@@ -1507,5 +1507,106 @@ class Moderation(commands.Cog):
     #             )
     #         )
 
+    @commands.hybrid_command(
+        name="temprole",
+        extras={"category": "Moderation"}
+    )
+    @commands.guild_only()
+    @is_management()
+    async def temprole(self, ctx, member: discord.Member, role: discord.Role, duration: str):
+        """
+        Temporarily assign a role to a user.
+        """
+        if isinstance(ctx,commands.Context):
+            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Temprole {member} {role} {duration}")
+        settings = await self.bot.settings.find_by_id(ctx.guild.id)
+        if not settings:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "No settings found.\nPlease set up the bot using the `config` command.",
+                    color = discord.Color.red()
+                )
+            )
+        try:
+            module_enabled = settings["moderation_module"]["enabled"]
+        except KeyError:
+            module_enabled = False
+        if not module_enabled:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "Moderation module is not enabled.",
+                    color = discord.Color.red()
+                )
+            )
+        
+        if ctx.author.top_role.position <= role.position:
+            return await ctx.send(
+                embed = discord.Embed(
+                    title="Looks like you can't do that",
+                    description="You can't add this role because it is higher than your top role.",
+                    color=RED_COLOR
+                )
+            )
+                
+        duration = parse_duration(duration)
+        if duration is None:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "Invalid duration format. Please use a valid format.",
+                    color = discord.Color.red()
+                )
+            )
+        
+        doc = {
+            'guild_id': ctx.guild.id,
+            'user_id': member.id,
+            'role_id': role.id,
+            'expire_at': datetime.now().timestamp() + duration,
+            'reason': f"Temprole {role.name} for {duration} seconds",
+            'timestamp': datetime.now().timestamp(),
+            'active': True,
+            'completed': False,
+            'void': False
+        }
+        await self.bot.temp_roles.insert_one(doc)
+
+        try:
+            await member.add_roles(role)
+        except discord.Forbidden:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "I do not have the required permissions to add this role.",
+                    color = discord.Color.red()
+                )
+            )
+
+        await ctx.send(
+            embed = discord.Embed(
+                description = f"{role.mention} has been added to {member.mention} for {duration} seconds.",
+                color = GREEN_COLOR
+            )
+        )
+
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+        except KeyError:
+            mod_log_channel = None
+        if mod_log_channel:
+            await mod_log_channel.send(
+                embed = discord.Embed(
+                    title = "Role Added Temporarily",
+                    description = f"**User ID:** {member.mention}\n**Role:** {role.mention}\n**Moderator:** {ctx.author.mention}\n**Duration:** {duration} seconds",
+                    color = discord.Color.red()
+                )
+            )
+        else:
+            await ctx.channel.send(
+                embed=discord.Embed(
+                    description = "Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color = RED_COLOR
+                )
+            )
+        #role will be removed using discord.py's built in task loop
+
 async def setup(bot):
     await bot.add_cog(Moderation(bot))

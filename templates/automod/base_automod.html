@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex h-screen overflow-y-auto bg-gray-900">
+  <!-- Include the sidebar -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area -->
+  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
+    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-extrabold text-white mb-2">{% block automod_title %}AutoMod{% endblock %}</h1>
+          <p class="text-gray-400">{% block automod_subtitle %}Automated moderation settings for your server{% endblock %}</p>
+        </div>
+        <div>
+          {% block header_actions %}{% endblock %}
+        </div>
+      </div>
+      
+      <!-- AutoMod Navigation -->
+      <div class="mb-8 bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="p-4 grid grid-cols-1 sm:grid-cols-5 gap-2">
+          <a href="{{ url_for('automod.raid_detection', guild_id=guild.id) }}" 
+             class="px-4 py-2 rounded-lg text-center text-sm font-medium {% if request.endpoint == 'automod.raid_detection' %}bg-amber-500/20 text-amber-500 border border-amber-500/20{% else %}bg-gray-700/50 text-gray-300 hover:bg-gray-700 border border-transparent{% endif %} transition-colors">
+            <i class="fas fa-shield-alt mr-1"></i> Raid Detection
+          </a>
+          <a href="{{ url_for('automod.spam_detection', guild_id=guild.id) }}" 
+             class="px-4 py-2 rounded-lg text-center text-sm font-medium {% if request.endpoint == 'automod.spam_detection' %}bg-amber-500/20 text-amber-500 border border-amber-500/20{% else %}bg-gray-700/50 text-gray-300 hover:bg-gray-700 border border-transparent{% endif %} transition-colors">
+            <i class="fas fa-bolt mr-1"></i> Spam Detection
+          </a>
+          <a href="{{ url_for('automod.custom_keyword', guild_id=guild.id) }}" 
+             class="px-4 py-2 rounded-lg text-center text-sm font-medium {% if request.endpoint == 'automod.custom_keyword' %}bg-amber-500/20 text-amber-500 border border-amber-500/20{% else %}bg-gray-700/50 text-gray-300 hover:bg-gray-700 border border-transparent{% endif %} transition-colors">
+            <i class="fas fa-comment-slash mr-1"></i> Custom Keywords
+          </a>
+          <a href="{{ url_for('automod.link_blocking', guild_id=guild.id) }}" 
+             class="px-4 py-2 rounded-lg text-center text-sm font-medium {% if request.endpoint == 'automod.link_blocking' %}bg-amber-500/20 text-amber-500 border border-amber-500/20{% else %}bg-gray-700/50 text-gray-300 hover:bg-gray-700 border border-transparent{% endif %} transition-colors">
+            <i class="fas fa-link mr-1"></i> Link Blocking
+          </a>
+          <a href="{{ url_for('automod.exemptions', guild_id=guild.id) }}" 
+             class="px-4 py-2 rounded-lg text-center text-sm font-medium {% if request.endpoint == 'automod.exemptions' %}bg-amber-500/20 text-amber-500 border border-amber-500/20{% else %}bg-gray-700/50 text-gray-300 hover:bg-gray-700 border border-transparent{% endif %} transition-colors">
+            <i class="fas fa-user-shield mr-1"></i> Exemptions
+          </a>
+        </div>
+      </div>
+      
+      <!-- Status Card -->
+      <div class="mb-8 bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-amber-500/10 overflow-hidden">
+        <div class="p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-12 w-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-4">
+              <h2 class="text-lg font-semibold text-white">{% block status_title %}AutoMod Status{% endblock %}</h2>
+              <p class="text-sm text-gray-400">
+                {% block status_text %}
+                {% if automod_settings.get('enabled', False) %}
+                  AutoMod is <span class="text-green-400">Active</span>
+                {% else %}
+                  AutoMod is <span class="text-red-400">Disabled</span>
+                {% endif %}
+                {% endblock %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main Content -->
+      {% block automod_content %}{% endblock %}
+      
+      <!-- Help Section -->
+      <div class="mt-8 bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+        <div class="p-6">
+          <h3 class="text-lg font-semibold text-white mb-4">{% block help_title %}Help & Tips{% endblock %}</h3>
+          <ul class="space-y-3 text-gray-300 text-sm">
+            {% block help_content %}
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>AutoMod modules help you automatically manage your server and prevent unwanted behavior.</span>
+            </li>
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>You can exempt specific roles and channels from AutoMod in the Exemptions section.</span>
+            </li>
+            <li class="flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Configure alert channels to receive notifications about AutoMod actions.</span>
+            </li>
+            {% endblock %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

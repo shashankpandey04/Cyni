@@ -1,0 +1,132 @@
+{% extends 'automod/base_automod.html' %}
+
+{% block automod_title %}AutoMod Exemptions{% endblock %}
+{% block automod_subtitle %}Configure roles and channels to exempt from AutoMod rules{% endblock %}
+
+{% block status_title %}Exemptions Status{% endblock %}
+{% block status_text %}
+  {% if automod_settings.get('enabled', False) %}
+    AutoMod is <span class="text-green-400">Active</span> - 
+    {{ exempt_settings.get('roles', [])|length }} exempted roles and 
+    {{ exempt_settings.get('channels', [])|length }} exempted channels
+  {% else %}
+    AutoMod is <span class="text-red-400">Disabled</span> - Enable modules to use exemptions
+  {% endif %}
+{% endblock %}
+
+{% block automod_content %}
+<!-- Settings Form -->
+<div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+  <div class="border-b border-gray-700/50 p-6">
+    <h3 class="text-xl font-semibold text-white">Exemption Settings</h3>
+    <p class="text-sm text-gray-400 mt-1">Select roles and channels that should be excluded from AutoMod rules</p>
+  </div>
+  
+  <div class="p-6">
+    <form method="POST" action="{{ url_for('automod.exemptions', guild_id=guild.id) }}">
+      <!-- Role Exemptions -->
+      <div class="mb-8">
+        <label for="exempt_roles" class="block text-lg font-medium text-white mb-3">Exempt Roles</label>
+        <p class="text-sm text-gray-400 mb-4">Users with these roles will not be affected by any AutoMod rules</p>
+        
+        <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-700/50">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for role_id, role_name in roles.items() %}
+            <div class="flex items-center">
+              <input 
+                type="checkbox" 
+                id="role_{{ role_id }}" 
+                name="exempt_roles" 
+                value="{{ role_id }}" 
+                class="h-4 w-4 text-amber-500 focus:ring-amber-500 border-gray-600 rounded bg-gray-700"
+                {% if role_id|int in exempt_settings.get('roles', []) %}checked{% endif %}>
+              <label for="role_{{ role_id }}" class="ml-2 block text-sm text-gray-300">
+                {{ role_name }}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Channel Exemptions -->
+      <div class="mb-8">
+        <label for="exempt_channels" class="block text-lg font-medium text-white mb-3">Exempt Channels</label>
+        <p class="text-sm text-gray-400 mb-4">AutoMod rules will not be enforced in these channels</p>
+        
+        <div class="bg-gray-700/30 rounded-lg p-4 border border-gray-700/50">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for channel_id, channel_name in channels.items() %}
+            <div class="flex items-center">
+              <input 
+                type="checkbox" 
+                id="channel_{{ channel_id }}" 
+                name="exempt_channels" 
+                value="{{ channel_id }}" 
+                class="h-4 w-4 text-amber-500 focus:ring-amber-500 border-gray-600 rounded bg-gray-700"
+                {% if channel_id|int in exempt_settings.get('channels', []) %}checked{% endif %}>
+              <label for="channel_{{ channel_id }}" class="ml-2 block text-sm text-gray-300">
+                #{{ channel_name }}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Admin Override Notice -->
+      <div class="p-4 bg-blue-900/20 border border-blue-800/40 rounded-lg mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-300">Automatic Exemptions</h3>
+            <div class="mt-2 text-sm text-blue-200">
+              <p>Users with Administrator permissions are automatically exempt from all AutoMod rules.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex justify-end mt-8">
+        <button 
+          type="submit" 
+          class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+          Save Exemptions
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block help_title %}Exemptions Help{% endblock %}
+{% block help_content %}
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Exempt your moderator and admin roles to ensure they're not affected by AutoMod.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>For link blocking, consider exempting media channels where users regularly share content.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Bot channels should usually be exempted to avoid interference with bot commands.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Exemptions apply across all AutoMod features (spam detection, keyword filters, etc.).</span>
+</li>
+{% endblock %}

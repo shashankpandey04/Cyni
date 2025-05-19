@@ -1,0 +1,327 @@
+{% extends 'automod/base_automod.html' %}
+
+{% block automod_title %}Link Blocking{% endblock %}
+{% block automod_subtitle %}Control what links and invites can be posted in your server{% endblock %}
+
+{% block status_title %}Link Blocking Status{% endblock %}
+{% block status_text %}
+  {% if link_settings.get('enabled', False) %}
+    Link Blocking is <span class="text-green-400">Enabled</span> - 
+    {% if link_settings.get('block_all_links', False) %}
+      Blocking all links
+    {% elif link_settings.get('block_discord_invites', False) %}
+      Blocking Discord invites
+    {% elif link_settings.get('whitelist_mode', False) %}
+      Whitelist mode (only allowed links can be posted)
+    {% else %}
+      Blacklist mode (specified domains are blocked)
+    {% endif %}
+  {% else %}
+    Link Blocking is <span class="text-red-400">Disabled</span> - Enable below to start filtering
+  {% endif %}
+{% endblock %}
+
+{% block automod_content %}
+<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+  <!-- Link Settings Card -->
+  <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden lg:col-span-1">
+    <div class="border-b border-gray-700/50 p-6">
+      <h3 class="text-xl font-semibold text-white">Link Blocking Settings</h3>
+      <p class="text-sm text-gray-400 mt-1">Configure how link blocking works</p>
+    </div>
+    
+    <div class="p-6">
+      <form method="POST" action="{{ url_for('automod.link_blocking', guild_id=guild.id) }}">
+        <!-- Enable/Disable Toggle -->
+        <div class="mb-6 flex items-center justify-between bg-gray-700/30 rounded-lg p-4 border border-gray-700/50">
+          <div>
+            <h4 class="text-white font-medium">Enable Link Blocking</h4>
+            <p class="text-sm text-gray-400">Filter messages containing links</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="enabled" class="sr-only peer" {% if link_settings.get('enabled', False) %}checked{% endif %}>
+            <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+        
+        <!-- Block Options -->
+        <div class="mb-6 space-y-3">
+          <div class="flex items-center">
+            <input 
+              type="checkbox" 
+              id="block_all_links" 
+              name="block_all_links" 
+              class="h-4 w-4 text-amber-500 focus:ring-amber-500 border-gray-600 rounded bg-gray-700"
+              {% if link_settings.get('block_all_links', False) %}checked{% endif %}>
+            <label for="block_all_links" class="ml-2 block text-sm text-gray-300">
+              Block all links
+            </label>
+          </div>
+          
+          <div class="flex items-center">
+            <input 
+              type="checkbox" 
+              id="block_discord_invites" 
+              name="block_discord_invites" 
+              class="h-4 w-4 text-amber-500 focus:ring-amber-500 border-gray-600 rounded bg-gray-700"
+              {% if link_settings.get('block_discord_invites', False) %}checked{% endif %}>
+            <label for="block_discord_invites" class="ml-2 block text-sm text-gray-300">
+              Block Discord invites
+            </label>
+          </div>
+          
+          <div class="flex items-center">
+            <input 
+              type="checkbox" 
+              id="whitelist_mode" 
+              name="whitelist_mode" 
+              class="h-4 w-4 text-amber-500 focus:ring-amber-500 border-gray-600 rounded bg-gray-700"
+              {% if link_settings.get('whitelist_mode', False) %}checked{% endif %}>
+            <label for="whitelist_mode" class="ml-2 block text-sm text-gray-300">
+              Whitelist mode (only allow specific domains)
+            </label>
+          </div>
+        </div>
+        
+        <!-- Action Selection -->
+        <div class="mb-6">
+          <label for="action" class="block text-sm font-medium text-gray-300 mb-2">Action to Take</label>
+          <div class="relative">
+            <select 
+              class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+              id="action" 
+              name="action">
+              <option value="delete" {% if link_settings.get('action') == 'delete' %}selected{% endif %}>Delete Message</option>
+              <option value="warn" {% if link_settings.get('action') == 'warn' %}selected{% endif %}>Delete + Warn User</option>
+              <option value="mute" {% if link_settings.get('action') == 'mute' %}selected{% endif %}>Delete + Timeout User</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </div>
+          </div>
+          <p class="mt-2 text-sm text-gray-400">Action to take when a blocked link is detected</p>
+        </div>
+        
+        <!-- Alert Channel -->
+        <div class="mb-6">
+          <label for="alert_channel" class="block text-sm font-medium text-gray-300 mb-2">Alert Channel</label>
+          <div class="relative">
+            <select 
+              class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+              id="alert_channel" 
+              name="alert_channel">
+              <option value="">Select a channel</option>
+              {% for id, name in channels.items() %}
+              <option value="{{ id }}" {% if link_settings.get('alert_channel') == id %}selected{% endif %}>#{{ name }}</option>
+              {% endfor %}
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+              <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </div>
+          </div>
+          <p class="mt-2 text-sm text-gray-400">Channel to log link blocking (optional)</p>
+        </div>
+        
+        <div class="flex justify-end mt-8">
+          <button 
+            type="submit" 
+            class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+            Save Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Domain Lists Card -->
+  <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden lg:col-span-2">
+    <div class="border-b border-gray-700/50 p-6">
+      <h3 class="text-xl font-semibold text-white">Domain Lists</h3>
+      <p class="text-sm text-gray-400 mt-1">Manage allowed (whitelist) and blocked (blacklist) domains</p>
+    </div>
+    
+    <div class="p-6">
+      <!-- Tabs -->
+      <div class="border-b border-gray-700/30 mb-4">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
+          <li class="mr-2" role="presentation">
+            <button 
+              class="inline-block p-4 border-b-2 border-amber-500 text-amber-500 rounded-t-lg active" 
+              id="whitelist-tab" 
+              onclick="switchTab('whitelist')" 
+              type="button">
+              <i class="fas fa-check-circle mr-2"></i> Whitelist
+            </button>
+          </li>
+          <li class="mr-2" role="presentation">
+            <button 
+              class="inline-block p-4 border-b-2 border-transparent hover:text-gray-300 hover:border-gray-300 rounded-t-lg" 
+              id="blacklist-tab" 
+              onclick="switchTab('blacklist')" 
+              type="button">
+              <i class="fas fa-ban mr-2"></i> Blacklist
+            </button>
+          </li>
+        </ul>
+      </div>
+      
+      <!-- Whitelist Tab Content -->
+      <div id="whitelist" class="tab-content">
+        <div class="mb-6">
+          <p class="text-sm text-gray-300 mb-4">Domains on the whitelist will <span class="text-green-400 font-medium">always be allowed</span>, even if "Block all links" is enabled.</p>
+          
+          {% if link_settings.get('whitelist', [])|length > 0 %}
+          <div class="mb-6">
+            <div class="flex flex-wrap gap-2">
+              {% for domain in link_settings.get('whitelist', []) %}
+              <div class="bg-green-500/10 rounded-full px-3 py-1 flex items-center text-sm">
+                <span class="text-green-300 font-medium">{{ domain }}</span>
+                <form method="POST" action="{{ url_for('automod.link_blocking', guild_id=guild.id) }}" class="inline ml-2">
+                  <input type="hidden" name="domain" value="{{ domain }}">
+                  <input type="hidden" name="list_type" value="whitelist">
+                  <button type="submit" name="delete_domain" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </form>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}
+          <div class="bg-gray-800/40 rounded-lg p-4 text-center mb-6">
+            <p class="text-gray-300">No domains whitelisted yet.</p>
+          </div>
+          {% endif %}
+          
+          <form method="POST" action="{{ url_for('automod.link_blocking', guild_id=guild.id) }}" class="flex gap-2">
+            <input 
+              type="text" 
+              class="flex-grow bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+              id="domain" 
+              name="domain" 
+              placeholder="example.com" 
+              required>
+            <input type="hidden" name="list_type" value="whitelist">
+            <button 
+              type="submit" 
+              name="add_domain"
+              class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors focus:outline-none">
+              <i class="fas fa-plus mr-2"></i> Add to Whitelist
+            </button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Blacklist Tab Content -->
+      <div id="blacklist" class="tab-content hidden">
+        <div class="mb-6">
+          <p class="text-sm text-gray-300 mb-4">Domains on the blacklist will <span class="text-red-400 font-medium">always be blocked</span>, regardless of other settings.</p>
+          
+          {% if link_settings.get('blacklist', [])|length > 0 %}
+          <div class="mb-6">
+            <div class="flex flex-wrap gap-2">
+              {% for domain in link_settings.get('blacklist', []) %}
+              <div class="bg-red-500/10 rounded-full px-3 py-1 flex items-center text-sm">
+                <span class="text-red-300 font-medium">{{ domain }}</span>
+                <form method="POST" action="{{ url_for('automod.link_blocking', guild_id=guild.id) }}" class="inline ml-2">
+                  <input type="hidden" name="domain" value="{{ domain }}">
+                  <input type="hidden" name="list_type" value="blacklist">
+                  <button type="submit" name="delete_domain" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </form>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}
+          <div class="bg-gray-800/40 rounded-lg p-4 text-center mb-6">
+            <p class="text-gray-300">No domains blacklisted yet.</p>
+          </div>
+          {% endif %}
+          
+          <form method="POST" action="{{ url_for('automod.link_blocking', guild_id=guild.id) }}" class="flex gap-2">
+            <input 
+              type="text" 
+              class="flex-grow bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+              id="domain" 
+              name="domain" 
+              placeholder="example.com" 
+              required>
+            <input type="hidden" name="list_type" value="blacklist">
+            <button 
+              type="submit" 
+              name="add_domain"
+              class="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors focus:outline-none">
+              <i class="fas fa-plus mr-2"></i> Add to Blacklist
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(tabId) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+      tab.classList.add('hidden');
+    });
+    
+    // Show the selected tab content
+    document.getElementById(tabId).classList.remove('hidden');
+    
+    // Update active tab styling
+    if (tabId === 'whitelist') {
+      document.getElementById('whitelist-tab').classList.add('border-amber-500', 'text-amber-500');
+      document.getElementById('whitelist-tab').classList.remove('border-transparent', 'hover:text-gray-300', 'hover:border-gray-300');
+      
+      document.getElementById('blacklist-tab').classList.remove('border-amber-500', 'text-amber-500');
+      document.getElementById('blacklist-tab').classList.add('border-transparent', 'hover:text-gray-300', 'hover:border-gray-300');
+    } else {
+      document.getElementById('blacklist-tab').classList.add('border-amber-500', 'text-amber-500');
+      document.getElementById('blacklist-tab').classList.remove('border-transparent', 'hover:text-gray-300', 'hover:border-gray-300');
+      
+      document.getElementById('whitelist-tab').classList.remove('border-amber-500', 'text-amber-500');
+      document.getElementById('whitelist-tab').classList.add('border-transparent', 'hover:text-gray-300', 'hover:border-gray-300');
+    }
+  }
+</script>
+{% endblock %}
+
+{% block help_title %}Link Blocking Help{% endblock %}
+{% block help_content %}
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Block all links: Prevents any URLs from being posted in your server.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Whitelist mode: Only allows specific domains (like youtube.com, twitter.com) that you add to the whitelist.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Discord invites: Specifically targets and blocks Discord server invite links.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Add full domain names without protocols (e.g., "discord.com" not "https://discord.com").</span>
+</li>
+{% endblock %}

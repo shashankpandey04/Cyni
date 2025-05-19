@@ -1,0 +1,185 @@
+{% extends 'automod/base_automod.html' %}
+
+{% block automod_title %}Spam Detection{% endblock %}
+{% block automod_subtitle %}Prevent message spam and protect your channels{% endblock %}
+
+{% block status_title %}Spam Detection Status{% endblock %}
+{% block status_text %}
+  {% if spam_settings.get('enabled', False) %}
+    Spam Detection is <span class="text-green-400">Enabled</span> - Monitoring message rate
+  {% else %}
+    Spam Detection is <span class="text-red-400">Disabled</span> - Enable below to start monitoring
+  {% endif %}
+{% endblock %}
+
+{% block automod_content %}
+<!-- Settings Form -->
+<div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
+  <div class="border-b border-gray-700/50 p-6">
+    <h3 class="text-xl font-semibold text-white">Spam Detection Settings</h3>
+    <p class="text-sm text-gray-400 mt-1">Configure how the bot detects and responds to message spam</p>
+  </div>
+  
+  <div class="p-6">
+    <form method="POST" action="{{ url_for('automod.spam_detection', guild_id=guild.id) }}">
+      <!-- Enable/Disable Toggle -->
+      <div class="mb-6 flex items-center justify-between bg-gray-700/30 rounded-lg p-4 border border-gray-700/50">
+        <div>
+          <h4 class="text-white font-medium">Enable Spam Detection</h4>
+          <p class="text-sm text-gray-400">Detect and take action when users send messages too quickly</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" name="enabled" class="sr-only peer" {% if spam_settings.get('enabled', False) %}checked{% endif %}>
+          <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+        </label>
+      </div>
+      
+      <!-- Message Threshold -->
+      <div class="mb-6">
+        <label for="message_threshold" class="block text-sm font-medium text-gray-300 mb-2">Message Threshold</label>
+        <div class="flex items-center">
+          <input 
+            type="number" 
+            class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+            id="message_threshold" 
+            name="message_threshold" 
+            min="3" 
+            max="20" 
+            value="{{ spam_settings.get('message_threshold', 5) }}">
+        </div>
+        <p class="mt-2 text-sm text-gray-400">Number of messages to trigger detection (3-20)</p>
+      </div>
+      
+      <!-- Time Window -->
+      <div class="mb-6">
+        <label for="time_window" class="block text-sm font-medium text-gray-300 mb-2">Time Window (seconds)</label>
+        <input 
+          type="number" 
+          class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+          id="time_window" 
+          name="time_window" 
+          min="1" 
+          max="60" 
+          value="{{ spam_settings.get('time_window', 3) }}">
+        <p class="mt-2 text-sm text-gray-400">Time period in seconds to monitor message rate (1-60)</p>
+      </div>
+      
+      <!-- Action Selection -->
+      <div class="mb-6">
+        <label for="action" class="block text-sm font-medium text-gray-300 mb-2">Action to Take</label>
+        <div class="relative">
+          <select 
+            class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+            id="action" 
+            name="action">
+            <option value="alert" {% if spam_settings.get('action') == 'alert' %}selected{% endif %}>Alert Only</option>
+            <option value="delete" {% if spam_settings.get('action') == 'delete' %}selected{% endif %}>Delete Messages</option>
+            <option value="mute" {% if spam_settings.get('action') == 'mute' %}selected{% endif %}>Timeout User</option>
+            <option value="kick" {% if spam_settings.get('action') == 'kick' %}selected{% endif %}>Kick User</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        <p class="mt-2 text-sm text-gray-400">Action to take when spam detection is triggered</p>
+      </div>
+      
+      <!-- Mute Duration (Only shown if mute is selected) -->
+      <div class="mb-6" id="muteDurationSection">
+        <label for="mute_duration" class="block text-sm font-medium text-gray-300 mb-2">Timeout Duration (minutes)</label>
+        <input 
+          type="number" 
+          class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+          id="mute_duration" 
+          name="mute_duration" 
+          min="1" 
+          max="1440" 
+          value="{{ spam_settings.get('mute_duration', 10) }}">
+        <p class="mt-2 text-sm text-gray-400">How long to timeout the user for (1-1440 minutes)</p>
+      </div>
+      
+      <!-- Alert Channel -->
+      <div class="mb-6">
+        <label for="alert_channel" class="block text-sm font-medium text-gray-300 mb-2">Alert Channel</label>
+        <div class="relative">
+          <select 
+            class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all appearance-none" 
+            id="alert_channel" 
+            name="alert_channel">
+            <option value="">Select a channel</option>
+            {% for id, name in channels.items() %}
+            <option value="{{ id }}" {% if spam_settings.get('alert_channel') == id %}selected{% endif %}>#{{ name }}</option>
+            {% endfor %}
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+        <p class="mt-2 text-sm text-gray-400">Channel to send spam alerts to (optional)</p>
+      </div>
+      
+      <div class="flex justify-end mt-8">
+        <button 
+          type="submit" 
+          class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+          Save Settings
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Show/hide mute duration based on action selection
+  document.addEventListener('DOMContentLoaded', function() {
+    const actionSelect = document.getElementById('action');
+    const muteDurationSection = document.getElementById('muteDurationSection');
+    
+    function updateMuteDuration() {
+      if (actionSelect.value === 'mute') {
+        muteDurationSection.style.display = 'block';
+      } else {
+        muteDurationSection.style.display = 'none';
+      }
+    }
+    
+    // Initial state
+    updateMuteDuration();
+    
+    // Update on change
+    actionSelect.addEventListener('change', updateMuteDuration);
+  });
+</script>
+{% endblock %}
+
+{% block help_title %}Spam Detection Help{% endblock %}
+{% block help_content %}
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Spam detection tracks how many messages a user sends in a given time period.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>The "Timeout User" option will temporarily prevent the user from sending messages.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>For example, if threshold is 5 and time window is 3, any user sending 5+ messages in 3 seconds will trigger the action.</span>
+</li>
+<li class="flex">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+  <span>Remember to exempt your moderators and bots using the Exemptions page to avoid false positives.</span>
+</li>
+{% endblock %}
