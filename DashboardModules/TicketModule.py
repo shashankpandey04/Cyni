@@ -312,51 +312,6 @@ def view_tickets(guild_id):
     
     return render_template("tickets/view_tickets.html", guild=guild, tickets=tickets)
 
-@ticket_module.route('/dashboard/<guild_id>/tickets/<ticket_id>', methods=['GET'])
-@login_required
-def view_ticket(guild_id, ticket_id):
-    guild_id = int(guild_id)
-    guild = bot.get_guild(guild_id)
-    if not guild:
-        flash('Guild not found', 'danger')
-        return redirect(url_for('dashboard'))
-        
-    member = guild.get_member(int(session["user_id"]))
-    if not member:
-        flash("You are not a member of this guild", "danger")
-        return redirect(url_for('dashboard'))
-    
-    # Get the ticket
-    ticket = mongo_db["tickets"].find_one({"_id": ticket_id, "guild_id": guild_id})
-    if not ticket:
-        flash("Ticket not found", "danger")
-        return redirect(url_for('ticket_module.view_tickets', guild_id=guild_id))
-    
-    # Check if user has permission to view this ticket
-    has_permission = False
-    
-    # Check if user is admin or has manage_guild permission
-    if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
-        has_permission = True
-    # Check if user is the ticket creator
-    elif str(member.id) == str(ticket.get("user_id")):
-        has_permission = True
-    else:
-        # Check if user has any of the support roles for this ticket's category
-        category = mongo_db["ticket_categories"].find_one({"_id": ticket.get("category_id")})
-        if category and any(role.id in category.get("support_roles", []) for role in member.roles):
-            has_permission = True
-    
-    if not has_permission:
-        flash("You don't have permission to view this ticket", "danger")
-        return redirect(url_for('dashboard'))
-    
-    # Get ticket messages
-    messages = list(mongo_db["ticket_messages"].find({"ticket_id": ticket_id}).sort("created_at", 1))
-    
-    return render_template("tickets/view_ticket.html", guild=guild, ticket=ticket, messages=messages)
-
-# Add new route for viewing ticket transcripts
 @ticket_module.route('/transcripts/<transcript_id>', methods=['GET'])
 def view_transcript(transcript_id):
     # Get the transcript
@@ -382,3 +337,38 @@ def view_transcript(transcript_id):
         messages=messages, 
         guild_name=guild_name
     )
+
+@ticket_module.route('/transcripts/<guild_id>', methods=['GET'])
+@login_required
+def view_guild_transcripts(guild_id):
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        flash('Guild not found', 'danger')
+        return redirect(url_for('dashboard'))
+        
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild", "danger")
+        return redirect(url_for('dashboard'))
+
+    settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
+    
+    has_permission = False
+    
+    if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
+        has_permission = True
+    else:
+        categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
+        for category in categories:
+            if any(role.id in category.get("support_roles", []) for role in member.roles):
+                has_permission = True
+                break
+    
+    if not has_permission:
+        flash("You don't have permission to view tickets", "danger")
+        return redirect(url_for('dashboard'))
+    
+    transcripts = list(mongo_db["ticket_transcripts"].find({"guild_id": guild_id}).sort("created_at", -1))
+    
+    return render_template("tickets/view_transcripts.html", guild=guild, transcripts=transcripts)

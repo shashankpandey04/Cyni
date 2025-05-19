@@ -731,17 +731,6 @@ class APIRoutes:
                                         
                                         await transcript_channel.send(embed=transcript_embed)
                                 
-                                # Save messages to database
-                                if messages:
-                                    await db.ticket_messages.insert_many([
-                                        {
-                                            "ticket_id": ticket_data["_id"],
-                                            "guild_id": guild.id,
-                                            **msg
-                                        } for msg in messages
-                                    ])
-                                
-                                # Update closure message with transcript link
                                 transcript_embed = discord.Embed(
                                     title="Ticket Closed",
                                     description=f"This ticket has been closed by {interaction.user.mention}.",
