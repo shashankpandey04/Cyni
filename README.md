@@ -6,7 +6,6 @@ Cyni is a versatile Discord bot designed for efficient server moderation and sta
 ### Essential Links
 - <a href="https://discord.com/api/oauth2/authorize?client_id=1136945734399295538&permissions=8&scope=bot">Bot Invitation </a>
 - <a href="https://discord.gg/2D29TSfNW6">Support Server</a>
-- <a href="https://docs.cyni.quprdigital.tk/">Cyni Documentation </a>
 
 <hr>
 
