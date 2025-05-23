@@ -17,18 +17,49 @@
 
                 <div class="card mb-4" style="background-color: #1a1a1a; border: 1px solid #f0ad4e;">
                     <div class="card-body">
+                        <!-- Filter Controls -->
+                        <div class="mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="searchInput" placeholder="Search by name or application name...">
+                                        <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                                            <i class="fas fa-search"></i> Search
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="all">All Statuses</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="accepted">Accepted</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-outline-secondary w-100" id="resetFilters">
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <table class="table table-dark table-striped table-hover">
                             <thead>
                                 <tr>
                                     <th scope="col">Application Name</th>
                                     <th scope="col">User</th>
                                     <th scope="col">Status</th>
+                                    <th scope="col">Submitted</th>
                                     <th scope="col">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="applicationsTableBody">
                                 {% for user_application in user_applications %}
-                                <tr>
+                                <tr class="application-row" 
+                                    data-name="{{ user_application.name | lower }}" 
+                                    data-app-name="{{ user_application.application_name | lower }}"
+                                    data-status="{{ user_application.status }}">
                                     <td>{{ user_application.application_name }}</td>
                                     <td>{{ user_application.name }}</td>
                                     <td>
@@ -40,8 +71,9 @@
                                             <span class="badge bg-warning text-dark">Pending</span>
                                         {% endif %}
                                     </td>
+                                    <td>{{ user_application.created_at | datetime }}</td>
                                     <td>
-                                        <a href="{{ url_for('user_application', guild_id=guild.id, application_id=user_application.application_id, user_id=user_application.user_id) }}" class="btn btn-info">View</a>
+                                        <a href="{{ url_for('user_application', guild_id=guild.id, application_id=user_application.application_id, user_id=user_application.user_id) }}" class="btn btn-info btn-sm">View</a>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -53,6 +85,55 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Search and filtering functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const resetButton = document.getElementById('resetFilters');
+        const searchButton = document.getElementById('searchButton');
+        const tableRows = document.querySelectorAll('.application-row');
+        
+        // Function to filter the table
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const statusValue = statusFilter.value;
+            
+            tableRows.forEach(row => {
+                const name = row.getAttribute('data-name');
+                const appName = row.getAttribute('data-app-name');
+                const status = row.getAttribute('data-status');
+                
+                const nameMatch = name.includes(searchTerm) || appName.includes(searchTerm);
+                const statusMatch = statusValue === 'all' || status === statusValue;
+                
+                if (nameMatch && statusMatch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Event listeners
+        searchButton.addEventListener('click', filterTable);
+        statusFilter.addEventListener('change', filterTable);
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                filterTable();
+            }
+        });
+        
+        resetButton.addEventListener('click', function() {
+            searchInput.value = '';
+            statusFilter.value = 'all';
+            tableRows.forEach(row => {
+                row.style.display = '';
+            });
+        });
+    });
+</script>
 
 <style>
     /* General card styling */
@@ -82,6 +163,13 @@
     .card:hover {
         transform: none !important;
         box-shadow: none !important;
+    }
+    
+    /* Add some responsive padding */
+    @media (max-width: 768px) {
+        .row {
+            margin-bottom: 15px;
+        }
     }
 </style>
 {% endblock %}

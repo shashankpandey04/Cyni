@@ -44,10 +44,15 @@
                 <div class="card-body">
                     <h5 class="text-light">Questions and Answers</h5>
                     <ul class="list-group list-group-flush">
-                        {% for question in application.questions %}
+                        {% for answer in user_application.answers %}
                         <li class="list-group-item" style="background-color: #1a1a1a; color: white;">
-                            <strong>Question:</strong> {{ question.question }}<br>
-                            <strong>Answer:</strong> {{ user_application.answers[loop.index0].answer }}
+                            <strong>Question:</strong> {{ answer.question }}<br>
+                            <strong>Answer:</strong> {{ answer.answer }}
+                            {% if answer.type and answer.type != 'text' %}
+                            <span class="badge {% if answer.type == 'select' %}bg-info{% elif answer.type == 'checkbox' %}bg-success{% elif answer.type == 'radio' %}bg-primary{% elif answer.type == 'multiselect' %}bg-secondary{% else %}bg-dark{% endif %} ms-2">
+                                {{ answer.type }}
+                            </span>
+                            {% endif %}
                         </li>
                         {% endfor %}
                     </ul>

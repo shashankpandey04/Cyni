@@ -11,7 +11,7 @@
             <hr class="my-4" style="border-color: #f0ad4e;">
             <!-- Main Content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-                <h1 class="h4 text-light">Create Application for {{ guild.name }}</h1>
+                <h1 class="h4 text-light mb-4">Create Application for {{ guild.name }}</h1>
                 
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -23,61 +23,587 @@
                     {% endif %}
                 {% endwith %}
 
-                <form method="POST" action="{{ url_for('create_application', guild_id=guild.id) }}">
-                    <div class="form-group">
-                        <label for="application_name" class="text-light">Application Name</label>
-                        <input type="text" class="form-control" id="application_name" name="application_name" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="application_description" class="text-light">Application Description</label>
-                        <textarea class="form-control" id="application_description" name="application_description" rows="3" required></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="required_roles" class="text-light">Required Roles (IDs, comma-separated)</label>
-                        <input type="text" class="form-control" id="required_roles" name="required_roles" placeholder="e.g. 123456789012345678, 987654321098765432">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="application_channel" class="text-light">Application Channel ID</label>
-                        <input type="text" class="form-control" id="application_channel" name="application_channel" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="question" class="text-light">Questions</label>
-                        <div id="questions-container">
-                            <input type="text" class="form-control" name="question" placeholder="Enter a question" required>
+                <div class="bg-zinc-800/50 rounded-xl shadow-lg border border-zinc-700 p-5 mb-6">
+                    <form method="POST" action="{{ url_for('create_application', guild_id=guild.id) }}" id="applicationForm">
+                        <!-- Basic Information Section -->
+                        <div class="mb-5 pb-4 border-b border-zinc-700">
+                            <h2 class="text-xl font-semibold text-white mb-4">Basic Information</h2>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div class="form-group">
+                                    <label for="application_name" class="block text-sm font-medium text-gray-300 mb-1">Application Name</label>
+                                    <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded px-3 py-2 text-white focus:border-amber-500 focus:outline-none" 
+                                           id="application_name" name="application_name" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="application_channel" class="block text-sm font-medium text-gray-300 mb-1">Application Channel ID</label>
+                                    <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded px-3 py-2 text-white focus:border-amber-500 focus:outline-none" 
+                                           id="application_channel" name="application_channel" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-4">
+                                <label for="application_description" class="block text-sm font-medium text-gray-300 mb-1">Application Description</label>
+                                <textarea class="w-full bg-zinc-900 border border-zinc-600 rounded px-3 py-2 text-white focus:border-amber-500 focus:outline-none" 
+                                          id="application_description" name="application_description" rows="3" required></textarea>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="form-group">
+                                    <label for="required_roles" class="block text-sm font-medium text-gray-300 mb-1">Required Roles (IDs, comma-separated)</label>
+                                    <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded px-3 py-2 text-white focus:border-amber-500 focus:outline-none" 
+                                           id="required_roles" name="required_roles" placeholder="e.g. 123456789012345678, 987654321098765432">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="pass_role" class="block text-sm font-medium text-gray-300 mb-1">Pass Role ID</label>
+                                    <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded px-3 py-2 text-white focus:border-amber-500 focus:outline-none" 
+                                           id="pass_role" name="pass_role" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="fail_role" class="block text-sm font-medium text-gray-300 mb-1">Fail Role ID</label>
+                                    <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded px-3 py-2 text-white focus:border-amber-500 focus:outline-none" 
+                                           id="fail_role" name="fail_role" required>
+                                </div>
+                            </div>
                         </div>
-                        <button type="button" class="btn btn-secondary mt-2" id="add-question">Add Another Question</button>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="pass_role" class="text-light">Pass Role ID</label>
-                        <input type="text" class="form-control" id="pass_role" name="pass_role" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="fail_role" class="text-light">Fail Role ID</label>
-                        <input type="text" class="form-control" id="fail_role" name="fail_role" required>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Create Application</button>
-                </form>
+                        
+                        <!-- Theme Selection -->
+                        <div class="mb-5 pb-4 border-b border-zinc-700">
+                            <h2 class="text-xl font-semibold text-white mb-4">Application Theme</h2>
+                            <p class="text-gray-400 mb-4">Select a theme color for your application form</p>
+                            
+                            <div class="flex flex-wrap gap-3">
+                                <div class="theme-option">
+                                    <input type="radio" name="theme_color" id="theme-amber" value="amber" class="hidden theme-radio" checked>
+                                    <label for="theme-amber" class="block w-12 h-12 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 cursor-pointer hover:scale-110 transition-transform border-2 border-transparent theme-label"></label>
+                                    <span class="block text-center text-xs mt-1 text-gray-400">Amber</span>
+                                </div>
+                                
+                                <div class="theme-option">
+                                    <input type="radio" name="theme_color" id="theme-blue" value="blue" class="hidden theme-radio">
+                                    <label for="theme-blue" class="block w-12 h-12 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 cursor-pointer hover:scale-110 transition-transform border-2 border-transparent theme-label"></label>
+                                    <span class="block text-center text-xs mt-1 text-gray-400">Blue</span>
+                                </div>
+                                
+                                <div class="theme-option">
+                                    <input type="radio" name="theme_color" id="theme-green" value="green" class="hidden theme-radio">
+                                    <label for="theme-green" class="block w-12 h-12 rounded-lg bg-gradient-to-br from-green-400 to-green-600 cursor-pointer hover:scale-110 transition-transform border-2 border-transparent theme-label"></label>
+                                    <span class="block text-center text-xs mt-1 text-gray-400">Green</span>
+                                </div>
+                                
+                                <div class="theme-option">
+                                    <input type="radio" name="theme_color" id="theme-purple" value="purple" class="hidden theme-radio">
+                                    <label for="theme-purple" class="block w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 cursor-pointer hover:scale-110 transition-transform border-2 border-transparent theme-label"></label>
+                                    <span class="block text-center text-xs mt-1 text-gray-400">Purple</span>
+                                </div>
+                                
+                                <div class="theme-option">
+                                    <input type="radio" name="theme_color" id="theme-red" value="red" class="hidden theme-radio">
+                                    <label for="theme-red" class="block w-12 h-12 rounded-lg bg-gradient-to-br from-red-400 to-red-600 cursor-pointer hover:scale-110 transition-transform border-2 border-transparent theme-label"></label>
+                                    <span class="block text-center text-xs mt-1 text-gray-400">Red</span>
+                                </div>
+                                
+                                <div class="theme-option">
+                                    <input type="radio" name="theme_color" id="theme-teal" value="teal" class="hidden theme-radio">
+                                    <label for="theme-teal" class="block w-12 h-12 rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 cursor-pointer hover:scale-110 transition-transform border-2 border-transparent theme-label"></label>
+                                    <span class="block text-center text-xs mt-1 text-gray-400">Teal</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Builder Section -->
+                        <div class="mb-5">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-semibold text-white">Form Builder</h2>
+                                <button type="button" id="addSection" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Add Section
+                                </button>
+                            </div>
+                            
+                            <div id="sections-container" class="space-y-6">
+                                <!-- Default first section -->
+                                <div class="section bg-zinc-800 rounded-lg p-4 border border-zinc-700">
+                                    <div class="section-header mb-4 flex justify-between items-center">
+                                        <div>
+                                            <input type="text" name="section_title" class="bg-transparent border-b border-zinc-600 text-white text-lg font-medium mb-1 focus:border-amber-500 focus:outline-none" 
+                                                   placeholder="Section Title" value="General Questions">
+                                            <input type="text" name="section_description" class="bg-transparent border-b border-zinc-600 text-gray-400 text-sm w-full focus:border-amber-500 focus:outline-none" 
+                                                   placeholder="Section Description (optional)" value="Basic information about the applicant">
+                                        </div>
+                                        <div class="flex items-center">
+                                            <button type="button" class="add-question p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-white mr-2">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </button>
+                                            <button type="button" class="remove-section p-1.5 bg-red-500/20 hover:bg-red-500/40 rounded-lg text-red-400">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                            <div class="drag-handle ml-2 p-1 bg-zinc-700 rounded cursor-move">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="questions-container space-y-4 sortable-questions">
+                                        <!-- Default first question -->
+                                        <div class="question-item bg-zinc-700/50 rounded-lg p-4 border border-zinc-600/50 relative">
+                                            <div class="flex items-start mb-3">
+                                                <input type="text" name="question" class="bg-transparent border-b border-zinc-600 text-white flex-grow mr-3 focus:border-amber-500 focus:outline-none" 
+                                                       placeholder="Enter a question" value="Why do you want to join our team?" required>
+                                                <select name="question_type" class="bg-zinc-900 border border-zinc-600 rounded px-2 py-1 text-sm text-white question-type-select">
+                                                    <option value="text">Text Input</option>
+                                                    <option value="number">Number Input</option>
+                                                    <option value="select">Dropdown</option>
+                                                    <option value="radio">Radio Buttons</option>
+                                                    <option value="checkbox">Checkboxes</option>
+                                                    <option value="multiselect">Multi-select</option>
+                                                </select>
+                                                <div class="flex items-center ml-3">
+                                                    <button type="button" class="remove-question p-1 hover:bg-red-500/20 rounded text-red-400">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                    <div class="drag-handle ml-2 p-1 bg-zinc-600 rounded cursor-move">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="options-container hidden">
+                                                <div class="mt-2 p-2 bg-zinc-800 rounded">
+                                                    <div class="text-xs text-gray-400 mb-2">Options (one per line)</div>
+                                                    <textarea class="w-full bg-zinc-700 border border-zinc-600 rounded px-2 py-1.5 text-white text-sm options-input" 
+                                                              placeholder="Option 1&#10;Option 2&#10;Option 3" rows="4"></textarea>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mt-2 text-xs text-gray-400 flex items-center">
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="required-toggle mr-1 bg-zinc-700 border-zinc-600">
+                                                    <span>Required</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Preview -->
+                        <div class="bg-zinc-800 rounded-lg p-4 mb-6 border border-zinc-700">
+                            <h3 class="text-white font-medium mb-3">Form Preview</h3>
+                            <div id="form-preview" class="bg-zinc-900 rounded-lg p-4 text-gray-300">
+                                <div class="text-sm italic text-gray-500">Your form preview will appear here as you build it...</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden field to store structured form data -->
+                        <input type="hidden" name="form_structure" id="form-structure-input">
+                        
+                        <!-- Submit Button -->
+                        <div class="text-right">
+                            <button type="submit" id="create-application-btn" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg">
+                                Create Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </main>
         </div>
     </div>
 </div>
 
+<style>
+    .theme-radio:checked + .theme-label {
+        border-color: white;
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+        transform: scale(1.05);
+    }
+    
+    .sortable-ghost {
+        opacity: 0.4;
+        background: #374151 !important;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="{{ url_for('static', filename='js/form-structure.js') }}"></script>
 <script>
-    document.getElementById('add-question').addEventListener('click', function() {
-        const container = document.getElementById('questions-container');
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'form-control mt-2';
-        input.name = 'question';
-        input.placeholder = 'Enter a question';
-        container.appendChild(input);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize sortable for sections container
+        new Sortable(document.getElementById('sections-container'), {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            onEnd: function() {
+                // Update form structure when sections are reordered
+                if (window.formManager) {
+                    window.formManager.updateHiddenInput();
+                }
+            }
+        });
+        
+        // Initialize sortable for question containers
+        document.querySelectorAll('.sortable-questions').forEach(container => {
+            new Sortable(container, {
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'sortable-ghost',
+                group: 'questions', // Allows dragging between sections
+                onEnd: function() {
+                    // Update form structure when questions are reordered
+                    if (window.formManager) {
+                        window.formManager.updateHiddenInput();
+                    }
+                }
+            });
+        });
+        
+        // Initialize form structure manager
+        window.formManager = new FormStructureManager();
+        window.formManager.setupFormChangeListeners();
+        
+        // Add section button
+        document.getElementById('addSection').addEventListener('click', function() {
+            const sectionsContainer = document.getElementById('sections-container');
+            const sectionCount = sectionsContainer.children.length + 1;
+            
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'section bg-zinc-800 rounded-lg p-4 border border-zinc-700';
+            sectionDiv.innerHTML = `
+                <div class="section-header mb-4 flex justify-between items-center">
+                    <div>
+                        <input type="text" name="section_title" class="bg-transparent border-b border-zinc-600 text-white text-lg font-medium mb-1 focus:border-amber-500 focus:outline-none" 
+                               placeholder="Section Title" value="Section ${sectionCount}">
+                        <input type="text" name="section_description" class="bg-transparent border-b border-zinc-600 text-gray-400 text-sm w-full focus:border-amber-500 focus:outline-none" 
+                               placeholder="Section Description (optional)">
+                    </div>
+                    <div class="flex items-center">
+                        <button type="button" class="add-question p-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-white mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                        </button>
+                        <button type="button" class="remove-section p-1.5 bg-red-500/20 hover:bg-red-500/40 rounded-lg text-red-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <div class="drag-handle ml-2 p-1 bg-zinc-700 rounded cursor-move">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="questions-container space-y-4 sortable-questions">
+                    <!-- New sections start with no questions -->
+                </div>
+            `;
+            
+            sectionsContainer.appendChild(sectionDiv);
+            
+            // Initialize sortable for the new section's questions
+            new Sortable(sectionDiv.querySelector('.sortable-questions'), {
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'sortable-ghost',
+                group: 'questions' // Allows dragging between sections
+            });
+            
+            updateFormPreview();
+        });
+        
+        // Event delegation for add, remove buttons and question type changes
+        document.addEventListener('click', function(event) {
+            // Add question button
+            if (event.target.closest('.add-question')) {
+                const section = event.target.closest('.section');
+                const questionsContainer = section.querySelector('.questions-container');
+                
+                const questionItem = document.createElement('div');
+                questionItem.className = 'question-item bg-zinc-700/50 rounded-lg p-4 border border-zinc-600/50 relative';
+                questionItem.innerHTML = `
+                    <div class="flex items-start mb-3">
+                        <input type="text" name="question" class="bg-transparent border-b border-zinc-600 text-white flex-grow mr-3 focus:border-amber-500 focus:outline-none" 
+                               placeholder="Enter a question" required>
+                        <select name="question_type" class="bg-zinc-900 border border-zinc-600 rounded px-2 py-1 text-sm text-white question-type-select">
+                            <option value="text">Text Input</option>
+                            <option value="number">Number Input</option>
+                            <option value="select">Dropdown</option>
+                            <option value="radio">Radio Buttons</option>
+                            <option value="checkbox">Checkboxes</option>
+                            <option value="multiselect">Multi-select</option>
+                        </select>
+                        <div class="flex items-center ml-3">
+                            <button type="button" class="remove-question p-1 hover:bg-red-500/20 rounded text-red-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                            <div class="drag-handle ml-2 p-1 bg-zinc-600 rounded cursor-move">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="options-container hidden">
+                        <div class="mt-2 p-2 bg-zinc-800 rounded">
+                            <div class="text-xs text-gray-400 mb-2">Options (one per line)</div>
+                            <textarea class="w-full bg-zinc-700 border border-zinc-600 rounded px-2 py-1.5 text-white text-sm options-input" 
+                                      placeholder="Option 1&#10;Option 2&#10;Option 3" rows="4"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 text-xs text-gray-400 flex items-center">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="required-toggle mr-1 bg-zinc-700 border-zinc-600">
+                            <span>Required</span>
+                        </label>
+                    </div>
+                `;
+                
+                questionsContainer.appendChild(questionItem);
+                updateFormPreview();
+            }
+            
+            // Remove question button
+            if (event.target.closest('.remove-question')) {
+                if (confirm('Are you sure you want to remove this question?')) {
+                    event.target.closest('.question-item').remove();
+                    updateFormPreview();
+                }
+            }
+            
+            // Remove section button
+            if (event.target.closest('.remove-section')) {
+                const section = event.target.closest('.section');
+                const sectionsContainer = document.getElementById('sections-container');
+                
+                // Don't remove if it's the last section
+                if (sectionsContainer.children.length > 1) {
+                    if (confirm('Are you sure you want to remove this section and all its questions?')) {
+                        section.remove();
+                        updateFormPreview();
+                    }
+                } else {
+                    alert('You must have at least one section.');
+                }
+            }
+        });
+        
+        // Listen for question type changes
+        document.addEventListener('change', function(event) {
+            if (event.target.classList.contains('question-type-select')) {
+                const questionItem = event.target.closest('.question-item');
+                const optionsContainer = questionItem.querySelector('.options-container');
+                
+                // Show options container for select, radio, checkbox, multiselect
+                const type = event.target.value;
+                if (['select', 'radio', 'checkbox', 'multiselect'].includes(type)) {
+                    optionsContainer.classList.remove('hidden');
+                } else {
+                    optionsContainer.classList.add('hidden');
+                }
+                
+                updateFormPreview();
+            }
+            
+            // Update preview when any input changes
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.tagName === 'SELECT') {
+                updateFormPreview();
+            }
+        });
+        
+        // Form submission handling - prepare structured data
+        document.getElementById('applicationForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // First, update the form structure hidden input
+            if (window.formManager) {
+                window.formManager.updateHiddenInput();
+            }
+            
+            // Collect all questions from all sections and format for backend
+            const questions = [];
+            document.querySelectorAll('.question-item').forEach(question => {
+                const questionText = question.querySelector('input[name="question"]').value;
+                
+                if (questionText.trim()) {
+                    questions.push({
+                        question: questionText
+                    });
+                }
+            });
+            
+            // If we have at least one question, proceed
+            if (questions.length > 0) {
+                // Get form elements
+                const formData = new FormData(this);
+                
+                // Add all questions as separate form fields named "question"
+                questions.forEach(q => {
+                    formData.append('question', q.question);
+                });
+                
+                // Submit the form
+                this.submit();
+            } else {
+                alert('Please add at least one question to your application form.');
+            }
+        });
+        
+        // Function to update form preview
+        function updateFormPreview() {
+            const previewContainer = document.getElementById('form-preview');
+            const themeColor = document.querySelector('input[name="theme_color"]:checked').value;
+            
+            // Clear previous preview
+            previewContainer.innerHTML = '';
+            
+            // Add theme color class
+            previewContainer.className = `bg-zinc-900 rounded-lg p-4 border-l-4 border-${themeColor}-500`;
+            
+            // Get all sections
+            const sections = document.querySelectorAll('.section');
+            
+            if (sections.length === 0) {
+                previewContainer.innerHTML = '<div class="text-sm italic text-gray-500">Add a section to see the preview...</div>';
+                return;
+            }
+            
+            // Loop through sections
+            sections.forEach((section, sectionIndex) => {
+                const sectionTitle = section.querySelector('input[name="section_title"]').value || `Section ${sectionIndex + 1}`;
+                const sectionDescription = section.querySelector('input[name="section_description"]').value;
+                
+                // Create section header
+                const sectionHeader = document.createElement('div');
+                sectionHeader.className = `mb-4 ${sectionIndex > 0 ? 'mt-6' : ''}`;
+                sectionHeader.innerHTML = `
+                    <h3 class="text-lg font-medium text-${themeColor}-400">${sectionTitle}</h3>
+                    ${sectionDescription ? `<p class="text-sm text-gray-400">${sectionDescription}</p>` : ''}
+                `;
+                previewContainer.appendChild(sectionHeader);
+                
+                // Get all questions in this section
+                const questions = section.querySelectorAll('.question-item');
+                
+                if (questions.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'text-sm italic text-gray-500 mb-4';
+                    emptyMessage.textContent = 'No questions in this section yet...';
+                    previewContainer.appendChild(emptyMessage);
+                } else {
+                    // Create question list
+                    const questionList = document.createElement('div');
+                    questionList.className = 'space-y-4';
+                    
+                    questions.forEach((question, index) => {
+                        const questionText = question.querySelector('input[name="question"]').value || `Question ${index + 1}`;
+                        const questionType = question.querySelector('select[name="question_type"]').value;
+                        const isRequired = question.querySelector('.required-toggle').checked;
+                        const optionsInput = question.querySelector('.options-input');
+                        
+                        let options = [];
+                        if (optionsInput && !optionsInput.classList.contains('hidden') && optionsInput.value) {
+                            options = optionsInput.value.split('\n').filter(opt => opt.trim() !== '');
+                        }
+                        
+                        // Create question item
+                        const questionItem = document.createElement('div');
+                        questionItem.className = 'bg-zinc-800/50 rounded p-3 border border-zinc-700/50';
+                        
+                        // Question label
+                        const questionLabel = document.createElement('label');
+                        questionLabel.className = 'block text-sm font-medium text-white mb-2';
+                        questionLabel.textContent = questionText;
+                        if (isRequired) {
+                            const requiredSpan = document.createElement('span');
+                            requiredSpan.className = `text-${themeColor}-500 ml-1`;
+                            requiredSpan.textContent = '*';
+                            questionLabel.appendChild(requiredSpan);
+                        }
+                        questionItem.appendChild(questionLabel);
+                        
+                        // Question input based on type
+                        let inputHtml = '';
+                        
+                        switch (questionType) {
+                            case 'text':
+                                inputHtml = `<input type="text" class="w-full bg-zinc-700 border border-zinc-600 rounded px-3 py-2 text-gray-300" placeholder="Text answer...">`;
+                                break;
+                            case 'number':
+                                inputHtml = `<input type="number" class="w-full bg-zinc-700 border border-zinc-600 rounded px-3 py-2 text-gray-300" placeholder="0">`;
+                                break;
+                            case 'select':
+                                inputHtml = `
+                                    <select class="w-full bg-zinc-700 border border-zinc-600 rounded px-3 py-2 text-gray-300">
+                                        <option value="" disabled selected>Select an option...</option>
+                                        ${options.map(opt => `<option>${opt}</option>`).join('')}
+                                    </select>
+                                `;
+                                break;
+                            case 'radio':
+                                inputHtml = `
+                                    <div class="space-y-2">
+                                        ${options.map(opt => `
+                                            <label class="flex items-center text-gray-300 text-sm">
+                                                <input type="radio" name="preview_radio_${index}" class="mr-2"> ${opt}
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                `;
+                                break;
+                            case 'checkbox':
+                                inputHtml = `
+                                    <div class="space-y-2">
+                                        ${options.map(opt => `
+                                            <label class="flex items-center text-gray-300 text-sm">
+                                                <input type="checkbox" class="mr-2"> ${opt}
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                `;
+                                break;
+                            case 'multiselect':
+                                inputHtml = `
+                                    <select class="w-full bg-zinc-700 border border-zinc-600 rounded px-3 py-2 text-gray-300" multiple>
+                                        ${options.map(opt => `<option>${opt}</option>`).join('')}
+                                    </select>
+                                    <div class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple options</div>
+                                `;
+                                break;
+                        }
+                        
+                        questionItem.insertAdjacentHTML('beforeend', inputHtml);
+                        questionList.appendChild(questionItem);
+                    });
+                    
+                    previewContainer.appendChild(questionList);
+                }
+            });
+        }
+        
+        // Initialize preview
+        updateFormPreview();
     });
 </script>
 {% endblock %}

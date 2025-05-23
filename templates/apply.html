@@ -40,28 +40,114 @@
                 
                 <!-- Application Form -->
                 <form method="POST" action="{{ url_for('apply', guild_id=guild.id, application_id=application._id) }}" class="space-y-6">
-                    <h2 class="text-lg font-medium text-white flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Questions
-                    </h2>
+                    <!-- Theme Color Input (Hidden) -->
+                    <input type="hidden" name="theme_color" value="{{ application.theme_color|default('amber') }}">
                     
-                    <!-- Questions -->
-                    <div class="space-y-5">
-                        {% for question in application.questions %}
-                        <div class="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
-                            <label class="block text-zinc-200 font-medium mb-2">{{ question.question }}</label>
-                            <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent" 
-                                   name="answer_{{loop.index}}" required>
-                        </div>
+                    {% set theme_color = application.theme_color|default('amber') %}
+                    
+                    <!-- Sections and Questions -->
+                    {% if application.form_structure %}
+                        <!-- For applications using the new form builder system -->
+                        {% set sections = application.form_structure.sections %}
+                        {% set question_index = 1 %}
+                        
+                        {% for section in sections %}
+                            <div class="mb-8">
+                                <div class="mb-4">
+                                    <h3 class="text-lg font-medium text-{{ theme_color }}-400">{{ section.title }}</h3>
+                                    {% if section.description %}
+                                        <p class="text-sm text-gray-400 mt-1">{{ section.description }}</p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="space-y-5">
+                                    {% for question in section.questions %}
+                                        <div class="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+                                            <label class="block text-zinc-200 font-medium mb-2">
+                                                {{ question.text }}
+                                                {% if question.required %}
+                                                    <span class="text-{{ theme_color }}-500 ml-1">*</span>
+                                                {% endif %}
+                                            </label>
+                                            
+                                            {% if question.type == 'text' %}
+                                                <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-{{ theme_color }}-500 focus:border-transparent" 
+                                                       name="answer_{{question_index}}" {% if question.required %}required{% endif %}>
+                                            
+                                            {% elif question.type == 'number' %}
+                                                <input type="number" class="w-full bg-zinc-900 border border-zinc-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-{{ theme_color }}-500 focus:border-transparent" 
+                                                       name="answer_{{question_index}}" {% if question.required %}required{% endif %}>
+                                            
+                                            {% elif question.type == 'select' %}
+                                                <select class="w-full bg-zinc-900 border border-zinc-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-{{ theme_color }}-500 focus:border-transparent"
+                                                        name="answer_{{question_index}}" {% if question.required %}required{% endif %}>
+                                                    <option value="" disabled selected>Select an option...</option>
+                                                    {% for option in question.options %}
+                                                        <option value="{{ option }}">{{ option }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            
+                                            {% elif question.type == 'radio' %}
+                                                <div class="space-y-2">
+                                                    {% for option in question.options %}
+                                                        <label class="flex items-center text-gray-300 text-sm">
+                                                            <input type="radio" name="answer_{{question_index}}" value="{{ option }}" class="mr-2 text-{{ theme_color }}-500" {% if question.required and loop.first %}required{% endif %}>
+                                                            {{ option }}
+                                                        </label>
+                                                    {% endfor %}
+                                                </div>
+                                            
+                                            {% elif question.type == 'checkbox' %}
+                                                <div class="space-y-2">
+                                                    {% for option in question.options %}
+                                                        <label class="flex items-center text-gray-300 text-sm">
+                                                            <input type="checkbox" name="answer_{{question_index}}_option_{{loop.index}}" value="{{ option }}" class="mr-2 text-{{ theme_color }}-500">
+                                                            {{ option }}
+                                                        </label>
+                                                    {% endfor %}
+                                                    <input type="hidden" name="answer_{{question_index}}_is_checkbox" value="true">
+                                                </div>
+                                            
+                                            {% elif question.type == 'multiselect' %}
+                                                <select multiple class="w-full bg-zinc-900 border border-zinc-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-{{ theme_color }}-500 focus:border-transparent"
+                                                        name="answer_{{question_index}}" {% if question.required %}required{% endif %}>
+                                                    {% for option in question.options %}
+                                                        <option value="{{ option }}">{{ option }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <div class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple options</div>
+                                            {% endif %}
+                                        </div>
+                                        {% set question_index = question_index + 1 %}
+                                    {% endfor %}
+                                </div>
+                            </div>
                         {% endfor %}
-                    </div>
+                        
+                    {% else %}
+                        <!-- Legacy support for old application format -->
+                        <h2 class="text-lg font-medium text-white flex items-center mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Questions
+                        </h2>
+                        
+                        <div class="space-y-5">
+                            {% for question in application.questions %}
+                            <div class="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+                                <label class="block text-zinc-200 font-medium mb-2">{{ question.question }}</label>
+                                <input type="text" class="w-full bg-zinc-900 border border-zinc-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-{{ theme_color }}-500 focus:border-transparent" 
+                                       name="answer_{{loop.index}}" required>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                     
                     <!-- Submit Button -->
                     <div class="pt-4">
                         <button type="submit" 
-                                class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg shadow-lg hover:from-amber-600 hover:to-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900 transition-all">
+                                class="w-full py-3 bg-gradient-to-r from-{{ theme_color }}-500 to-{{ theme_color }}-600 text-white rounded-lg shadow-lg hover:from-{{ theme_color }}-600 hover:to-{{ theme_color }}-700 focus:ring-2 focus:ring-{{ theme_color }}-500 focus:ring-offset-2 focus:ring-offset-zinc-900 transition-all">
                             Submit Application
                         </button>
                     </div>
@@ -75,4 +161,31 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Process checkbox answers before form submission
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const checkboxGroups = document.querySelectorAll('input[name$="_is_checkbox"]');
+        
+        checkboxGroups.forEach(hiddenInput => {
+            const questionIndex = hiddenInput.name.split('_')[1];
+            const checkboxes = document.querySelectorAll(`input[name^="answer_${questionIndex}_option_"]`);
+            
+            // Create an array of selected checkbox values
+            const selectedOptions = [];
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedOptions.push(checkbox.value);
+                }
+            });
+            
+            // Add a new hidden field with the combined values
+            const combinedInput = document.createElement('input');
+            combinedInput.type = 'hidden';
+            combinedInput.name = `answer_${questionIndex}`;
+            combinedInput.value = selectedOptions.join(', ');
+            hiddenInput.parentNode.appendChild(combinedInput);
+        });
+    });
+</script>
 {% endblock %}
