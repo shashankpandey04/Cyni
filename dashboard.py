@@ -74,6 +74,16 @@ class User(UserMixin):
 # In-memory user storage
 users = {}
 
+@app.before_request
+def before_request():
+    try:
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if not ip_address:
+            ip_address = "Unknown IP"
+        print(f"Website Accessed by IP: {ip_address}")
+    except Exception as e:
+        print(f"Error getting IP address: {e}")
+
 @login_manager.user_loader
 def load_user(user_id):
     return users.get(user_id)
