@@ -74,15 +74,24 @@ class User(UserMixin):
 # In-memory user storage
 users = {}
 
+LOG_IP_WEBHOOK_URL = os.getenv("LOG_IP_WEBHOOK_URL")
+
 @app.before_request
 def before_request():
     try:
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         if not ip_address:
             ip_address = "Unknown IP"
-        print(f"Website Accessed by IP: {ip_address}")
+        if LOG_IP_WEBHOOK_URL:
+            embed = {
+                "title": "New Dashboard Access",
+                "description": f"User accessed the dashboard from IP: {ip_address}",
+                "color": 0x00ff00,
+                "timestamp": datetime.datetime.utcnow().isoformat()
+            }
+            requests.post(LOG_IP_WEBHOOK_URL, json={"embeds": [embed]})
     except Exception as e:
-        print(f"Error getting IP address: {e}")
+        print(f"Error logging IP address: {e}")
 
 @login_manager.user_loader
 def load_user(user_id):
