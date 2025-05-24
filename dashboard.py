@@ -81,11 +81,17 @@ LOG_IP_WEBHOOK_URL = os.getenv("LOG_IP_WEBHOOK_URL")
 @app.before_request
 def before_request():
     try:
-        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        ip_address = (
+            request.headers.get('X-Real-Ip')
+            or request.headers.get('X-Forwarded-For')
+            or request.remote_addr
+        )
+
         if ip_address:
             ip_address = ip_address.split(',')[0].strip()
         else:
             ip_address = "Unknown IP"
+
         if LOG_IP_WEBHOOK_URL:
             embed = {
                 "title": "New Dashboard Access",
@@ -96,6 +102,7 @@ def before_request():
             requests.post(LOG_IP_WEBHOOK_URL, json={"embeds": [embed]})
     except Exception as e:
         print(f"Error logging IP address: {e}")
+
 
 @login_manager.user_loader
 def load_user(user_id):
