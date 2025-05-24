@@ -21,6 +21,8 @@ from DashboardModules.TicketModule import ticket_module
 from DashboardModules.YouTubeModule import youtube_module
 #from DashboardModules.AutoModModule import automod
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 FILES_URL = "https://files.cyni.quprdigital.tk/upload"
 
 load_dotenv()
@@ -38,7 +40,7 @@ ERM_API_BASE_URL = "https://core.ermbot.xyz/"
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_secret_key')
-
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 # Configure Flask-Session
 mongo_client = MongoClient(os.getenv("MONGO_URI"))
 mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") else mongo_client["dev"]
@@ -80,7 +82,9 @@ LOG_IP_WEBHOOK_URL = os.getenv("LOG_IP_WEBHOOK_URL")
 def before_request():
     try:
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-        if not ip_address:
+        if ip_address:
+            ip_address = ip_address.split(',')[0].strip()
+        else:
             ip_address = "Unknown IP"
         if LOG_IP_WEBHOOK_URL:
             embed = {
@@ -96,6 +100,10 @@ def before_request():
 @login_manager.user_loader
 def load_user(user_id):
     return users.get(user_id)
+
+@app.route("/debug-ip")
+def debug_ip():
+    return dict(headers=dict(request.headers), ip=request.remote_addr)
 
 @app.template_filter('datetime')
 def format_datetime(timestamp):
