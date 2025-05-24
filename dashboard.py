@@ -87,7 +87,7 @@ def before_request():
                 "title": "New Dashboard Access",
                 "description": f"User accessed the dashboard from IP: {ip_address}",
                 "color": 0x00ff00,
-                "timestamp": datetime.datetime.utcnow().isoformat()
+                "timestamp": datetime.now().isoformat()
             }
             requests.post(LOG_IP_WEBHOOK_URL, json={"embeds": [embed]})
     except Exception as e:
