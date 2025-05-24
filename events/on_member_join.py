@@ -28,9 +28,13 @@ class OnMemberJoin(commands.Cog):
                 if not guild_log_channel:
                     return
                 joined_at = discord_time(datetime.datetime.now())
+                if (time.time() - member.created_at.timestamp()) < 604800:
+                    description = f"**⚠️ Account is less than 7 days old!**\n{member.mention} joined the server on {joined_at}"
+                else:
+                    description = f"{member.mention} joined the server on {joined_at}"
                 embed = discord.Embed(
                         title= " ",
-                        description=f"{member.mention} joined the server on {joined_at}",
+                        description=description,
                         color=GREEN_COLOR
                     ).add_field(
                         name="Account Created",

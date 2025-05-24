@@ -841,10 +841,42 @@ class Moderation(commands.Cog):
     async def purge(self, ctx, amount: int):
         """
         Purge messages in a channel.
+        
+        Discord only allows bulk deletion of messages that are less than 14 days old.
+        Older messages will be deleted individually at a slower rate.
+        
+        Parameters:
+        -----------
+        amount: int
+            The number of messages to delete (max 500)
         """
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,f"Purge {amount} messages")
-        await ctx.typing()
+            
+        # Check for valid amount
+        if amount <= 0:
+            return await ctx.send(
+                embed=discord.Embed(
+                    description="Please provide a positive number of messages to delete.",
+                    color=discord.Color.red()
+                )
+            )
+            
+        if amount > 500:
+            return await ctx.send(
+                embed=discord.Embed(
+                    description="For safety reasons, you cannot purge more than 500 messages at once.",
+                    color=discord.Color.red()
+                )
+            )
+        
+        # Defer response for longer operations
+        if hasattr(ctx, 'defer'):
+            await ctx.defer(ephemeral=True)
+        else:
+            await ctx.typing()
+        
+        # Check settings
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -853,10 +885,12 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
+            
         try:
             module_enabled = settings["moderation_module"]["enabled"]
         except KeyError:
             module_enabled = False
+            
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
@@ -865,35 +899,153 @@ class Moderation(commands.Cog):
                 )
             )
         
-        if amount > 25:
-            for i in range(0, amount, 25):
-                await ctx.channel.purge(limit=25)
-        else:
-            await ctx.channel.purge(limit=amount)
-
-        await ctx.send(
-            embed = discord.Embed(
-                description = f"{amount} messages have been purged.",
-                color = discord.Color.green()
+        # Get current time for age check
+        two_weeks_ago = datetime.now() - timedelta(days=14)
+        
+        # Collection to track deleted messages counts
+        deleted_count = 0
+        recent_count = 0
+        old_count = 0
+        
+        status_message = await ctx.send(
+            embed=discord.Embed(
+                description=f"Purging {amount} messages...",
+                color=discord.Color.orange()
             )
         )
+        
         try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
-            await mod_log_channel.send(
-                embed = discord.Embed(
-                    title = "Messages Purged",
-                    description = f"**Channel:** {ctx.channel.mention}\n**Moderator:** {ctx.author.mention}\n**Amount:** {amount}",
-                    color = discord.Color.red()
+            # First, fetch messages to analyze them
+            messages = []
+            async for message in ctx.channel.history(limit=amount + 1):  # +1 to account for the command message
+                if message.id != ctx.message.id:  # Skip the command message
+                    messages.append(message)
+                if len(messages) >= amount:
+                    break
+                    
+            if not messages:
+                return await status_message.edit(
+                    embed=discord.Embed(
+                        description="No messages found to delete.",
+                        color=discord.Color.orange()
+                    )
+                )
+                
+            # Separate messages by age
+            recent_messages = []
+            old_messages = []
+            
+            for message in messages:
+                if message.created_at > two_weeks_ago:
+                    recent_messages.append(message)
+                else:
+                    old_messages.append(message)
+            
+            # Process recent messages in bulk (100 at a time to avoid rate limits)
+            if recent_messages:
+                for i in range(0, len(recent_messages), 100):
+                    chunk = recent_messages[i:i+100]
+                    await ctx.channel.delete_messages(chunk)
+                    recent_count += len(chunk)
+                    # Update status every 100 messages
+                    if i % 100 == 0 and i > 0:
+                        await status_message.edit(
+                            embed=discord.Embed(
+                                description=f"Processed {recent_count + old_count}/{amount} messages...",
+                                color=discord.Color.orange()
+                            )
+                        )
+                        await asyncio.sleep(1)  # Brief pause to avoid rate limiting
+                
+            # Process old messages individually with rate limiting
+            if old_messages:
+                await status_message.edit(
+                    embed=discord.Embed(
+                        description=f"Deleted {recent_count} recent messages. Now processing {len(old_messages)} older messages (this will be slower)...",
+                        color=discord.Color.orange()
+                    )
+                )
+                
+                for i, message in enumerate(old_messages):
+                    try:
+                        await message.delete()
+                        old_count += 1
+                        
+                        # Update status every 10 messages
+                        if (i + 1) % 10 == 0:
+                            await status_message.edit(
+                                embed=discord.Embed(
+                                    description=f"Processed {recent_count + old_count}/{amount} messages... ({old_count} older messages)",
+                                    color=discord.Color.orange()
+                                )
+                            )
+                            
+                        # Wait to avoid rate limits (5 deletes per 5 seconds is safe)
+                        if (i + 1) % 5 == 0:
+                            await asyncio.sleep(1)
+                            
+                    except discord.NotFound:
+                        # Message already deleted
+                        pass
+                    except discord.Forbidden:
+                        await status_message.edit(
+                            embed=discord.Embed(
+                                description=f"⚠️ Missing permissions to delete some messages. Deleted {recent_count + old_count} messages total.",
+                                color=discord.Color.red()
+                            )
+                        )
+                        break
+                    except discord.HTTPException as e:
+                        if e.code == 429:  # Rate limited
+                            retry_after = e.retry_after if hasattr(e, 'retry_after') else 5
+                            await status_message.edit(
+                                embed=discord.Embed(
+                                    description=f"Rate limited. Waiting {retry_after:.1f}s...",
+                                    color=discord.Color.orange()
+                                )
+                            )
+                            await asyncio.sleep(retry_after)
+                            # Try again
+                            try:
+                                await message.delete()
+                                old_count += 1
+                            except:
+                                pass
+                        else:
+                            # Other HTTP error, continue with next message
+                            continue
+            
+            deleted_count = recent_count + old_count
+            
+            # Final status
+            await status_message.edit(
+                embed=discord.Embed(
+                    description=f"✅ Successfully deleted {deleted_count} messages.\n• {recent_count} recent messages\n• {old_count} older messages (>14 days)",
+                    color=discord.Color.green()
                 )
             )
-        else:
-            await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+            
+        except Exception as e:
+            await status_message.edit(
+                embed=discord.Embed(
+                    description=f"An error occurred: {str(e)}\nDeleted {deleted_count} messages before the error.",
+                    color=discord.Color.red()
+                )
             )
-
+        
+        # Log the action
+        try:
+            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"].get("mod_log_channel"))
+            if mod_log_channel:
+                await mod_log_channel.send(
+                    embed=discord.Embed(
+                        title="Messages Purged",
+                        description=f"**Channel:** {ctx.channel.mention}\n**Moderator:** {ctx.author.mention}\n**Amount:** {deleted_count}/{amount} messages\n**Recent:** {recent_count}\n**Older:** {old_count}",
+                        color=discord.Color.red()
+                    ).set_footer(text=f"Moderator ID: {ctx.author.id}")
+                )
+        except Exception:
+            pass
 
     @commands.hybrid_command(
         name="slowmode",
