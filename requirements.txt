@@ -16,3 +16,4 @@ roblox
 fastapi
 uvicorn
 markdown
+google-api-python-client
