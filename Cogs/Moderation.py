@@ -870,11 +870,7 @@ class Moderation(commands.Cog):
                 )
             )
         
-        # Defer response for longer operations
-        if hasattr(ctx, 'defer'):
-            await ctx.defer(ephemeral=True)
-        else:
-            await ctx.typing()
+        await ctx.typing()
         
         # Check settings
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
