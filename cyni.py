@@ -112,7 +112,7 @@ class Bot(commands.AutoShardedBot):
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
         UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications"]
-        DISCONTINUED_EXTENSIONS = ["Cogs.Backup"]
+        DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube"]
 
 
         for extension in EXT_EXTENSIONS:
@@ -124,6 +124,8 @@ class Bot(commands.AutoShardedBot):
 
         for extension in Cogs:
             try:
+                if extension in DISCONTINUED_EXTENSIONS:
+                    continue
                 await self.load_extension(extension)
                 logging.info(f'Loaded extension {extension}.')
             except Exception as e:
@@ -143,13 +145,6 @@ class Bot(commands.AutoShardedBot):
                     logging.info(f'Unloaded extension {extension}.')
                 except Exception as e:
                     logging.error(f'Failed to unload extension {extension}.', exc_info=True)
-
-        for extension in DISCONTINUED_EXTENSIONS:
-            try:
-                await self.unload_extension(extension)
-                logging.info(f'Unloaded extension {extension}.')
-            except Exception as e:
-                logging.error(f'Failed to unload extension {extension}.', exc_info=True)
 
         #await self.load_extension("jishaku")
 

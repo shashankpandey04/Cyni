@@ -4,151 +4,276 @@
 
 {% block content %}
 
-<div class="hero text-center text-white py-5 position-relative overflow-hidden" style="height: 100vh; font-family: 'Poppins', sans-serif;">
-    <div class="bg-animation position-absolute top-0 start-0 w-100 h-100"></div>
-    <div class="position-relative z-1">
-        {% if session['username'] %}
-        <h3 class="display-5 mb-3">Hey {{ session['username'] }} 👋</h3>
-        {% endif %}
-        <h1 class="display-2 fw-bold mb-4">Welcome to CYNI Bot</h1>
-        <p class="lead fs-4 mb-5">The Next Generation Bot for Discord Moderation, Fun, Giveaway, etc to your community.</p>
-        <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" class="btn btn-primary btn-lg px-4 py-3">Add to Discord</a>
-    </div>
-</div>
+<!-- Hero Section -->
+<section class="relative min-h-screen flex items-center justify-center overflow-hidden">
+  <!-- Animated background -->
+  <div class="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30"></div>
+  
+  <!-- Floating elements -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-400/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+  </div>
 
-<!--Features Header-->
-<div style="text-align: center; margin-top: 50px; margin-bottom: 50px; padding: 20px; border-radius: 20px; border-color: aquamarine; border-width: 2px; border-style: solid;">
-    <h2>Features</h2>
-    <p>Discover the features that make Cyni the perfect bot for your server.</p>
-</div>
-<div class="ag-format-container">
-    <div class="ag-courses_box">
-      <div class="ag-courses_item">
-        <a href="#" class="ag-courses-item_link">
-          <div class="ag-courses-item_bg"></div>
-  
-          <div class="ag-courses-item_title">
-            Moderation
-          </div>
-  
-          <div class="ag-courses-item_date-box">
-            Equip your server's moderation team with over 20 powerful commands, including automated moderation features, all customizable via the config command.
-          </div>
-        </a>
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    {% if session['username'] %}
+    <div class="mb-6">
+      <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+        👋 Hey, {{ session['username'] }}!
+      </span>
+    </div>
+    {% endif %}
+    
+    <h1 class="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
+      Welcome to
+      <span class="block">CYNI Bot</span>
+    </h1>
+    
+    <p class="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+      The Next Generation Discord Bot for Moderation, Entertainment, and Community Management
+    </p>
+    
+    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+      <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" 
+         class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+        <i data-lucide="plus" class="w-5 h-5 mr-2"></i>
+        Add to Discord
+      </a>
+      <a href="#features" 
+         class="inline-flex items-center px-8 py-4 glass-effect text-slate-700 dark:text-slate-200 font-semibold rounded-xl hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+        <i data-lucide="arrow-down" class="w-5 h-5 mr-2"></i>
+        Explore Features
+      </a>
+    </div>
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
+      <div class="glass-effect rounded-xl p-6">
+        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">50K+</div>
+        <div class="text-sm text-slate-600 dark:text-slate-400">Users</div>
+      </div>
+      <div class="glass-effect rounded-xl p-6">
+        <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">50+</div>
+        <div class="text-sm text-slate-600 dark:text-slate-400">Commands</div>
+      </div>
+      <div class="glass-effect rounded-xl p-6">
+        <div class="text-2xl font-bold text-pink-600 dark:text-pink-400">24/7</div>
+        <div class="text-sm text-slate-600 dark:text-slate-400">Uptime</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-20 bg-slate-50/50 dark:bg-slate-900/50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
+        Powerful Features
+      </h2>
+      <p class="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+        Discover the features that make Cyni the perfect bot for your Discord server
+      </p>
+    </div>
+
+    <!-- Core Features Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+      <!-- Moderation -->
+      <div class="group glass-effect rounded-2xl p-8 hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-300 transform hover:-translate-y-2">
+        <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+          <i data-lucide="shield" class="w-6 h-6 text-white"></i>
+        </div>
+        <h3 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Advanced Moderation</h3>
+        <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+          Equip your server with 20+ powerful moderation commands, automated systems, and customizable configurations.
+        </p>
       </div>
 
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-            <div class="ag-courses-item_bg"></div>
-    
-            <div class="ag-courses-item_title">
-                Staff Management
-            </div>
-    
-            <div class="ag-courses-item_date-box">
-                Streamline the management of staff infractions and application results with the Staff Management feature, which also tracks message activity for efficient oversight.
-            </div>
-            </a>
+      <!-- Staff Management -->
+      <div class="group glass-effect rounded-2xl p-8 hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-300 transform hover:-translate-y-2">
+        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+          <i data-lucide="users" class="w-6 h-6 text-white"></i>
         </div>
-  
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-                <div class="ag-courses-item_bg"></div>
-  
-            <div class="ag-courses-item_title">
-                Easy Config
-            </div>
-  
-            <div class="ag-courses-item_date-box">
-                Customize Cyni to your server's needs with the Cyni Config command and Dashboard, which allows you to change configuration settings easily.
-            </div>
-            </a>
+        <h3 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Staff Management</h3>
+        <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+          Streamline staff operations with infraction tracking, application management, and activity monitoring.
+        </p>
+      </div>
+
+      <!-- Easy Config -->
+      <div class="group glass-effect rounded-2xl p-8 hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-300 transform hover:-translate-y-2">
+        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+          <i data-lucide="settings" class="w-6 h-6 text-white"></i>
         </div>
+        <h3 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Easy Configuration</h3>
+        <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+          Customize Cyni to fit your server's needs with our intuitive config commands and web dashboard.
+        </p>
+      </div>
 
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-            <div class="ag-courses-item_bg"></div>
-    
-            <div class="ag-courses-item_title">
-                Server Logging
-            </div>
-        
-            <div class="ag-courses-item_date-box">
-                Ensure comprehensive server event tracking with Cyni Audit Logging, which captures key actions such as member joins, leaves, message deletions, and edits.
-            </div>
-            </a>
+      <!-- Server Logging -->
+      <div class="group glass-effect rounded-2xl p-8 hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-300 transform hover:-translate-y-2">
+        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+          <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
         </div>
+        <h3 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Comprehensive Logging</h3>
+        <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+          Track all server events including joins, leaves, message changes, and moderation actions.
+        </p>
+      </div>
 
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-                <div class="ag-courses-item_bg"></div>
-    
-                <div class="ag-courses-item_title">
-                    Ban Appeal Module
-                </div>
-
-                <div class="ag-courses-item_date-box">
-                    Implement a streamlined Ban Appeal module to handle user appeals efficiently, allowing your moderation team to review, manage, and resolve appeals with ease.
-                </div>
-            </a>
+      <!-- Utility & Fun -->
+      <div class="group glass-effect rounded-2xl p-8 hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-300 transform hover:-translate-y-2">
+        <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+          <i data-lucide="zap" class="w-6 h-6 text-white"></i>
         </div>
+        <h3 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Utility & Fun</h3>
+        <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+          Engage your community with utility commands, fun activities, and interactive features.
+        </p>
+      </div>
 
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-                <div class="ag-courses-item_bg"></div>
-    
-                <div class="ag-courses-item_title">
-                    Utility & Fun Commands
-                </div>
-
-                <div class="ag-courses-item_date-box">
-                    Utilize a variety of utility commands, including 'whois' for user information, and fun commands for displaying random dog and cat images.
-                </div>
-            </a>
+      <!-- Giveaways -->
+      <div class="group glass-effect rounded-2xl p-8 hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-300 transform hover:-translate-y-2">
+        <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+          <i data-lucide="gift" class="w-6 h-6 text-white"></i>
         </div>
-
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-                <div class="ag-courses-item_bg"></div>
-
-                <div class="ag-courses-item_title">
-                    Giveaway
-                </div>
-
-                <div class="ag-courses-item_date-box">
-                    Host giveaways with ease using Cyni's giveaway command, which allows you to create and end giveaways effortlessly.
-                </div>
-            </a>
-        </div>
-
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-                <div class="ag-courses-item_bg"></div>
-    
-                <div class="ag-courses-item_title">
-                    Cyni Logging
-                </div>
-
-                <div class="ag-courses-item_date-box">
-                    Ensure better security with Cyni command logging & Cyni config change log, which will help servers prevent abuse of commands.
-                </div>
-            </a>
-        </div>
-
-        <div class="ag-courses_item">
-            <a href="#" class="ag-courses-item_link">
-                <div class="ag-courses-item_bg"></div>
-        
-                <div class="ag-courses-item_title">
-                    More Soon
-                </div>
-
-                <div class="ag-courses-item_date-box">
-                    We are working on more features to make your server more fun and secure. Stay tuned for more updates.
-                </div>
-            </a>
-        </div>
+        <h3 class="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">Giveaway System</h3>
+        <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+          Host engaging giveaways with automated entry management and winner selection.
+        </p>
+      </div>
     </div>
-</div>
+
+    <!-- Premium Features -->
+    <div class="glass-effect rounded-3xl p-8 md:p-12 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200/50 dark:border-blue-800/50">
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-semibold mb-4">
+          <i data-lucide="crown" class="w-4 h-4 mr-2"></i>
+          Premium Modules
+        </div>
+        <h3 class="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Take Your Server to the Next Level
+        </h3>
+        <p class="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+          Unlock advanced features designed for professional Discord communities
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- AutoMod -->
+        <div class="bg-white/50 dark:bg-black/20 rounded-xl p-6 border border-white/60 dark:border-gray-700/60">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-lg flex items-center justify-center mr-3">
+              <span class="text-white font-bold text-lg">🛡️</span>
+            </div>
+            <h4 class="font-bold text-slate-900 dark:text-slate-100">AutoMod</h4>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Intelligent filtering, spam prevention, and offensive content control with machine learning.
+          </p>
+        </div>
+
+        <!-- Ban Appeal System -->
+        <div class="bg-white/50 dark:bg-black/20 rounded-xl p-6 border border-white/60 dark:border-gray-700/60">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mr-3">
+              <span class="text-white font-bold text-lg">📩</span>
+            </div>
+            <h4 class="font-bold text-slate-900 dark:text-slate-100">Ban Appeal System</h4>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Let users appeal punishments via Discord or dashboard with streamlined review process.
+          </p>
+        </div>
+
+        <!-- YouTube Notifications -->
+        <div class="bg-white/50 dark:bg-black/20 rounded-xl p-6 border border-white/60 dark:border-gray-700/60">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
+              <span class="text-white font-bold text-lg">📣</span>
+            </div>
+            <h4 class="font-bold text-slate-900 dark:text-slate-100">YouTube Notifications</h4>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Auto-post your uploads instantly in your server with customizable notifications.
+          </p>
+        </div>
+
+        <!-- CAD System -->
+        <div class="bg-white/50 dark:bg-black/20 rounded-xl p-6 border border-white/60 dark:border-gray-700/60">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
+              <span class="text-white font-bold text-lg">🧭</span>
+            </div>
+            <h4 class="font-bold text-slate-900 dark:text-slate-100">Computer Aided Dispatch</h4>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Perfect for roleplay servers with dispatch systems and emergency response tools.
+          </p>
+        </div>
+
+        <!-- Ticket System -->
+        <div class="bg-white/50 dark:bg-black/20 rounded-xl p-6 border border-white/60 dark:border-gray-700/60">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-500 rounded-lg flex items-center justify-center mr-3">
+              <span class="text-white font-bold text-lg">🎫</span>
+            </div>
+            <h4 class="font-bold text-slate-900 dark:text-slate-100">Advanced Tickets</h4>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Advanced ticketing with staff roles, categories, and comprehensive logging.
+          </p>
+        </div>
+
+        <!-- Coming Soon -->
+        <div class="bg-white/50 dark:bg-black/20 rounded-xl p-6 border border-white/60 dark:border-gray-700/60">
+          <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-gray-500 to-slate-500 rounded-lg flex items-center justify-center mr-3">
+              <span class="text-white font-bold text-lg">✨</span>
+            </div>
+            <h4 class="font-bold text-slate-900 dark:text-slate-100">More Coming Soon</h4>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            We're constantly developing new features to enhance your server experience.
+          </p>
+        </div>
+      </div>
+
+      <div class="text-center mt-8">
+        <a href="#" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200">
+          <i data-lucide="crown" class="w-5 h-5 mr-2"></i>
+          Upgrade to Premium
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-r from-blue-600 to-purple-600 relative overflow-hidden">
+  <div class="absolute inset-0 bg-black/20"></div>
+  <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+      Ready to Transform Your Server?
+    </h2>
+    <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+      Join thousands of Discord communities that trust Cyni for their moderation and engagement needs.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" 
+         class="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transform hover:scale-105 transition-all duration-200 shadow-lg">
+        <i data-lucide="plus" class="w-5 h-5 mr-2"></i>
+        Add Cyni to Discord
+      </a>
+      <a href="#" 
+         class="inline-flex items-center px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-600 transition-all duration-200">
+        <i data-lucide="external-link" class="w-5 h-5 mr-2"></i>
+        View Documentation
+      </a>
+    </div>
+  </div>
+</section>
 
 {% endblock %}

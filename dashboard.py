@@ -9,23 +9,17 @@ import datetime
 import uuid
 from waitress import serve
 from bson import ObjectId, Int64
-from cyni import bot, bot_ready
-from utils.erm_api import *
-import mimetypes
+from cyni import bot
 import markdown
 import json
 
 from DashboardModules.WelcomeModule import welcome_route
-from DashboardModules.CAD import cad_route
-from DashboardModules.TicketModule import ticket_module
-from DashboardModules.YouTubeModule import youtube_module
-#from DashboardModules.AutoModModule import automod
-
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 FILES_URL = "https://files.cyni.quprdigital.tk/upload"
 
 load_dotenv()
+
+users = {}
 
 FILE_AUTH_TOKEN = os.getenv("FILE_AUTH_TOKEN")
 
@@ -35,12 +29,9 @@ OAUTH_SCOPE = "identify guilds"
 MANAGE_MESSAGES_PERMISSION = 0x2000
 ADMINISTRATOR_PERMISSION = 0x8
 
-ERM_API_BASE_URL = "https://core.ermbot.xyz/"
-
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_secret_key')
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 # Configure Flask-Session
 mongo_client = MongoClient(os.getenv("MONGO_URI"))
 mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") else mongo_client["dev"]
@@ -53,10 +44,6 @@ Session(app)
 
 # Register Blueprint
 app.register_blueprint(welcome_route)
-app.register_blueprint(cad_route)
-app.register_blueprint(ticket_module)
-app.register_blueprint(youtube_module)
-#app.register_blueprint(automod)
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)
@@ -65,7 +52,6 @@ login_manager.login_view = 'login'
 
 bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
 
-# User class
 class User(UserMixin):
     def __init__(self, id):
         self.id = id
@@ -73,44 +59,9 @@ class User(UserMixin):
     def get_id(self):
         return self.id
 
-# In-memory user storage
-users = {}
-
-LOG_IP_WEBHOOK_URL = os.getenv("LOG_IP_WEBHOOK_URL")
-
-@app.before_request
-def before_request():
-    try:
-        ip_address = (
-            request.headers.get('X-Real-Ip')
-            or request.headers.get('X-Forwarded-For')
-            or request.remote_addr
-        )
-
-        if ip_address:
-            ip_address = ip_address.split(',')[0].strip()
-        else:
-            ip_address = "Unknown IP"
-
-        if LOG_IP_WEBHOOK_URL:
-            embed = {
-                "title": "New Dashboard Access",
-                "description": f"User accessed the dashboard from IP: {ip_address}",
-                "color": 0x00ff00,
-                "timestamp": datetime.now().isoformat()
-            }
-            requests.post(LOG_IP_WEBHOOK_URL, json={"embeds": [embed]})
-    except Exception as e:
-        print(f"Error logging IP address: {e}")
-
-
 @login_manager.user_loader
 def load_user(user_id):
     return users.get(user_id)
-
-@app.route("/debug-ip")
-def debug_ip():
-    return dict(headers=dict(request.headers), ip=request.remote_addr)
 
 @app.template_filter('datetime')
 def format_datetime(timestamp):
@@ -182,11 +133,6 @@ def logout():
     user_id = session.get("user_id")
     session.clear()
     users.pop(user_id, None)
-    if user_id:
-        sessions_collection.update_one(
-            {"_id": user_id},
-            {"$set": {"logged_in": False}}
-        )
     logout_user()
     return redirect(url_for("index"))
 
@@ -1007,155 +953,7 @@ def notifications(guild_id, user_id):
             "created_at": notification["created_at"],
             "from": notification.get("from", "System")
         })
-
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-        erm_api_key = sett.get("erm_api_key", None)
-        if erm_api_key:
-            all_shifts = get_all_shifts(erm_api_key, guild_id)
-            ongoing_shifts = ongoing_shifts_over_4_hours(all_shifts)
-            
-            if ongoing_shifts:
-                for user in ongoing_shifts:
-                    notification_list.append({
-                        "title": "Shift Grinding Alert",
-                        "message": f"{user['nickname']} is having a shift longer than 4 hours.",
-                        "created_at": datetime.now().timestamp(),
-                        "from": "ERM"
-                    })
     return jsonify(notification_list)
-    
-@app.route('/erm/<guild_id>', methods=["GET"])
-@login_required
-def erm(guild_id):
-    guild = bot.get_guild(int(guild_id))
-    if not guild:
-        flash("Guild not found.", "error")
-        return redirect(url_for("dashboard"))
-    
-    member = guild.get_member(int(session["user_id"]))
-    if not member:
-        flash("You are not a member of this guild.", "error")
-        return redirect(url_for("dashboard"))
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in member.roles] for role in management_roles):
-        flash("You do not have the required permissions to access this page.", "error")
-        return redirect(url_for("dashboard"))
-    
-    return render_template("erm.html", guild=guild)
-
-@app.route('/erm/authenticate/<guild_id>', methods=["GET", "POST"])
-@login_required
-def erm_authenticate(guild_id):
-    guild = bot.get_guild(int(guild_id))
-    if not guild:
-        flash("Guild not found.", "error")
-        return redirect(url_for("dashboard"))
-    
-    member = guild.get_member(int(session["user_id"]))
-    if not member:
-        flash("You are not a member of this guild.", "error")
-        return redirect(url_for("dashboard"))
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in member.roles] for role in management_roles):
-        flash("You do not have the required permissions to access this page.", "error")
-        return redirect(url_for("dashboard"))
-    
-    if request.method == "GET":
-        return render_template("erm_authenticate.html", guild=guild)
-    
-    if request.method == "POST":
-            api_key = request.form.get("api_key")
-            url = "https://core.ermbot.xyz/api/v1/moderations"
-            headers = {
-                "Authorization": str(api_key),
-                "Guild": guild_id
-            }
-            response = requests.request("GET", url, headers=headers)
-            #print(response.json())
-
-            if response.status_code == 200:
-                flash("Authentication successful.")
-                mongo_db["settings"].update_one(
-                    {"_id": guild.id},
-                    {"$set": {"erm_api_key": api_key}},
-                    upsert=True
-                )
-            else:
-                flash("Authentication failed.", "error")
-            return redirect(url_for("dashboard", guild_id=guild_id))
-    
-@app.route('/erm/shifts/<guild_id>', methods=["GET"])
-@login_required
-def erm_shifts(guild_id):
-    guild = bot.get_guild(int(guild_id))
-    if not guild:
-        flash("Guild not found.", "error")
-        return redirect(url_for("dashboard"))
-    
-    member = guild.get_member(int(session["user_id"]))
-    if not member:
-        flash("You are not a member of this guild.", "error")
-        return redirect(url_for("dashboard"))
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in member.roles] for role in management_roles):
-        flash("You do not have the required permissions to access this page.", "error")
-        return redirect(url_for("dashboard"))
-    
-    erm_api_key = sett.get("erm_api_key", None)
-    if not erm_api_key:
-        flash("Please authenticate with ERM first.", "error")
-        return redirect(url_for("erm_authenticate", guild_id=guild_id))
-    
-    all_shifts = get_all_shifts(erm_api_key, guild_id)
-    data = {}
-    for shift in all_shifts['data']:
-        username = shift['username']
-        if username not in data:
-            user_id = shift['user_id']
-            data[username] = {
-                'username': username,
-                'nickname': shift['nickname'],
-                'user_id': user_id,
-                'total_shift_time': total_shift_time(username, all_shifts),
-                'alert': ongoing_shift_more_than4h(username, all_shifts),
-                'thumbnail': get_roblox_thumbnail(user_id)
-            }
-    return render_template("erm_shifts.html", guild=guild, data=data)
-
-@app.route('/erm/shifts/<guild_id>/<username>', methods=["GET"])
-@login_required
-def erm_user_shifts(guild_id, username):
-    guild = bot.get_guild(int(guild_id))
-    if not guild:
-        flash("Guild not found.", "error")
-
-    member = guild.get_member(int(session["user_id"]))
-    if not member:
-        flash("You are not a member of this guild.", "error")
-        return redirect(url_for("dashboard"))
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in member.roles] for role in management_roles):
-        flash("You do not have the required permissions to access this page.", "error")
-        return redirect(url_for("dashboard"))
-    
-    erm_api_key = sett.get("erm_api_key", None)
-    if not erm_api_key:
-        flash("Please authenticate with ERM first.", "error")
-        return redirect(url_for("erm_authenticate", guild_id=guild_id))
-    
-    user_shifts = get_user_shifts(username, guild_id, erm_api_key)
-    data = format_shift_data(user_shifts)
-    return render_template("erm_user_shifts.html", guild=guild, data=data)
-
 
 @app.route('/modpanel/<guild_id>', methods=["GET"])
 @login_required
