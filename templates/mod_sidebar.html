@@ -1,13 +1,5 @@
 <nav class="col-md-3 col-lg-2 d-md-block sidebar" style="background-color: #000; border-right: 1px solid #f0ad4e;">
     <div class="position-sticky">
-        <div class="d-flex align-items-center mt-3">
-            {% if 'username' in session %}
-            <button class="btn btn-outline-light me-2" id="notificationButton" onclick="fetchNotifications(); $('#notificationModal').modal('show');">
-                <i class="fas fa-bell"></i>
-            </button>
-            <span class="text-light">Notifications</span>
-            {% endif %}
-        </div>
         <p class="text-light text-left mt-3">
             <a href="{{ url_for('dashboard') }}" class="text-light">Dashboard</a>
         </p>
@@ -27,65 +19,6 @@
         -->
     </div>
 </nav>
-
-<!-- Notification Modal -->
-<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" style="background-color: #000; color: #f0ad4e;">
-            <div class="modal-header">
-                <h5 class="modal-title" id="notificationModalLabel">Notifications</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <ul id="notificationList" class="list-unstyled"></ul>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-function fetchNotifications() {
-    const guildId = '{{ guild.id }}';
-    const userId = '{{ session["user_id"] }}';
-    const url = `/notifications/${guildId}/${userId}`;
-    
-    console.log(url);
-    
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Received non-JSON response");
-            }
-            return response.json();
-        })
-        .then(data => {
-            const notificationList = document.getElementById('notificationList');
-            if (!notificationList) {
-                console.error('Notification list element not found');
-                return;
-            }
-            notificationList.innerHTML = ''; // Clear previous notifications
-
-            if (data.length === 0) {
-                notificationList.innerHTML = '<li>No new notifications</li>';
-            } else {
-                data.forEach(notification => {
-                    const listItem = document.createElement('li');
-                    listItem.innerHTML = `<strong>${notification.title}</strong><br>${notification.message}<br><small>From: ${notification.from}</small>`;
-                    notificationList.appendChild(listItem);
-                });
-            }
-
-            // Show the modal
-            $('#notificationModal').modal('show');
-        })
-        .catch(error => console.error('Error fetching notifications:', error));
-}
-</script>
 
 <style>
     .dropdown-content {
