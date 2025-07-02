@@ -406,7 +406,7 @@ def create_application(guild_id):
                 "fail_role": fail_role,
                 "status": "open",
                 "theme_color": theme_color,
-                "created_at": datetime.now().timestamp()
+                "created_at": datetime.datetime.now().timestamp(),
             }
             
             # If using new form builder system, parse and add the structured form data
