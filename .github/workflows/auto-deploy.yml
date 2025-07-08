@@ -1,0 +1,15 @@
+name: Auto Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Make deployment GET request
+      run: |
+        curl http://31.97.62.69:3000/api/deploy/1f3fcb4826fb3ce5eee507c22aedd98eb956a626622cf71c

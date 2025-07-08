@@ -204,8 +204,12 @@ def guild(guild_id):
     member = guild.get_member(int(session["user_id"]))
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
         return redirect(url_for("dashboard"))
+
+    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+
+    app_count = mongo_db["applications"].count_documents({"guild_id": guild.id})
     
-    return render_template("guild.html", guild=guild)
+    return render_template("guild.html", guild=guild, guild_data=guild_data, app_count=app_count)
 
 @app.route('/dashboard/<guild_id>/settings/basics', methods=["GET", "POST"])
 @login_required
