@@ -9,10 +9,7 @@ from typing import Annotated
 import os
 from dotenv import load_dotenv
 import datetime
-import pymongo
 import motor.motor_asyncio
-import threading
-from cyni import cad_access_check, cad_administrator_check, cad_operator_check
 import uuid
 
 # Load the environment variables
@@ -42,25 +39,6 @@ class ApplicationStatus(BaseModel):
     fail_role: int
     result_channel: int
     note: str | None = "Not provided."
-
-class CAD_Team(BaseModel):
-    guild_id: int
-    team: str
-    owner_id: int
-    co_owners: list[int] = []
-    members: list[int]
-    pending_members: list[int]
-    blacklist: list[int]
-    icon_url: str | None = None
-    created_at: int
-
-class CAD_Log(BaseModel):
-    guild_id: int
-    created_by: int
-    team: str
-    punishment: str
-    reason: str | None = None
-    created_at: int
 
 class TicketEmbedRequest(BaseModel):
     guild_id: int
@@ -783,6 +761,43 @@ class APIRoutes:
         except Exception as e:
             logger.error(f"Failed to send ticket embed: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to send ticket embed: {str(e)}")
+        
+    async def POST_send_latest_audit_logs(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Send the latest audit logs of a server."""
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+        
+        json_data = await request.json()
+        guild_id = json_data.get("guild_id")
+        if not guild_id:
+            raise HTTPException(status_code=400, detail="Guild ID not provided")
+        
+        guild = self.bot.get_guild(int(guild_id))
+        if not guild:
+            raise HTTPException(status_code=404, detail="Guild not found")
+        
+        audit_logs = []
+        async for entry in guild.audit_logs(limit=3):
+            changes = {}
+            if entry.changes:
+                for attr_name, change in entry.changes.items():
+                    changes[attr_name] = {"before": change.before, "after": change.after}
+            
+            audit_logs.append({
+                "user": str(entry.user),
+                "action": entry.action.name,
+                "target": str(entry.target) if entry.target else None,
+                "created_at": entry.created_at.isoformat(),
+                "changes": changes
+            })
+        if not audit_logs:
+            raise HTTPException(status_code=404, detail="No audit logs found for this guild")
 
 
 # Discord Bot API Integration Cog

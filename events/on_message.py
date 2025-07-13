@@ -66,6 +66,7 @@ class OnMessage(commands.Cog):
                             if any(role.id in anti_ping_module.get("exempt_roles", []) for role in message.author.roles):
                                 return
                             await message.channel.send(
+                                message.author.mention,
                                 embed=discord.Embed(
                                     title="Anti-Ping Warning",
                                     description=f"{message.author.mention} please do not ping users with the role {role.mention}.",

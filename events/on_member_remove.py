@@ -53,7 +53,7 @@ class OnMemberRemove(commands.Cog):
                 value=f"{guild.member_count}",
             ).set_author(
                 name=member,
-                icon_url=member.avatar.url
+                icon_url=member.avatar
             ).set_footer(
                 text=f"User ID: {member.id}"
             ).set_thumbnail(

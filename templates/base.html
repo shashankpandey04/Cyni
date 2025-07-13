@@ -61,6 +61,48 @@
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
+    /* Global scrollbar styling */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+    }
+    
+    *::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 3px;
+    }
+    
+    .dark *::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.3);
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+    
+    .dark *::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 0.5);
+    }
+    
+    /* Hide scrollbar for better UX while keeping functionality */
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
   </style>
   
   <script>
@@ -77,7 +119,7 @@
     }
   </script>
 </head>
-<<body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-slate-100 transition-all duration-300">
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-slate-100 transition-all duration-300">
   <!-- Background Pattern -->
   <div class="fixed inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23f1f5f9" fill-opacity="0.3"%3E%3Ccircle cx="30" cy="30" r="1.5"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] dark:bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23334155" fill-opacity="0.2"%3E%3Ccircle cx="30" cy="30" r="1.5"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] pointer-events-none"></div>
   

@@ -39,7 +39,7 @@ class CommandErrorHandler(commands.Cog):
         try:
             if isinstance(error, PremiumRequired):
                 embed.title = "Premium Required"
-                embed.description = str(error)
+                embed.description = "This command requires Cyni Premium. Please upgrade your server to use this command."
                 return await ctx.send(embed=embed)
                 
             elif isinstance(error, commands.MissingRequiredArgument):

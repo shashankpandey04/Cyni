@@ -76,20 +76,5 @@ class OnVoiceStateUpdate(commands.Cog):
                 #else:
             await guild_log_channel.send(embed=embed)
 
-        elif before.channel is not None and after.channel is not None:
-            embed = discord.Embed(
-                    title= " ",
-                    description=f"{member.mention} moved from voice channel {before.channel.mention} to {after.channel.mention} on {action_time}",
-                    color=GREEN_COLOR
-                ).set_author(
-                    name=member,
-                ).set_footer(
-                    text=f"User ID: {member.id}"
-                )
-                #if cyni_webhook:
-                #    await cyni_webhook.send(embed=embed)
-                #else:
-            await guild_log_channel.send(embed=embed)
-
 async def setup(bot):
     await bot.add_cog(OnVoiceStateUpdate(bot))

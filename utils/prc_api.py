@@ -119,11 +119,13 @@ class PRC_API_Client:
         self.api_key = api_key
         self.session = aiohttp.ClientSession()
 
-    async def close(self):
-        await self.session.close()
+    async def cog_unload(self):
+        """Clean up when cog is unloaded."""
+        if self.session:
+            await self.session.close()
 
     async def fetch_server_key(self, server_id: int):
-        return await self.bot.erlc_keys.find_by_id(server_id)
+        return await self.bot.erlc.find_by_id(server_id)
 
     async def _send_request(self, method: str, endpoint: str, server_id: int, **kwargs):
         server_key = await self.fetch_server_key(server_id)

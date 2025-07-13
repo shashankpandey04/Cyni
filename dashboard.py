@@ -177,7 +177,7 @@ def dashboard():
         has_manage_messages = (permissions & MANAGE_MESSAGES_PERMISSION) == MANAGE_MESSAGES_PERMISSION
         is_admin = (permissions & ADMINISTRATOR_PERMISSION) == ADMINISTRATOR_PERMISSION
         is_owner = guild.get("owner", False)
-        bot_present = guild["id"] in bot_guild_ids
+        bot_present = guild["id"] in bot_guild_ids    
 
         if (has_manage_messages or is_admin or is_owner) and bot_present:
             user_guilds.append({
@@ -190,6 +190,17 @@ def dashboard():
                 "admin": is_admin,
                 "moderator": has_manage_messages
             })
+            URL = f"http://127.0.0.1:5000/send_latest_audit_logs"
+            # response = requests.post(URL, json={"guild_id": guild["id"]}, headers={"Authorization": bot_token})
+            # if response.status_code == 200:
+            #     audit_logs = response.json()
+            #     if audit_logs:
+            #         guild["audit_logs"] = audit_logs
+            #         print(f"Audit logs for {guild['name']}: {audit_logs}")
+            #     if not audit_logs:
+            #         flash(f"No audit logs found for {guild['name']}.", "info")
+            # else:
+            #     flash(f"Failed to fetch audit logs for {guild['name']}: {response.text}", "error")
     
     session["guilds"] = user_guilds
     return render_template("dashboard.html", user_id=user_id, username=username, user_guilds=user_guilds)

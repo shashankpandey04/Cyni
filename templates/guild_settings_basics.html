@@ -1,131 +1,132 @@
 {% extends "base.html" %}
 
-{% block title %} Basic Settings | Cyni {% endblock %}
+{% block title %}Basic Settings | Cyni{% endblock %}
 
 {% block content %}
-<div class="flex h-screen overflow-y-auto bg-gray-900">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<!-- Main Layout Container - Unified scroll system -->
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16">
+  <!-- Include Sidebar -->
   {% include 'sidebar.html' %}
-
-  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
-    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        <div class="mb-8">
-            <h1 class="text-3xl font-extrabold text-white mb-2">Basic Settings</h1>
-            <p class="text-gray-400">This module allows you to configure the basic settings for the bot.</p>
-        </div>
+  
+  <!-- Main Content Area with Unified Scroll -->
+  <div class="md:ml-64">
+    <main class="p-6 lg:p-8 max-w-7xl mx-auto">
+      <!-- Page Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Basic Settings</h1>
+        <p class="text-slate-600 dark:text-slate-400">This module allows you to configure the basic settings for the bot.</p>
+      </div>
         
-        <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-amber-500/10 overflow-hidden mb-8">
-            <div class="p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-12 w-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                      </svg>
-                    </div>
-                    <div class="ml-4">
-                      <h2 class="text-lg font-semibold text-white">Basic Settings</h2>
-                      <p class="text-sm text-gray-400">
-                        {% if guild_data.get('customization', {}).get('prefix', '?') %}
-                          Currently <span class="text-green-400">Active</span> and using the following prefix: 
-                          <code>{{ guild_data.get('customization', {}).get('prefix', '?') }}</code>
-                        {% else %}
-                          Currently <span class="text-red-400">
-                            <code>?</code>
-                        {% endif %}
-                      </p>                      
-                    </div>
-                </div>
+        <!-- Status Card -->
+        <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden mb-8">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-12 w-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <i data-lucide="settings" class="h-6 w-6 text-blue-500"></i>
+              </div>
+              <div class="ml-4">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Basic Settings</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400">
+                  Currently <span class="text-green-400">Active</span> and using the following prefix: 
+                  <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{{ guild_data.get('customization', {}).get('prefix', '?') }}</code>
+                </p>                      
+              </div>
             </div>
           </div>
+        </div>
 
-        <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
-            <div class="border-b border-gray-700/50 p-6">
-              <h3 class="text-xl font-semibold text-white">Basic Settings</h3>
-              <p class="text-sm text-gray-400 mt-1">Manage who can use the bot and other basic settings</p>
-            </div>
+        <!-- Settings Form -->
+        <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
+          <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
+            <h3 class="text-xl font-semibold text-slate-900 dark:text-white">Basic Settings</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Manage who can use the bot and other basic settings</p>
+          </div>
 
-            <div class="p-6">
-            <form method="POST" action="{{ url_for('guild_settings_basics', guild_id=guild.id) }}" id="settingsForm">
-                <div class="mb-8">
-                    <label for="prefix" class="block text-sm font-medium text-gray-300 mb-2">Bot Prefix</label>
-                    <div class="relative">
-                        <select 
-                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
-                        id="prefix" 
-                        name="prefix">
-                        {% for option in ['?', '!', '>', ':'] %}
-                          <option 
-                            value="{{ option }}" 
-                            {% if option == guild_data.get('basic_settings', {}).get('staff_roles', []) %}selected{% endif %}
-                            class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
-                            {{ option }}
-                          </option>
-                        {% endfor %}
-                      </select>
-                      
-                      <p>
-                        Currently <span class="text-green-400">Active</span> and using the following prefix: 
-                        <code>{{ guild_data.get('customization', {}).get('prefix', '?') }}</code>
-                      </p>
-                    </div>
-                  </div>
+          <div class="p-6">
+            <form method="POST" action="{{ url_for('guild_settings_basics', guild_id=guild.id) }}" id="settingsForm" class="space-y-8">
+              <!-- Bot Prefix -->
+              <div class="space-y-3">
+                <label for="prefix" class="block text-sm font-medium text-slate-900 dark:text-white">Bot Prefix</label>
+                <select 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="prefix" 
+                  name="prefix">
+                  {% for option in ['?', '!', '>', ':'] %}
+                    <option 
+                      value="{{ option }}" 
+                      {% if option == guild_data.get('customization', {}).get('prefix', '?') %}selected{% endif %}
+                      class="py-2 px-2">
+                      {{ option }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Choose the prefix that users will type before bot commands</p>
+              </div>
 
+              <!-- Staff Roles -->
+              <div class="space-y-3">
+                <label for="staff_roles" class="block text-sm font-medium text-slate-900 dark:text-white">Staff Roles</label>
+                <select 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="staff_roles" 
+                  name="staff_roles" 
+                  multiple
+                  size="5">
+                  {% for role_id, role_name in roles.items() %}
+                    <option 
+                      value="{{ role_id }}" 
+                      {% if role_id in guild_data.get('basic_settings', {}).get('staff_roles', []) %}selected{% endif %}
+                      class="py-2 px-2">
+                      {{ role_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.</p>
+              </div>
+              
+              <!-- Management Roles -->
+              <div class="space-y-3">
+                <label for="management_roles" class="block text-sm font-medium text-slate-900 dark:text-white">Management Roles</label>
+                <select 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="management_roles" 
+                  name="management_roles" 
+                  multiple
+                  size="5">
+                  {% for role_id, role_name in roles.items() %}
+                    <option 
+                      value="{{ role_id }}" 
+                      {% if role_id in guild_data.get('basic_settings', {}).get('management_roles', []) %}selected{% endif %}
+                      class="py-2 px-2">
+                      {{ role_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.</p>
+              </div>
 
-                  <div class="mb-6">
-                    <label for="staff_roles" class="block text-sm font-medium text-gray-300 mb-2">Staff Roles</label>
-                    <div class="relative">
-                      <select 
-                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
-                        id="staff_roles" 
-                        name="staff_roles" 
-                        multiple
-                        size="5">
-                        {% for role_id, role_name in roles.items() %}
-                        <option 
-                          value="{{ role_id }}" 
-                          {% if role_id in guild_data.get('basic_settings', {}).get('staff_roles', []) %}selected{% endif %}
-                          class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
-                          {{ role_name }}
-                        </option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                    <p class="mt-2 text-sm text-gray-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.
-                    </p>
-                  </div>
-                  
-                  <div class="mb-6">
-                    <label for="management_roles" class="block text-sm font-medium text-gray-300 mb-2">Management Roles</label>
-                    <div class="relative">
-                      <select 
-                        class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
-                        id="management_roles" 
-                        name="management_roles" 
-                        multiple
-                        size="5">
-                        {% for role_id, role_name in roles.items() %}
-                        <option 
-                          value="{{ role_id }}" 
-                          {% if role_id in guild_data.get('basic_settings', {}).get('management_roles', []) %}selected{% endif %}
-                          class="py-2 px-2 hover:bg-gray-600 cursor-pointer">
-                          {{ role_name }}
-                        </option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                    <p class="mt-2 text-sm text-gray-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.
-                    </p>
-                  </div>
-                  <div class="flex justify-between">
-                    <button 
-                        type="submit" 
-                        class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-gray-900">
-                        Save Configuration
-                    </button>
-                  </div>              
+              <!-- Save Button -->
+              <div class="flex justify-end">
+                <button 
+                  type="submit" 
+                  class="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl">
+                  Save Configuration
+                </button>
+              </div>              
             </form>
-        </main>
-    </div>
-    </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
+
+<script>
+// Initialize Lucide icons
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+});
+</script>
 {% endblock %}

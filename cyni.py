@@ -3,7 +3,6 @@ from discord.abc import User
 from discord.ext import commands
 from discord.ext import tasks
 from utils.mongo import Document
-from utils.constants import BLANK_COLOR
 
 from pkgutil import iter_modules
 import logging
@@ -13,6 +12,12 @@ import time
 from dotenv import load_dotenv
 import motor.motor_asyncio
 from utils.utils import get_prefix
+
+from Tasks.loa_check import loa_check
+from Tasks.GiveawayRoll import giveaway_roll
+
+from utils.prc_api import PRC_API_Client
+from decouple import config
 
 from Datamodels.Settings import Settings
 from Datamodels.Analytics import Analytics
@@ -25,17 +30,10 @@ from Datamodels.Infraction_types import Infraction_type
 from Datamodels.Giveaway import Giveaway
 from Datamodels.Backup import Backup
 from Datamodels.afk import AFK
-from Datamodels.Erlc_keys import ERLC_Keys
 from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
 from Datamodels.LOA import LOA
-from Datamodels.YouTubeConfig import YouTubeConfig
 
-from Tasks.loa_check import loa_check
-from Tasks.GiveawayRoll import giveaway_roll
-
-from utils.prc_api import PRC_API_Client
-from decouple import config
 
 load_dotenv()
 
@@ -51,18 +49,12 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-class Bot(commands.AutoShardedBot):
-    
-    async def close(self):
-        print('Closing...')
-        await super().close()
-        print('Closed!')
+class Bot(commands.Bot):
 
     async def is_owner(self, user: User) -> bool:
 
         if user.id in [
             1201129677457215558, #coding.nerd
-            707064490826530888, #imlimiteds
         ]:
             return True
         
@@ -82,10 +74,16 @@ class Bot(commands.AutoShardedBot):
             self.giveaway_document = Document(self.db, 'giveaways')
             self.backup_document = Document(self.db, 'backup')
             self.afk_document = Document(self.db,'afk')
-            self.erlc_keys_document = Document(self.db, 'erlc_keys')
             self.applications_document = Document(self.db, 'applications')
             self.partnership_document = Document(self.db, 'partnership')
             self.loa_document = Document(self.db, 'loa')
+            self.erlc_document = Document(self.db, 'erlc')
+
+    async def close(self):
+        print('Closing...')
+        await super().close()
+        self.mongo.close()
+        print('Closed!')
 
     async def setup_hook(self) -> None:
 
@@ -101,17 +99,16 @@ class Bot(commands.AutoShardedBot):
         self.giveaways = Giveaway(self.db, 'giveaways')
         self.backup = Backup(self.db, 'backup')
         self.afk = AFK(self.db,'afk')
-        self.erlc_keys = ERLC_Keys(self.db, 'erlc_keys')
         self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
         self.applications = Applications(self.db, 'applications')
         self.partnership = Partnership(self.db, 'partnership')
         self.loa = LOA(self.db, 'loa')
-        self.youtube_config = YouTubeConfig(self.db, 'youtube_config')
+        self.erlc = Document(self.db, 'erlc')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications"]
+        UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications", "Cogs.ERLC"]
         DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube"]
 
 
@@ -146,10 +143,7 @@ class Bot(commands.AutoShardedBot):
                 except Exception as e:
                     logging.error(f'Failed to unload extension {extension}.', exc_info=True)
 
-        #await self.load_extension("jishaku")
-
         logging.info("Loaded all extensions.")
-
 
         logging.info("Connected to MongoDB")
 
@@ -171,72 +165,50 @@ bot = Bot(
     shard_count=1
 )
 
-bot_debug_server = [1152949579407442050]
-bot_shard_channel = 1203343926388330518
+bot.debug_server = [1152949579407442050]
+bot.shard_channel = 1203343926388330518
+bot.error_channel_id = 1203343926388330518
 
 afk_users = {}
 
-@bot.event
-async def on_shard_ready(shard_id):
-    embed = discord.Embed(
-        title="Shard Connected",
-        description=f"Shard ID `{shard_id}` connected successfully.",
-        color=BLANK_COLOR
-    )
-    await bot.get_channel(bot_shard_channel).send(embed=embed)
-
-@bot.event
-async def on_shard_disconnect(shard_id):
-    embed = discord.Embed(
-        title="Shard Disconnected",
-        description=f"Shard ID `{shard_id}` disconnected.",
-        color=BLANK_COLOR
-    )
-    await bot.get_channel(bot_shard_channel).send(embed=embed)
-
 @bot.before_invoke
 async def AutoDefer(ctx: commands.Context):
-    #webhook_link = os.getenv("CYNI_LOGS_WEBHOOK")
-    #embed = discord.Embed(
-    #    title="Command Used",
-    #    description=f"Command `{ctx.command}` used.",
-    #    color=BLANK_COLOR
-    #)
-    #async with aiohttp.ClientSession() as session:
-    #    async with session.post(webhook_link, json={'embeds': [embed.to_dict()]}) as response:
-    #        if response.status == 204:
-    #            return
-    #        else:
-    #            logging.error(f"Failed to send webhook. Status: {response.status}")
-
-    analytics = await bot.analytics.find_by_id(
-        ctx.command.full_parent_name + f"{ctx.command.name}"
-    )
+    from datetime import datetime
+    
+    command_name = ctx.command.full_parent_name + f"{ctx.command.name}"
+    current_month = datetime.now().strftime("%Y-%m")
+    
+    analytics = await bot.analytics.find_by_id(command_name)
     if not analytics:
         await bot.analytics.insert(
             {
-                "_id": ctx.command.full_parent_name + f"{ctx.command.name}",
-                "uses": 1
+                "_id": command_name,
+                "uses": 1,
+                "monthly_usage": {current_month: 1}
             }
         )
     else:
+        monthly_usage = analytics.get("monthly_usage", {})
+        monthly_usage[current_month] = monthly_usage.get(current_month, 0) + 1
+        
         await bot.analytics.upsert(
             {
-                "_id": ctx.command.full_parent_name + f"{ctx.command.name}",
-                "uses": analytics["uses"] + 1
+                "_id": command_name,
+                "uses": analytics["uses"] + 1,
+                "monthly_usage": monthly_usage
             }
         )
 
-#@bot.after_invoke
-#async def loggingCommand(ctx: commands.Context):
-#    logging.info(f"{ctx.author} used {ctx.command} in {ctx.guild}.")
+@bot.after_invoke
+async def loggingCommand(ctx: commands.Context):
+   logging.info(f"{ctx.author} used {ctx.command} in {ctx.guild}.")
 
 @tasks.loop(hours=1)
 async def change_status():
     await bot.wait_until_ready()
     logging.info("Changing status")
     guild_count = len(bot.guilds)
-    status = "Watching over " + str(guild_count) + "+ servers"
+    status = "Watching over " + str(guild_count) + " servers"
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
     )
@@ -244,7 +216,7 @@ async def change_status():
 up_time = time.time()
 
 class PremiumRequired(commands.CheckFailure):
-    def __init__(self, message="<:declined:1268849944455024671> This server doesn't have Cyni Premium!"):
+    def __init__(self, message="=This server doesn't have Cyni Premium!"):
         self.message = message
         super().__init__(self.message)
 
@@ -277,50 +249,6 @@ async def management_check(bot,guild,member):
                             return True
             elif isinstance(guild_settings["basic_settings"]["management_roles"], int):
                 if guild_settings["basic_settings"]["management_roles"] in [role.id for role in member.roles]:
-                    return True
-    return False
-
-async def cad_access_check(bot,guild,member):
-    guild_settings = await bot.settings.get(guild.id)
-    if guild_settings:
-        if "cad_access_roles" in guild_settings["basic_settings"].keys():
-            if guild_settings["basic_settings"]["cad_access_roles"] != []:
-                if isinstance(guild_settings["basic_settings"]["cad_access_roles"], list):
-                    for role in guild_settings["basic_settings"]["cad_access_roles"]:
-                        if role in [role.id for role in member.roles]:
-                            return True
-            elif isinstance(guild_settings["basic_settings"]["cad_access_roles"], int):
-                if guild_settings["basic_settings"]["cad_access_roles"] in [role.id for role in member.roles]:
-                    return True
-    return False
-
-async def cad_operator_check(bot,guild,member):
-    guild_settings = await bot.settings.get(guild.id)
-    if guild_settings:
-        if "cad_operator_roles" in guild_settings["basic_settings"].keys():
-            if guild_settings["basic_settings"]["cad_operator_roles"] != []:
-                if isinstance(guild_settings["basic_settings"]["cad_operator_roles"], list):
-                    for role in guild_settings["basic_settings"]["cad_operator_roles"]:
-                        if role in [role.id for role in member.roles]:
-                            return True
-            elif isinstance(guild_settings["basic_settings"]["cad_operator_roles"], int):
-                if guild_settings["basic_settings"]["cad_operator_roles"] in [role.id for role in member.roles]:
-                    return True
-    return False
-
-async def cad_administrator_check(bot,guild,member):
-    guild_settings = await bot.settings.get(guild.id)
-    if member.guild_permissions.administrator:
-        return True
-    elif guild_settings:
-        if "cad_administrator_roles" in guild_settings["basic_settings"].keys():
-            if guild_settings["basic_settings"]["cad_administrator_roles"] != []:
-                if isinstance(guild_settings["basic_settings"]["cad_administrator_roles"], list):
-                    for role in guild_settings["basic_settings"]["cad_administrator_roles"]:
-                        if role in [role.id for role in member.roles]:
-                            return True
-            elif isinstance(guild_settings["basic_settings"]["cad_administrator_roles"], int):
-                if guild_settings["basic_settings"]["cad_administrator_roles"] in [role.id for role in member.roles]:
                     return True
     return False
 
@@ -407,15 +335,6 @@ elif os.getenv("PREMIUM_TOKEN"):
 else:
     bot_token = os.getenv("DEV_TOKEN")
     logging.info("Using Development Token")
-
-def run_whitelabel_bot(token: str):
-    """Run a whitelabel version of the bot using a custom token."""
-    bot_token = token
-    logging.info("Running whitelabel bot")
-    try:
-        bot.run(bot_token)
-    except Exception as e:
-        logging.error(f"Error: {e}", exc_info=True)
 
 def run():
     try:

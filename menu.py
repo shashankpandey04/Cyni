@@ -57,7 +57,7 @@ class BasicConfig(discord.ui.View):
             row=1,
             min_values=1,
             max_values=10,
-            default_values=[discord.Object(id=role_id) for role_id in staff_roles]
+            default_values=[discord.Object(id=role_id) for role_id in staff_roles if role_id is not None]
         )
         self.staff_role_select.callback = self.staff_roles_callback
         self.add_item(self.staff_role_select)
@@ -67,7 +67,7 @@ class BasicConfig(discord.ui.View):
             row=2,
             min_values=1,
             max_values=10,
-            default_values=[discord.Object(id=role_id) for role_id in management_roles]
+            default_values=[discord.Object(id=role_id) for role_id in management_roles if role_id is not None]
         )
         self.management_role_select.callback = self.management_roles_callback
         self.add_item(self.management_role_select)
@@ -186,9 +186,9 @@ class StaffInfraction(View):
         self.promotion_channel_select = discord.ui.ChannelSelect(
             placeholder="Staff Promotion Log Channel",
             row=1,
-            min_values=0,
+            min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=promo_channel)],
+            default_values=[discord.Object(id=promo_channel)] if promo_channel else [],
             channel_types=[discord.ChannelType.text]
         )
 
@@ -200,7 +200,7 @@ class StaffInfraction(View):
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=demotion_channel)],
+            default_values=[discord.Object(id=demotion_channel)] if demotion_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.infraction_channel_select.callback = self.infraction_channel
@@ -211,7 +211,7 @@ class StaffInfraction(View):
             row=3,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=warning_channel)],
+            default_values=[discord.Object(id=warning_channel)] if warning_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.warning_channel_select.callback = self.warning_channel
@@ -223,13 +223,8 @@ class StaffInfraction(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id}
-        try:
-            staff_infraction_module = settings['staff_management']
-        except KeyError:
-            settings = {
-                '_id': interaction.guild.id,
-                'staff_management': {'enabled': False}
-            }
+        if 'staff_management' not in settings:
+            settings['staff_management'] = {'enabled': False}
         try:
             settings["staff_management"]["enabled"] = not settings["staff_management"].get("enabled",False)
         except KeyError:
@@ -323,7 +318,7 @@ class AntiPingView(View):
             row=1,
             min_values=1,
             max_values=25,
-            default_values=[discord.Object(id=role_id) for role_id in affected_roles]
+            default_values=[discord.Object(id=role_id) for role_id in affected_roles if role_id is not None]
         )
         self.affected_roles_button.callback = self.affected_roles_callback
         self.add_item(self.affected_roles_button)
@@ -333,7 +328,7 @@ class AntiPingView(View):
             row=2,
             min_values=1,
             max_values=25,
-            default_values=[discord.Object(id=role_id) for role_id in bypass_roles]
+            default_values=[discord.Object(id=role_id) for role_id in bypass_roles if role_id is not None]
         )
         self.bypass_roles_button.callback = self.bypass_roles_callback
         self.add_item(self.bypass_roles_button)
@@ -459,7 +454,7 @@ class ModerationModule(discord.ui.View):
                 row=1,
                 min_values=1,
                 max_values=1,
-                default_values=[discord.Object(id=mod_channel)],
+                default_values=[discord.Object(id=mod_channel)] if mod_channel else [],
                 channel_types=[discord.ChannelType.text]
         )
         self.moderation_log_channel_select.callback = self.moderation_log_channel_callback
@@ -473,7 +468,7 @@ class ModerationModule(discord.ui.View):
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=appeal_channel)],
+            default_values=[discord.Object(id=appeal_channel)] if appeal_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.ban_appeal_channel.callback = self.ban_appeal_channel_callback
@@ -488,7 +483,7 @@ class ModerationModule(discord.ui.View):
             min_values=0,
             max_values=1,
             row=3,
-            default_values=[discord.Object(id=audit_channel)],
+            default_values=[discord.Object(id=audit_channel)] if audit_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.audit_channel_select.callback = self.audit_channel_select_callback
@@ -596,7 +591,7 @@ class ServerManagement(discord.ui.View):
             row=1,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=app_channel)],
+            default_values=[discord.Object(id=app_channel)] if app_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.application_channel_select.callback = self.application_channel_callback
@@ -611,7 +606,7 @@ class ServerManagement(discord.ui.View):
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=cyni_log_channel)],
+            default_values=[discord.Object(id=cyni_log_channel)] if cyni_log_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.cyni_log_channel_select.callback = self.cyni_log_channel_callback
@@ -626,7 +621,7 @@ class ServerManagement(discord.ui.View):
             row=3,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=suggestion_channel)],
+            default_values=[discord.Object(id=suggestion_channel)] if suggestion_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.suggestion_channel_select.callback = self.suggestion_channel_callback
@@ -706,7 +701,10 @@ class UpVote(discord.ui.Button):
         user = interaction.user
         embeds = interaction.message.embeds[0]
         upvotes_field = embeds.fields[0]
-        upvotes = int(upvotes_field.value)
+        try:
+            upvotes = int(upvotes_field.value) if upvotes_field.value and upvotes_field.value.isdigit() else 0
+        except (ValueError, AttributeError):
+            upvotes = 0
 
         if user.id in self.voters:
             self.voters.remove(user.id)
@@ -730,7 +728,10 @@ class DownVote(discord.ui.Button):
         user = interaction.user
         embeds = interaction.message.embeds[0]
         downvotes_field = embeds.fields[1]
-        downvotes = int(downvotes_field.value)
+        try:
+            downvotes = int(downvotes_field.value) if downvotes_field.value and downvotes_field.value.isdigit() else 0
+        except (ValueError, AttributeError):
+            downvotes = 0
 
         if user.id in self.voters:
             self.voters.remove(user.id)
@@ -808,7 +809,7 @@ class PartnershipModule(View):
             row=1,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=partnership_channel)],
+            default_values=[discord.Object(id=partnership_channel)] if partnership_channel else [],
             channel_types=[discord.ChannelType.text]
         )
         self.partnership_channel_select.callback = self.partnership_channel_callback
@@ -823,7 +824,7 @@ class PartnershipModule(View):
             row=2,
             min_values=1,
             max_values=1,
-            default_values=[discord.Object(id=partner_role)]
+            default_values=[discord.Object(id=partner_role)] if partner_role else []
         )
         self.partner_role_select.callback = self.partner_role_callback
         self.add_item(self.partner_role_select)

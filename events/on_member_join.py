@@ -47,7 +47,7 @@ class OnMemberJoin(commands.Cog):
                     )
                 try:
                     embed.set_thumbnail(
-                        url=member.avatar.url
+                        url=member.avatar
                     )
                 except:
                     pass
@@ -79,7 +79,7 @@ class OnMemberJoin(commands.Cog):
                     color=int(embed_color, 16)
                 )
                 embed.set_thumbnail(
-                    url=member.avatar.url
+                    url=member.avatar
                 )
                 await welcome_channel.send(embed=embed)
             else:

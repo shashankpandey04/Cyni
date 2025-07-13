@@ -26,6 +26,15 @@ class Config(commands.Cog):
         """
         Configure your server settings.
         """
+        if not ctx.author or not hasattr(ctx.author, 'id'):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Unable to identify the command user.",
+                    color=RED_COLOR
+                )
+            )
+            
         try:
             if isinstance(ctx,commands.Context):
                 await log_command_usage(self.bot,ctx.guild,ctx.author,"Config")

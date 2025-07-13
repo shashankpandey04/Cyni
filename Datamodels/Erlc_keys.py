@@ -1,4 +1,4 @@
 from utils.mongo import Document
 
-class ERLC_Keys(Document):
+class erlc(Document):
     pass
