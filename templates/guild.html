@@ -188,7 +188,7 @@
             <!-- Applications Module - Check if applications exist -->
             {% set has_applications = app_count > 0 %}
             {% if has_applications %}
-            <a href="{{ url_for('applications', guild_id=guild.id) }}" class="group flex items-center p-4 rounded-xl bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/30 transition-all duration-200 border border-white/60 dark:border-slate-700/60">
+            <a href="{{ url_for('applications_dashboard', guild_id=guild.id) }}" class="group flex items-center p-4 rounded-xl bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/30 transition-all duration-200 border border-white/60 dark:border-slate-700/60">
               <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-500 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-200">
                 <i data-lucide="file-text" class="w-5 h-5 text-white"></i>
               </div>

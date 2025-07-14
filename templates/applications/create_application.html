@@ -1,0 +1,776 @@
+{% extends "base.html" %}
+
+{% block title %}Create Application | {{ guild.name }}{% endblock %}
+
+{% block content %}
+<!-- Main Layout Container - Unified scroll system -->
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16">
+  <!-- Include Sidebar -->
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area with Unified Scroll -->
+  <div class="md:ml-64">
+    <main class="p-6 lg:p-8 max-w-7xl mx-auto">
+      <!-- Page Header -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Create Application</h1>
+            <p class="text-slate-600 dark:text-slate-400">Build a custom application form for {{ guild.name }}.</p>
+          </div>
+          <a 
+            href="{{ url_for('applications_dashboard', guild_id=guild.id) }}" 
+            class="px-4 py-2 bg-gradient-to-r from-gray-500 to-slate-600 text-white font-medium rounded-lg hover:from-gray-600 hover:to-slate-700 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-800 transition-all duration-200">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-2 inline"></i>
+            Back to Dashboard
+          </a>
+        </div>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-6 space-y-3">
+            {% for category, message in messages %}
+              <div class="glass-effect rounded-lg border border-white/20 dark:border-slate-700/30 p-4 
+                {% if category == 'success' %}
+                  bg-green-50/80 dark:bg-green-900/20 border-green-200 dark:border-green-800
+                {% elif category == 'error' %}
+                  bg-red-50/80 dark:bg-red-900/20 border-red-200 dark:border-red-800
+                {% elif category == 'warning' %}
+                  bg-yellow-50/80 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800
+                {% else %}
+                  bg-blue-50/80 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800
+                {% endif %}">
+                <div class="flex items-center">
+                  <i data-lucide="{% if category == 'success' %}check-circle{% elif category == 'error' %}x-circle{% elif category == 'warning' %}alert-triangle{% else %}info{% endif %}" 
+                     class="h-5 w-5 mr-3 
+                     {% if category == 'success' %}text-green-600 dark:text-green-400
+                     {% elif category == 'error' %}text-red-600 dark:text-red-400
+                     {% elif category == 'warning' %}text-yellow-600 dark:text-yellow-400
+                     {% else %}text-blue-600 dark:text-blue-400{% endif %}"></i>
+                  <span class="
+                    {% if category == 'success' %}text-green-800 dark:text-green-200
+                    {% elif category == 'error' %}text-red-800 dark:text-red-200
+                    {% elif category == 'warning' %}text-yellow-800 dark:text-yellow-200
+                    {% else %}text-blue-800 dark:text-blue-200{% endif %}">{{ message }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Form Container -->
+      <div class="glass-effect rounded-xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden">
+        <form method="POST" action="{{ url_for('create_application', guild_id=guild.id) }}" id="applicationForm" class="p-6 lg:p-8 space-y-8">
+          
+          <!-- Basic Information Section -->
+          <div class="space-y-6">
+            <div class="border-b border-white/20 dark:border-slate-700/30 pb-6">
+              <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
+                <i data-lucide="settings" class="h-6 w-6 mr-3 text-blue-500"></i>
+                Basic Information
+              </h2>
+              <p class="text-slate-600 dark:text-slate-400">Configure the basic settings for your application form.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <label for="application_name" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Application Name</label>
+                <input 
+                  type="text" 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="application_name" 
+                  name="application_name" 
+                  placeholder="e.g., Staff Application"
+                  required>
+              </div>
+              
+              <div>
+                <label for="application_channel" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Application Channel ID</label>
+                <input 
+                  type="text" 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="application_channel" 
+                  name="application_channel" 
+                  placeholder="Channel ID where applications are posted"
+                  required>
+              </div>
+            </div>
+            
+            <div>
+              <label for="application_description" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Application Description</label>
+              <textarea 
+                class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all resize-vertical" 
+                id="application_description" 
+                name="application_description" 
+                rows="3" 
+                placeholder="Describe what this application is for..."
+                required></textarea>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div>
+                <label for="required_roles" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Required Roles (IDs, comma-separated)</label>
+                <input 
+                  type="text" 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="required_roles" 
+                  name="required_roles" 
+                  placeholder="e.g. 123456789012345678, 987654321098765432">
+              </div>
+              
+              <div>
+                <label for="pass_role" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Pass Role ID</label>
+                <input 
+                  type="text" 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="pass_role" 
+                  name="pass_role" 
+                  placeholder="Role given when accepted"
+                  required>
+              </div>
+              
+              <div>
+                <label for="fail_role" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Fail Role ID</label>
+                <input 
+                  type="text" 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
+                  id="fail_role" 
+                  name="fail_role" 
+                  placeholder="Role given when rejected"
+                  required>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Theme Selection -->
+          <div class="space-y-6">
+            <div class="border-b border-white/20 dark:border-slate-700/30 pb-6">
+              <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
+                <i data-lucide="palette" class="h-6 w-6 mr-3 text-blue-500"></i>
+                Application Theme
+              </h2>
+              <p class="text-slate-600 dark:text-slate-400">Select a theme color for your application form.</p>
+            </div>
+            
+            <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
+              <div class="theme-option text-center">
+                <input type="radio" name="theme_color" id="theme-amber" value="amber" class="hidden theme-radio" checked>
+                <label for="theme-amber" class="block w-16 h-16 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 cursor-pointer hover:scale-110 transition-transform border-4 border-transparent theme-label shadow-lg"></label>
+                <span class="block text-center text-sm mt-2 text-slate-600 dark:text-slate-400 font-medium">Amber</span>
+              </div>
+              
+              <div class="theme-option text-center">
+                <input type="radio" name="theme_color" id="theme-blue" value="blue" class="hidden theme-radio">
+                <label for="theme-blue" class="block w-16 h-16 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 cursor-pointer hover:scale-110 transition-transform border-4 border-transparent theme-label shadow-lg"></label>
+                <span class="block text-center text-sm mt-2 text-slate-600 dark:text-slate-400 font-medium">Blue</span>
+              </div>
+              
+              <div class="theme-option text-center">
+                <input type="radio" name="theme_color" id="theme-green" value="green" class="hidden theme-radio">
+                <label for="theme-green" class="block w-16 h-16 rounded-xl bg-gradient-to-br from-green-400 to-green-600 cursor-pointer hover:scale-110 transition-transform border-4 border-transparent theme-label shadow-lg"></label>
+                <span class="block text-center text-sm mt-2 text-slate-600 dark:text-slate-400 font-medium">Green</span>
+              </div>
+              
+              <div class="theme-option text-center">
+                <input type="radio" name="theme_color" id="theme-purple" value="purple" class="hidden theme-radio">
+                <label for="theme-purple" class="block w-16 h-16 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600 cursor-pointer hover:scale-110 transition-transform border-4 border-transparent theme-label shadow-lg"></label>
+                <span class="block text-center text-sm mt-2 text-slate-600 dark:text-slate-400 font-medium">Purple</span>
+              </div>
+              
+              <div class="theme-option text-center">
+                <input type="radio" name="theme_color" id="theme-red" value="red" class="hidden theme-radio">
+                <label for="theme-red" class="block w-16 h-16 rounded-xl bg-gradient-to-br from-red-400 to-red-600 cursor-pointer hover:scale-110 transition-transform border-4 border-transparent theme-label shadow-lg"></label>
+                <span class="block text-center text-sm mt-2 text-slate-600 dark:text-slate-400 font-medium">Red</span>
+              </div>
+              
+              <div class="theme-option text-center">
+                <input type="radio" name="theme_color" id="theme-teal" value="teal" class="hidden theme-radio">
+                <label for="theme-teal" class="block w-16 h-16 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 cursor-pointer hover:scale-110 transition-transform border-4 border-transparent theme-label shadow-lg"></label>
+                <span class="block text-center text-sm mt-2 text-slate-600 dark:text-slate-400 font-medium">Teal</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Form Builder Section -->
+          <div class="space-y-6">
+            <div class="flex justify-between items-center border-b border-white/20 dark:border-slate-700/30 pb-6">
+              <div>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
+                  <i data-lucide="layout" class="h-6 w-6 mr-3 text-blue-500"></i>
+                  Form Builder
+                </h2>
+                <p class="text-slate-600 dark:text-slate-400">Design your application form with sections and questions.</p>
+              </div>
+              <button type="button" id="addSection" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-200">
+                <i data-lucide="plus" class="w-4 h-4 mr-2 inline"></i>
+                Add Section
+              </button>
+            </div>
+            
+            <div id="sections-container" class="space-y-6">
+              <!-- Default first section -->
+              <div class="section glass-effect border border-white/20 dark:border-slate-700/30 rounded-xl p-6">
+                <div class="section-header mb-6 flex justify-between items-start">
+                  <div class="flex-1 space-y-4">
+                    <input 
+                      type="text" 
+                      name="section_title" 
+                      class="bg-transparent border-b-2 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white text-xl font-semibold w-full focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors" 
+                      placeholder="Section Title" 
+                      value="General Questions">
+                    <input 
+                      type="text" 
+                      name="section_description" 
+                      class="bg-transparent border-b border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 text-sm w-full focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors" 
+                      placeholder="Section Description (optional)" 
+                      value="Basic information about the applicant">
+                  </div>
+                  <div class="flex items-center ml-6 space-x-2">
+                    <button type="button" class="add-question p-2 glass-effect border border-white/30 dark:border-slate-600/30 hover:bg-white/10 dark:hover:bg-black/10 rounded-lg text-blue-500 transition-all">
+                      <i data-lucide="plus" class="h-4 w-4"></i>
+                    </button>
+                    <button type="button" class="remove-section p-2 glass-effect border border-white/30 dark:border-slate-600/30 hover:bg-red-500/20 rounded-lg text-red-500 transition-all">
+                      <i data-lucide="trash-2" class="h-4 w-4"></i>
+                    </button>
+                    <div class="drag-handle p-2 glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg cursor-move text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                      <i data-lucide="grip-vertical" class="h-4 w-4"></i>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="questions-container space-y-4 sortable-questions">
+                  <!-- Default first question -->
+                  <div class="question-item glass-effect border border-white/20 dark:border-slate-700/30 rounded-lg p-4 relative">
+                    <div class="flex items-start mb-4 space-x-4">
+                      <input 
+                        type="text" 
+                        name="question" 
+                        class="bg-transparent border-b border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white flex-grow focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors" 
+                        placeholder="Enter a question" 
+                        value="Why do you want to join our team?" 
+                        required>
+                      <select name="question_type" class="glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white question-type-select focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all">
+                        <option value="text">Text Input</option>
+                        <option value="number">Number Input</option>
+                        <option value="select">Dropdown</option>
+                        <option value="radio">Radio Buttons</option>
+                        <option value="checkbox">Checkboxes</option>
+                        <option value="multiselect">Multi-select</option>
+                      </select>
+                      <div class="flex items-center space-x-2">
+                        <button type="button" class="remove-question p-1.5 hover:bg-red-500/20 rounded-lg text-red-500 transition-all">
+                          <i data-lucide="trash-2" class="h-4 w-4"></i>
+                        </button>
+                        <div class="drag-handle p-1.5 cursor-move text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                          <i data-lucide="grip-vertical" class="h-3 w-3"></i>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="options-container hidden">
+                      <div class="glass-effect border border-white/20 dark:border-slate-700/30 rounded-lg p-4">
+                        <div class="text-sm font-medium text-slate-900 dark:text-white mb-2">Options (one per line)</div>
+                        <textarea 
+                          class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm options-input focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all resize-vertical" 
+                          placeholder="Option 1&#10;Option 2&#10;Option 3" 
+                          rows="4"></textarea>
+                      </div>
+                    </div>
+                    
+                    <div class="mt-3 flex items-center">
+                      <label class="flex items-center text-slate-600 dark:text-slate-400 text-sm">
+                        <input type="checkbox" class="required-toggle mr-2 w-4 h-4 text-blue-500 bg-transparent border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+                        <span>Required field</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Form Preview -->
+          <div class="space-y-6">
+            <div class="border-b border-white/20 dark:border-slate-700/30 pb-6">
+              <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2 flex items-center">
+                <i data-lucide="eye" class="h-6 w-6 mr-3 text-blue-500"></i>
+                Form Preview
+              </h2>
+              <p class="text-slate-600 dark:text-slate-400">Preview how your application form will look to users.</p>
+            </div>
+            
+            <div class="glass-effect border border-white/20 dark:border-slate-700/30 rounded-xl p-6">
+              <div id="form-preview" class="min-h-[200px]">
+                <div class="text-slate-500 dark:text-slate-400 italic text-center py-12">
+                  <i data-lucide="layout" class="h-12 w-12 mx-auto mb-4 opacity-50"></i>
+                  Your form preview will appear here as you build it...
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Hidden field to store structured form data -->
+          <input type="hidden" name="form_structure" id="form-structure-input">
+          
+          <!-- Submit Button -->
+          <div class="flex justify-end space-x-4 pt-6 border-t border-white/20 dark:border-slate-700/30">
+            <a 
+              href="{{ url_for('applications_dashboard', guild_id=guild.id) }}" 
+              class="px-6 py-3 glass-effect border border-white/30 dark:border-slate-600/30 text-slate-900 dark:text-white font-medium rounded-lg hover:bg-white/10 dark:hover:bg-black/10 transition-all">
+              Cancel
+            </a>
+            <button 
+              type="submit" 
+              id="create-application-btn" 
+              class="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transform hover:scale-[1.02] transition-all duration-200">
+              <i data-lucide="save" class="w-5 h-5 mr-2 inline"></i>
+              Create Application
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+
+<style>
+.theme-label.border-blue-500 {
+  border-color: rgb(59 130 246) !important;
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="{{ url_for('static', filename='js/form-structure.js') }}"></script>
+<script>
+// Initialize Lucide icons
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Theme selection handling
+  const themeRadios = document.querySelectorAll('.theme-radio');
+  const themeLabels = document.querySelectorAll('.theme-label');
+  
+  function updateThemeSelection() {
+    themeLabels.forEach(label => {
+      label.classList.remove('border-blue-500', 'ring-4', 'ring-blue-300');
+    });
+    
+    const checkedRadio = document.querySelector('.theme-radio:checked');
+    if (checkedRadio) {
+      const label = document.querySelector(`label[for="${checkedRadio.id}"]`);
+      label.classList.add('border-blue-500', 'ring-4', 'ring-blue-300');
+    }
+  }
+  
+  themeRadios.forEach(radio => {
+    radio.addEventListener('change', updateThemeSelection);
+  });
+  
+  updateThemeSelection();
+
+  // Initialize sortable for sections container
+  new Sortable(document.getElementById('sections-container'), {
+    animation: 150,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    onEnd: function() {
+      // Update form structure when sections are reordered
+      if (window.formManager) {
+        window.formManager.updateHiddenInput();
+      }
+    }
+  });
+  
+  // Initialize sortable for question containers
+  document.querySelectorAll('.sortable-questions').forEach(container => {
+    new Sortable(container, {
+      animation: 150,
+      handle: '.drag-handle',
+      ghostClass: 'sortable-ghost',
+      group: 'questions', // Allows dragging between sections
+      onEnd: function() {
+        // Update form structure when questions are reordered
+        if (window.formManager) {
+          window.formManager.updateHiddenInput();
+        }
+      }
+    });
+  });
+  
+  // Initialize form structure manager
+  window.formManager = new FormStructureManager();
+  window.formManager.setupFormChangeListeners();
+  
+  // Add section button
+  document.getElementById('addSection').addEventListener('click', function() {
+    const sectionsContainer = document.getElementById('sections-container');
+    const sectionCount = sectionsContainer.children.length + 1;
+    
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'section glass-effect border border-white/20 dark:border-slate-700/30 rounded-xl p-6';
+    sectionDiv.innerHTML = `
+      <div class="section-header mb-6 flex justify-between items-start">
+        <div class="flex-1 space-y-4">
+          <input 
+            type="text" 
+            name="section_title" 
+            class="bg-transparent border-b-2 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white text-xl font-semibold w-full focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors" 
+            placeholder="Section Title" 
+            value="Section ${sectionCount}">
+          <input 
+            type="text" 
+            name="section_description" 
+            class="bg-transparent border-b border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 text-sm w-full focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors" 
+            placeholder="Section Description (optional)">
+        </div>
+        <div class="flex items-center ml-6 space-x-2">
+          <button type="button" class="add-question p-2 glass-effect border border-white/30 dark:border-slate-600/30 hover:bg-white/10 dark:hover:bg-black/10 rounded-lg text-blue-500 transition-all">
+            <i data-lucide="plus" class="h-4 w-4"></i>
+          </button>
+          <button type="button" class="remove-section p-2 glass-effect border border-white/30 dark:border-slate-600/30 hover:bg-red-500/20 rounded-lg text-red-500 transition-all">
+            <i data-lucide="trash-2" class="h-4 w-4"></i>
+          </button>
+          <div class="drag-handle p-2 glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg cursor-move text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+            <i data-lucide="grip-vertical" class="h-4 w-4"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="questions-container space-y-4 sortable-questions">
+        <!-- New sections start with no questions -->
+      </div>
+    `;
+    
+    sectionsContainer.appendChild(sectionDiv);
+    
+    // Initialize sortable for the new section's questions
+    new Sortable(sectionDiv.querySelector('.sortable-questions'), {
+      animation: 150,
+      handle: '.drag-handle',
+      ghostClass: 'sortable-ghost',
+      group: 'questions' // Allows dragging between sections
+    });
+    
+    // Re-initialize icons for new section
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+    
+    updateFormPreview();
+  });
+  
+  // Event delegation for add, remove buttons and question type changes
+  document.addEventListener('click', function(event) {
+    // Add question button
+    if (event.target.closest('.add-question')) {
+      const section = event.target.closest('.section');
+      const questionsContainer = section.querySelector('.questions-container');
+      
+      const questionItem = document.createElement('div');
+      questionItem.className = 'question-item glass-effect border border-white/20 dark:border-slate-700/30 rounded-lg p-4 relative';
+      questionItem.innerHTML = `
+        <div class="flex items-start mb-4 space-x-4">
+          <input 
+            type="text" 
+            name="question" 
+            class="bg-transparent border-b border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white flex-grow focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors" 
+            placeholder="Enter a question" 
+            required>
+          <select name="question_type" class="glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white question-type-select focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all">
+            <option value="text">Text Input</option>
+            <option value="number">Number Input</option>
+            <option value="select">Dropdown</option>
+            <option value="radio">Radio Buttons</option>
+            <option value="checkbox">Checkboxes</option>
+            <option value="multiselect">Multi-select</option>
+          </select>
+          <div class="flex items-center space-x-2">
+            <button type="button" class="remove-question p-1.5 hover:bg-red-500/20 rounded-lg text-red-500 transition-all">
+              <i data-lucide="trash-2" class="h-4 w-4"></i>
+            </button>
+            <div class="drag-handle p-1.5 cursor-move text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <i data-lucide="grip-vertical" class="h-3 w-3"></i>
+            </div>
+          </div>
+        </div>
+        
+        <div class="options-container hidden">
+          <div class="glass-effect border border-white/20 dark:border-slate-700/30 rounded-lg p-4">
+            <div class="text-sm font-medium text-slate-900 dark:text-white mb-2">Options (one per line)</div>
+            <textarea 
+              class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm options-input focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all resize-vertical" 
+              placeholder="Option 1&#10;Option 2&#10;Option 3" 
+              rows="4"></textarea>
+          </div>
+        </div>
+        
+        <div class="mt-3 flex items-center">
+          <label class="flex items-center text-slate-600 dark:text-slate-400 text-sm">
+            <input type="checkbox" class="required-toggle mr-2 w-4 h-4 text-blue-500 bg-transparent border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+            <span>Required field</span>
+          </label>
+        </div>
+      `;
+      
+      questionsContainer.appendChild(questionItem);
+      
+      // Re-initialize icons for new question
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      updateFormPreview();
+    }
+    
+    // Remove question button
+    if (event.target.closest('.remove-question')) {
+      if (confirm('Are you sure you want to remove this question?')) {
+        event.target.closest('.question-item').remove();
+        updateFormPreview();
+      }
+    }
+    
+    // Remove section button
+    if (event.target.closest('.remove-section')) {
+      const section = event.target.closest('.section');
+      const sectionsContainer = document.getElementById('sections-container');
+      
+      // Don't remove if it's the last section
+      if (sectionsContainer.children.length > 1) {
+        if (confirm('Are you sure you want to remove this section and all its questions?')) {
+          section.remove();
+          updateFormPreview();
+        }
+      } else {
+        alert('You must have at least one section.');
+      }
+    }
+  });
+  
+  // Listen for question type changes
+  document.addEventListener('change', function(event) {
+    if (event.target.classList.contains('question-type-select')) {
+      const questionItem = event.target.closest('.question-item');
+      const optionsContainer = questionItem.querySelector('.options-container');
+      
+      // Show options container for select, radio, checkbox, multiselect
+      const type = event.target.value;
+      if (['select', 'radio', 'checkbox', 'multiselect'].includes(type)) {
+        optionsContainer.classList.remove('hidden');
+      } else {
+        optionsContainer.classList.add('hidden');
+      }
+      
+      updateFormPreview();
+    }
+    
+    // Update preview when any input changes
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.tagName === 'SELECT') {
+      updateFormPreview();
+    }
+  });
+  
+  // Form submission handling - prepare structured data
+  document.getElementById('applicationForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    
+    // First, update the form structure hidden input
+    if (window.formManager) {
+      window.formManager.updateHiddenInput();
+    }
+    
+    // Collect all questions from all sections and format for backend
+    const questions = [];
+    document.querySelectorAll('.question-item').forEach(question => {
+      const questionText = question.querySelector('input[name="question"]').value;
+      
+      if (questionText.trim()) {
+        questions.push({
+          question: questionText
+        });
+      }
+    });
+    
+    // If we have at least one question, proceed
+    if (questions.length > 0) {
+      // Get form elements
+      const formData = new FormData(this);
+      
+      // Add all questions as separate form fields named "question"
+      questions.forEach(q => {
+        formData.append('question', q.question);
+      });
+      
+      // Submit the form
+      this.submit();
+    } else {
+      alert('Please add at least one question to your application form.');
+    }
+  });
+  
+  // Function to update form preview
+  function updateFormPreview() {
+    const previewContainer = document.getElementById('form-preview');
+    const themeColor = document.querySelector('input[name="theme_color"]:checked').value;
+    
+    // Clear previous preview
+    previewContainer.innerHTML = '';
+    
+    // Add theme color class and modern styling
+    previewContainer.className = `min-h-[200px] glass-effect border-l-4 border-${themeColor}-500 rounded-lg p-6`;
+    
+    // Get all sections
+    const sections = document.querySelectorAll('.section');
+    
+    if (sections.length === 0) {
+      previewContainer.innerHTML = `
+        <div class="text-slate-500 dark:text-slate-400 italic text-center py-12">
+          <i data-lucide="layout" class="h-12 w-12 mx-auto mb-4 opacity-50"></i>
+          Add a section to see the preview...
+        </div>`;
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      return;
+    }
+    
+    // Loop through sections
+    sections.forEach((section, sectionIndex) => {
+      const sectionTitle = section.querySelector('input[name="section_title"]').value || `Section ${sectionIndex + 1}`;
+      const sectionDescription = section.querySelector('input[name="section_description"]').value;
+      
+      // Create section header
+      const sectionHeader = document.createElement('div');
+      sectionHeader.className = `mb-6 ${sectionIndex > 0 ? 'mt-8' : ''}`;
+      sectionHeader.innerHTML = `
+        <h3 class="text-xl font-semibold text-${themeColor}-600 dark:text-${themeColor}-400 mb-2">${sectionTitle}</h3>
+        ${sectionDescription ? `<p class="text-slate-600 dark:text-slate-400 text-sm">${sectionDescription}</p>` : ''}
+      `;
+      previewContainer.appendChild(sectionHeader);
+      
+      // Get all questions in this section
+      const questions = section.querySelectorAll('.question-item');
+      
+      if (questions.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'text-slate-500 dark:text-slate-400 italic text-sm mb-6 glass-effect rounded-lg p-4 border border-white/20 dark:border-slate-700/30';
+        emptyMessage.textContent = 'No questions in this section yet...';
+        previewContainer.appendChild(emptyMessage);
+      } else {
+        // Create question list
+        const questionList = document.createElement('div');
+        questionList.className = 'space-y-4';
+        
+        questions.forEach((question, index) => {
+          const questionText = question.querySelector('input[name="question"]').value || `Question ${index + 1}`;
+          const questionType = question.querySelector('select[name="question_type"]').value;
+          const isRequired = question.querySelector('.required-toggle').checked;
+          const optionsInput = question.querySelector('.options-input');
+          
+          let options = [];
+          if (optionsInput && !optionsInput.parentElement.parentElement.classList.contains('hidden') && optionsInput.value) {
+            options = optionsInput.value.split('\n').filter(opt => opt.trim() !== '');
+          }
+          
+          // Create question item
+          const questionItem = document.createElement('div');
+          questionItem.className = 'glass-effect border border-white/20 dark:border-slate-700/30 rounded-lg p-4';
+          
+          // Question label
+          const questionLabel = document.createElement('label');
+          questionLabel.className = 'block text-sm font-medium text-slate-900 dark:text-white mb-3';
+          questionLabel.innerHTML = `
+            <span class="flex items-center">
+              <span class="text-${themeColor}-500 font-bold mr-2">${index + 1}.</span>
+              ${questionText}
+              ${isRequired ? `<span class="text-red-500 ml-2">*</span>` : ''}
+            </span>
+          `;
+          questionItem.appendChild(questionLabel);
+          
+          // Question input based on type
+          let inputHtml = '';
+          
+          switch (questionType) {
+            case 'text':
+              inputHtml = `<input type="text" class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400" placeholder="Enter your answer...">`;
+              break;
+            case 'number':
+              inputHtml = `<input type="number" class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400" placeholder="0">`;
+              break;
+            case 'select':
+              inputHtml = `
+                <select class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-slate-900 dark:text-white">
+                  <option value="" disabled selected>Select an option...</option>
+                  ${options.map(opt => `<option>${opt}</option>`).join('')}
+                </select>
+              `;
+              break;
+            case 'radio':
+              inputHtml = `
+                <div class="space-y-2">
+                  ${options.map(opt => `
+                    <label class="flex items-center p-2 glass-effect rounded-lg border border-white/20 dark:border-slate-700/30 hover:bg-white/10 dark:hover:bg-black/10 cursor-pointer">
+                      <input type="radio" name="preview_radio_${index}" class="w-4 h-4 text-${themeColor}-500 mr-3"> 
+                      <span class="text-slate-900 dark:text-white">${opt}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              `;
+              break;
+            case 'checkbox':
+              inputHtml = `
+                <div class="space-y-2">
+                  ${options.map(opt => `
+                    <label class="flex items-center p-2 glass-effect rounded-lg border border-white/20 dark:border-slate-700/30 hover:bg-white/10 dark:hover:bg-black/10 cursor-pointer">
+                      <input type="checkbox" class="w-4 h-4 text-${themeColor}-500 mr-3"> 
+                      <span class="text-slate-900 dark:text-white">${opt}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              `;
+              break;
+            case 'multiselect':
+              inputHtml = `
+                <select class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-lg px-3 py-2 text-slate-900 dark:text-white" multiple>
+                  ${options.map(opt => `<option>${opt}</option>`).join('')}
+                </select>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                  <i data-lucide="info" class="h-3 w-3 mr-1"></i>
+                  Hold Ctrl/Cmd to select multiple options
+                </div>
+              `;
+              break;
+          }
+          
+          questionItem.insertAdjacentHTML('beforeend', inputHtml);
+          questionList.appendChild(questionItem);
+        });
+        
+        previewContainer.appendChild(questionList);
+      }
+    });
+    
+    // Re-initialize icons in preview
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+  
+  // Initialize preview
+  updateFormPreview();
+});
+</script>
+{% endblock %}

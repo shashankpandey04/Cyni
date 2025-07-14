@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Ban Appeal Logs | {{ guild.name }}{% endblock %}
+
+{% block content %}
+<!-- Main Layout Container - Unified scroll system -->
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16">
+  <!-- Include Sidebar -->
+  {% include 'sidebar.html' %}
+  
+  <!-- Main Content Area with Unified Scroll -->
+  <div class="md:ml-64">
+    <main class="p-6 lg:p-8 max-w-6xl mx-auto">
+      <!-- Page Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Ban Appeal Logs</h1>
+        <p class="text-slate-600 dark:text-slate-400">Review and manage ban appeal submissions from your community members.</p>
+      </div>
+
+      {% if ban_appeals %}
+        <!-- Appeals Grid -->
+        <div class="grid gap-6">
+          {% for appeal in ban_appeals %}
+            <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden hover:shadow-xl transition-all duration-200 group">
+              <div class="p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+                  <!-- User Info -->
+                  <div class="flex-1">
+                    <div class="flex items-center gap-4 mb-4">
+                      <div class="flex-shrink-0 h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <i data-lucide="user" class="h-6 w-6 text-white"></i>
+                      </div>
+                      <div>
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ appeal.username }}</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400">Appeal #{{ loop.index }}</p>
+                      </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <i data-lucide="calendar" class="w-4 h-4"></i>
+                      <span>Submitted on {{ appeal.timestamp.strftime('%B %d, %Y at %H:%M') }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Status & Actions -->
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <!-- Status Badge -->
+                    {% if appeal.status == "accepted" %}
+                      <div class="glass-effect px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200/60 dark:border-green-700/40 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <i data-lucide="check-circle" class="w-4 h-4 text-green-600 dark:text-green-400"></i>
+                          <span class="text-green-800 dark:text-green-300 font-semibold text-sm">Approved</span>
+                        </div>
+                      </div>
+                    {% elif appeal.status == "denied" %}
+                      <div class="glass-effect px-4 py-2 bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/30 dark:to-rose-900/30 border border-red-200/60 dark:border-red-700/40 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <i data-lucide="x-circle" class="w-4 h-4 text-red-600 dark:text-red-400"></i>
+                          <span class="text-red-800 dark:text-red-300 font-semibold text-sm">Denied</span>
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="glass-effect px-4 py-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 border border-amber-200/60 dark:border-amber-700/40 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <i data-lucide="clock" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                          <span class="text-amber-800 dark:text-amber-300 font-semibold text-sm">Pending Review</span>
+                        </div>
+                      </div>
+                    {% endif %}
+
+                    <!-- Action Button -->
+                    <a href="{{ url_for('ban_appeal_log', guild_id=guild.id, appeal_id=appeal.appeal_id) }}" 
+                       class="glass-effect px-6 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-300/40 dark:border-blue-600/40 text-blue-700 dark:text-blue-300 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 group">
+                      <i data-lucide="eye" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                      <span>Review Appeal</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <!-- Empty State -->
+        <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
+          <div class="p-12 text-center">
+            <div class="w-20 h-20 bg-gradient-to-br from-slate-400 to-slate-600 dark:from-slate-600 dark:to-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <i data-lucide="clipboard-list" class="w-10 h-10 text-white"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-slate-900 dark:text-white mb-3">No Ban Appeals Found</h3>
+            <p class="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+              No ban appeals have been submitted for this guild yet. When members submit appeals, they will appear here for review.
+            </p>
+            <div class="mt-6">
+              <a href="{{ url_for('ban_appeal_manage', guild_id=guild.id) }}" 
+                 class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-200">
+                <i data-lucide="settings" class="w-4 h-4 mr-2"></i>
+                Configure Appeal Questions
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+
+<script>
+  // Initialize Lucide icons
+  document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+  });
+</script>
+
+{% endblock %}
