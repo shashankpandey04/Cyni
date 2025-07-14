@@ -1182,6 +1182,15 @@ def internal_server_error(e):
     flash("Internal server error.", "error")
     return redirect(url_for("index"))
 
+@app.route('/api/v1/vote', methods=['POST'])
+def vote_tracker_api():
+    AUTH_TOKEN = 'Hfup2GkgPzgmcjzrmpE2JP37fNFMCUB7Tg3d4Wm'
+    auth_header = request.headers.get('Authorization')
+    if auth_header != AUTH_TOKEN:
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json
+    print(f"Vote received: {data}")
+
 def run_production():
     serve(app, host='0.0.0.0', port=80)
 
