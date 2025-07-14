@@ -5,7 +5,7 @@ import requests
 import os
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from datetime import datetime
+import datetime
 import uuid
 from waitress import serve
 from bson import ObjectId, Int64
@@ -65,7 +65,7 @@ def load_user(user_id):
 
 @app.template_filter('datetime')
 def format_datetime(timestamp):
-    dt = datetime.fromtimestamp(timestamp)
+    dt = datetime.datetime.fromtimestamp(timestamp)
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
 # Routes
