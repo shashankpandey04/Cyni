@@ -23,10 +23,49 @@ class FormStructureManager {
             sections: []
         };
 
+        console.log('DEBUG: FormStructureManager - Starting generation');
+        console.log('DEBUG: Form container:', this.formContainer);
+
         // Get all sections
         const sectionElements = this.formContainer.querySelectorAll('.section');
+        console.log('DEBUG: Found sections:', sectionElements.length);
         
-        sectionElements.forEach(sectionEl => {
+        // If no sections found, check if we have questions directly in form
+        if (sectionElements.length === 0) {
+            console.log('DEBUG: No sections found, looking for direct questions in form');
+            const formElement = document.getElementById('applicationForm');
+            if (formElement) {
+                const directQuestions = formElement.querySelectorAll('input[name="question"]');
+                console.log('DEBUG: Found direct questions:', directQuestions.length);
+                
+                if (directQuestions.length > 0) {
+                    // Create a default section for direct questions
+                    const defaultSection = {
+                        title: 'Questions',
+                        description: '',
+                        questions: []
+                    };
+                    
+                    directQuestions.forEach((questionInput, index) => {
+                        if (questionInput.value.trim()) {
+                            const question = {
+                                text: questionInput.value.trim(),
+                                type: 'text',
+                                required: true
+                            };
+                            console.log(`DEBUG: Adding direct question ${index}:`, question);
+                            defaultSection.questions.push(question);
+                        }
+                    });
+                    
+                    if (defaultSection.questions.length > 0) {
+                        formStructure.sections.push(defaultSection);
+                    }
+                }
+            }
+        }
+        
+        sectionElements.forEach((sectionEl, sectionIndex) => {
             const titleInput = sectionEl.querySelector('input[name="section_title"]');
             const descInput = sectionEl.querySelector('input[name="section_description"]');
             
@@ -36,37 +75,49 @@ class FormStructureManager {
                 questions: []
             };
             
+            console.log(`DEBUG: Processing section ${sectionIndex}:`, section);
+            
             // Get all questions in this section
             const questionElements = sectionEl.querySelectorAll('.question-item');
+            console.log(`DEBUG: Found ${questionElements.length} questions in section ${sectionIndex}`);
             
-            questionElements.forEach(questionEl => {
+            questionElements.forEach((questionEl, questionIndex) => {
                 const questionInput = questionEl.querySelector('input[name="question"]');
                 const typeSelect = questionEl.querySelector('select[name="question_type"]');
                 const requiredToggle = questionEl.querySelector('.required-toggle');
                 const optionsInput = questionEl.querySelector('.options-input');
                 
-                let options = [];
-                if (optionsInput && !optionsInput.closest('.options-container').classList.contains('hidden')) {
-                    options = optionsInput.value.split('\n').filter(opt => opt.trim() !== '');
+                console.log(`DEBUG: Question ${questionIndex} - input:`, questionInput);
+                console.log(`DEBUG: Question ${questionIndex} - text:`, questionInput ? questionInput.value : 'NO INPUT');
+                
+                if (questionInput && questionInput.value.trim()) {
+                    let options = [];
+                    if (optionsInput && !optionsInput.closest('.options-container').classList.contains('hidden')) {
+                        options = optionsInput.value.split('\n').filter(opt => opt.trim() !== '');
+                    }
+                    
+                    const question = {
+                        text: questionInput.value.trim(),
+                        type: typeSelect ? typeSelect.value : 'text',
+                        required: requiredToggle ? requiredToggle.checked : false
+                    };
+                    
+                    // Add options if applicable
+                    if (['select', 'radio', 'checkbox', 'multiselect'].includes(question.type) && options.length > 0) {
+                        question.options = options;
+                    }
+                    
+                    console.log(`DEBUG: Generated question ${questionIndex}:`, question);
+                    section.questions.push(question);
                 }
-                
-                const question = {
-                    text: questionInput ? questionInput.value : 'Untitled Question',
-                    type: typeSelect ? typeSelect.value : 'text',
-                    required: requiredToggle ? requiredToggle.checked : false
-                };
-                
-                // Add options if applicable
-                if (['select', 'radio', 'checkbox', 'multiselect'].includes(question.type) && options.length > 0) {
-                    question.options = options;
-                }
-                
-                section.questions.push(question);
             });
             
-            formStructure.sections.push(section);
+            if (section.questions.length > 0) {
+                formStructure.sections.push(section);
+            }
         });
         
+        console.log('DEBUG: Final form structure:', formStructure);
         return formStructure;
     }
 
@@ -76,7 +127,9 @@ class FormStructureManager {
     updateHiddenInput() {
         if (this.hiddenInput) {
             const structure = this.generateFormStructure();
+            console.log('DEBUG: Generated form structure:', structure);
             this.hiddenInput.value = JSON.stringify(structure);
+            console.log('DEBUG: Hidden input value set to:', this.hiddenInput.value);
         }
     }
 
@@ -224,20 +277,31 @@ class FormStructureManager {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DEBUG: DOM loaded, initializing FormStructureManager');
+    
     const formManager = new FormStructureManager();
+    window.formManager = formManager;
+    
+    console.log('DEBUG: FormStructureManager created:', formManager);
+    
     formManager.setupFormChangeListeners();
     
     // Update form structure when submitting the form
     const form = document.getElementById('applicationForm');
     if (form) {
+        console.log('DEBUG: Found application form, adding submit listener');
         form.addEventListener('submit', (e) => {
+            console.log('DEBUG: Form submit event, updating hidden input');
             formManager.updateHiddenInput();
         });
+    } else {
+        console.log('DEBUG: Application form not found');
     }
 
     // Initialize existing form structure if available in the hidden input
     const hiddenInput = document.getElementById('form-structure-input');
     if (hiddenInput && hiddenInput.value) {
+        console.log('DEBUG: Found existing form structure:', hiddenInput.value);
         try {
             const structure = JSON.parse(hiddenInput.value);
             if (structure) {
@@ -246,5 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) {
             console.error('Error parsing existing form structure:', e);
         }
+    } else {
+        console.log('DEBUG: No existing form structure found');
     }
 });

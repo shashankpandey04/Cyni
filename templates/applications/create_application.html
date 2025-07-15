@@ -584,40 +584,72 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Form submission handling - prepare structured data
   document.getElementById('applicationForm').addEventListener('submit', function(event) {
-    event.preventDefault();
+    console.log('DEBUG: Form submission started');
     
     // First, update the form structure hidden input
     if (window.formManager) {
       window.formManager.updateHiddenInput();
+      
+      // Debug logging
+      const hiddenInput = document.getElementById('form-structure-input');
+      console.log('DEBUG: Form structure value:', hiddenInput.value);
+      
+      try {
+        const structure = JSON.parse(hiddenInput.value);
+        console.log('DEBUG: Parsed structure:', structure);
+        
+        let totalQuestions = 0;
+        structure.sections.forEach(section => {
+          totalQuestions += section.questions.length;
+        });
+        console.log('DEBUG: Total questions found:', totalQuestions);
+      } catch (e) {
+        console.error('DEBUG: Error parsing form structure:', e);
+      }
+    } else {
+      console.error('DEBUG: FormManager not available');
     }
     
-    // Collect all questions from all sections and format for backend
-    const questions = [];
-    document.querySelectorAll('.question-item').forEach(question => {
-      const questionText = question.querySelector('input[name="question"]').value;
+    // IMPORTANT: Also manually add hidden inputs for legacy support
+    const questionsContainer = document.getElementById('sections-container');
+    if (questionsContainer) {
+      const existingHiddenQuestions = document.querySelectorAll('input[name="question"][type="hidden"]');
+      existingHiddenQuestions.forEach(input => input.remove());
       
-      if (questionText.trim()) {
-        questions.push({
-          question: questionText
-        });
+      const questionInputs = questionsContainer.querySelectorAll('.question-item input[name="question"]');
+      questionInputs.forEach((input, index) => {
+        if (input.value.trim()) {
+          const hiddenInput = document.createElement('input');
+          hiddenInput.type = 'hidden';
+          hiddenInput.name = 'question';
+          hiddenInput.value = input.value.trim();
+          this.appendChild(hiddenInput);
+          console.log(`DEBUG: Added hidden input for question ${index + 1}: ${input.value.trim()}`);
+        }
+      });
+    }
+    
+    // Check if we have at least one question
+    const questions = document.querySelectorAll('.question-item input[name="question"]');
+    let hasValidQuestion = false;
+    
+    questions.forEach(question => {
+      if (question.value.trim()) {
+        hasValidQuestion = true;
       }
     });
     
-    // If we have at least one question, proceed
-    if (questions.length > 0) {
-      // Get form elements
-      const formData = new FormData(this);
-      
-      // Add all questions as separate form fields named "question"
-      questions.forEach(q => {
-        formData.append('question', q.question);
-      });
-      
-      // Submit the form
-      this.submit();
-    } else {
+    console.log('DEBUG: Questions found:', questions.length);
+    console.log('DEBUG: Has valid question:', hasValidQuestion);
+    
+    if (!hasValidQuestion) {
+      event.preventDefault();
       alert('Please add at least one question to your application form.');
+      return;
     }
+    
+    // Form will submit normally with all the input[name="question"] fields
+    console.log('DEBUG: Form submission proceeding');
   });
   
   // Function to update form preview

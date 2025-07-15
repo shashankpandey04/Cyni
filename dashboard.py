@@ -438,15 +438,52 @@ def create_application(guild_id):
             fail_role = int(request.form.get("fail_role"))
             theme_color = request.form.get("theme_color", "amber")
             
+            # Debug logging
+            print(f"DEBUG: Received questions: {all_questions}")
+            print(f"DEBUG: Number of questions: {len(all_questions)}")
+            print(f"DEBUG: Form data keys: {list(request.form.keys())}")
+            print(f"DEBUG: Form structure: {request.form.get('form_structure')}")
+            
             # Check if we have form structure (new system)
             form_structure = request.form.get("form_structure")
+            
+            # Process questions based on system type
+            final_questions = []
+            if form_structure and form_structure.strip():
+                try:
+                    form_data = json.loads(form_structure)
+                    print(f"DEBUG: Parsed form data: {form_data}")
+                    
+                    # Extract questions from form structure
+                    for section in form_data.get("sections", []):
+                        print(f"DEBUG: Processing section: {section}")
+                        for question in section.get("questions", []):
+                            print(f"DEBUG: Processing question: {question}")
+                            final_questions.append({"question": question.get("text", "")})
+                    
+                    print(f"DEBUG: Questions from form structure: {final_questions}")
+                except Exception as e:
+                    print(f"DEBUG: Error parsing form structure: {e}")
+                    # Fall back to legacy format
+                    final_questions = [{"question": question} for question in all_questions]
+            else:
+                # Legacy format
+                final_questions = [{"question": question} for question in all_questions]
+            
+            print(f"DEBUG: Final questions to save: {final_questions}")
+            
+            # If no questions from either method, this is a problem
+            if not final_questions:
+                print("DEBUG: No questions found - this is the issue!")
+                flash("Error: No questions found in the application form. Please add at least one question.", "error")
+                return redirect(url_for("create_application", guild_id=guild_id))
             
             application_data = {
                 "guild_id": int(guild_id),
                 "name": application_name,
                 "description": application_description,
                 "required_roles": required_roles,
-                "questions": [{"question": question} for question in all_questions],
+                "questions": final_questions,
                 "application_channel": application_channel,
                 "pass_role": pass_role,
                 "fail_role": fail_role,
@@ -465,6 +502,19 @@ def create_application(guild_id):
                     pass
             
             mongo_db["applications"].insert_one(application_data)
+            
+            # Debug: Verify what was actually saved
+            saved_application = mongo_db["applications"].find_one({"_id": application_data.get("_id")})
+            if not saved_application:
+                # Find by other criteria since _id might not be set
+                saved_application = mongo_db["applications"].find_one({
+                    "guild_id": int(guild_id),
+                    "name": application_name
+                }, sort=[("created_at", -1)])
+            
+            print(f"DEBUG: Saved application data: {saved_application}")
+            print(f"DEBUG: Questions in saved data: {saved_application.get('questions', []) if saved_application else 'Not found'}")
+            
             flash("Application created successfully!", "success")
             return redirect(url_for("applications", guild_id=guild_id))
 
@@ -522,13 +572,66 @@ def manage_application(guild_id, application_id):
             except Exception as e:
                 flash(f"Error processing banner: {e}", "error")
 
+        # Process questions based on system type
+        form_structure = request.form.get("form_structure")
+        final_questions = []
+        
+        print(f"DEBUG: Form structure received: {form_structure}")
+        print(f"DEBUG: All questions from getlist: {all_questions}")
+        
+        if form_structure and form_structure.strip():
+            try:
+                form_data = json.loads(form_structure)
+                print(f"DEBUG: Parsed form data: {form_data}")
+                
+                # Extract questions from form structure
+                for section in form_data.get("sections", []):
+                    print(f"DEBUG: Processing section: {section}")
+                    for question in section.get("questions", []):
+                        print(f"DEBUG: Processing question: {question}")
+                        final_questions.append({"question": question.get("text", "")})
+                        
+            except Exception as e:
+                print(f"Error parsing form structure in manage_application: {e}")
+                # Fall back to legacy format
+                final_questions = [{"question": question} for question in all_questions]
+        else:
+            # Check if existing application has form_structure
+            if application and "form_structure" in application and application["form_structure"]:
+                print("DEBUG: Using existing form_structure from database")
+                try:
+                    form_data = application["form_structure"]
+                    print(f"DEBUG: Existing form data: {form_data}")
+                    
+                    # Extract questions from existing form structure
+                    for section in form_data.get("sections", []):
+                        print(f"DEBUG: Processing existing section: {section}")
+                        for question in section.get("questions", []):
+                            print(f"DEBUG: Processing existing question: {question}")
+                            final_questions.append({"question": question.get("text", "")})
+                            
+                except Exception as e:
+                    print(f"Error parsing existing form structure: {e}")
+                    # Fall back to legacy format
+                    final_questions = [{"question": question} for question in all_questions]
+            else:
+                # Legacy format
+                final_questions = [{"question": question} for question in all_questions]
+        
+        print(f"DEBUG: Final questions to save in manage_application: {final_questions}")
+        
+        # If no questions from either method, this is a problem
+        if not final_questions:
+            print("DEBUG: No questions found - this is the issue!")
+            flash("Error: No questions found in the application form. Please add at least one question.", "error")
+            return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
         # Create the base application data
         application_data = {
             "guild_id": int(guild_id),
             "name": application_name,
             "description": application_description,
             "required_roles": required_roles,
-            "questions": [{"question": question} for question in all_questions],
+            "questions": final_questions,
             "application_channel": application_channel,
             "pass_role": pass_role,
             "fail_role": fail_role,
@@ -672,7 +775,7 @@ def apply(guild_id, application_id):
                 "application_name": application["name"],
                 "answers": answers,
                 "status": "pending",
-                "created_at": datetime.now().timestamp()
+                "created_at": datetime.datetime.now().timestamp()
             }
             
             data = {
@@ -898,7 +1001,7 @@ def ban_appeal(guild_id):
         "user_id": session["user_id"],
         "questions": [{"question": q, "answer": a} for q, a in zip(questions, answers)],
         "status": "pending",
-        "timestamp": datetime.now(),
+        "timestamp": datetime.datetime.now(),
         "username": session["username"]
     }
     mongo_db["ban_appeals"].insert_one(appeal_data)
@@ -997,7 +1100,7 @@ def notifications(guild_id, user_id):
         return jsonify({
             "title": "Unauthorized",
             "message": "You are not authorized to view notifications for this user.",
-            "created_at": datetime.now().timestamp(),
+            "created_at": datetime.datetime.now().timestamp(),
             "from": "System"
         }), 403
     
@@ -1190,6 +1293,7 @@ def vote_tracker_api():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.json
     print(f"Vote received: {data}")
+    return jsonify({"status": "success", "message": "Vote recorded"}), 200
 
 def run_production():
     serve(app, host='0.0.0.0', port=80)
