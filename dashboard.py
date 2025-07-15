@@ -782,13 +782,16 @@ def apply(guild_id, application_id):
                 "guild_id": int(guild_id),
                 "user_id": str(member.id),
                 "application_name": application["name"],
-                "application_channel": application["application_channel"]
+                "application_channel": application["application_channel"],
+                "application_id": str(application_id),
+                "result_channel_id": application.get("application_channel"),
             }
             headers = {"Authorization": bot_token}
             URL = 'http://127.0.0.1:5000/notify_application_submission'
             try:
-                requests.post(URL, headers=headers, json=data)
-            except Exception as e:
+                response = requests.post(URL, headers=headers, json=data, timeout=10)
+                response.raise_for_status()  # This will raise an exception for bad status codes
+            except requests.exceptions.RequestException as e:
                 print(f"Failed to send notification: {e}")
                 
             mongo_db["user_applications"].insert_one(application_data)

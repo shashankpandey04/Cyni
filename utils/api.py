@@ -63,6 +63,7 @@ class APIRoutes:
             if attr.startswith(("GET_", "POST_", "PATCH_", "DELETE_")) and not attr.startswith("_"):
                 method = attr.split("_")[0]
                 route = attr[len(method) + 1:]
+                logger.info(f"Registering API route: {method.upper()} /{route}")
                 self.router.add_api_route(
                     f"/{route}",
                     getattr(self, attr),
@@ -799,6 +800,66 @@ class APIRoutes:
         if not audit_logs:
             raise HTTPException(status_code=404, detail="No audit logs found for this guild")
 
+    async def POST_notify_application_submission(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Send a notification to the guild about a new application submission."""
+        logger.debug("Received POST request to notify guild about application submission.")
+        
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if authorization != bot_token:
+            logger.warning(f"Invalid or expired authorization. Expected: {bot_token[:10]}..., Got: {authorization[:10] if authorization else 'None'}...")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        json_data = await request.json()
+        user_id = json_data.get("user_id")
+        guild_id = json_data.get("guild_id")
+        application_name = json_data.get("application_name")
+        result_channel_id = json_data.get("result_channel_id")
+        application_id = json_data.get("application_id")
+
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            logger.error(f"Guild not found for ID: {guild_id}")
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        sett = await db.settings.find_one({"_id": guild.id})
+        if not sett:
+            logger.error(f"Settings not found for guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="Settings not found")
+        
+        result_channel = guild.get_channel(result_channel_id)
+        if not result_channel:
+            logger.error(f"Result channel not found for ID: {result_channel_id}")
+            raise HTTPException(status_code=404, detail="Result channel not found")
+
+        embed = discord.Embed(
+            title="New Application Submitted",
+            description=f"<@{user_id}> has submitted an application for **{application_name}**.",
+            color=0x2F3136
+        )
+        embed.add_field(name="Application Name", value=application_name, inline=False)
+        
+        view = discord.ui.View()
+        url_button = discord.ui.Button(
+            label="View Application", 
+            url=f"https://cyni.quprdigital.tk/application/logs/{guild_id}/{application_id}/{user_id}",
+            style=discord.ButtonStyle.url
+        )
+        view.add_item(url_button)
+
+        try:
+            await result_channel.send(embed=embed, view=view)
+            logger.debug(f"Sent application notification to result channel: {result_channel.name}.")
+            return {"message": "Application notification sent successfully"}
+        except Exception as e:
+            logger.error(f"Failed to send application notification: {e}")
+            raise HTTPException(status_code=500, detail="Failed to send application notification")
 
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):
