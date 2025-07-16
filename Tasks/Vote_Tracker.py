@@ -9,7 +9,8 @@ async def vote_track(bot):
     """
     start_time = time.time()
     try:
-        votes = [item async for item in bot.vote_tracker_document.find({})]
+        cursor = await bot.vote_tracker_document.find({})
+        votes = [item async for item in cursor]
         for vote in votes:
             user = bot.get_user(vote["user_id"])
             if user is None:
