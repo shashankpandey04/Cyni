@@ -223,9 +223,6 @@ class OnMessage(commands.Cog):
 
         except Exception as e:
             logging.error(f"Error in on_message event: {e}")
-            
-        # Process commands at the end
-        await self.bot.process_commands(message)
 
 async def setup(bot):
     await bot.add_cog(OnMessage(bot))
