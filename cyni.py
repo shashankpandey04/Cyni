@@ -346,6 +346,3 @@ def run():
         bot.run(bot_token)
     except Exception as e:
         logging.error(f"Error: {e}", exc_info=True)
-
-if __name__ == "__main__":
-    run()
