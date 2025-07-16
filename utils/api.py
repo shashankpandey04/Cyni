@@ -895,7 +895,7 @@ class APIRoutes:
             if user_found:
                 guild = self.bot.get_guild(1152949579407442050)
                 if guild:
-                    member = guild.get_member(int(user_id))
+                    member = self.bot.get_guild(1152949579407442050).get_member(int(user_id))
                     if member:
                         role = guild.get_role(VOTER_ROLE_ID)
                         if role and role not in member.roles:
