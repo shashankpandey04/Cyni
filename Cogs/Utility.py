@@ -7,6 +7,8 @@ from utils.utils import discord_time
 from cyni import up_time, is_staff
 from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
+from utils.pagination import Pagination
+
 
 OWNER = 1201129677457215558
 LOGGING_CHANNEL = 1257705346525560885
@@ -313,12 +315,18 @@ class Utility(commands.Cog):
         Get help with the bot.
         """
         embed = discord.Embed(
-            title="Help",
-            description="Join our Support Server for help with the bot.",
+            title="Cyni Help",
+            description=(
+                "This is the help command for Cyni. Use the buttons below to navigate through the help sections.\n" \
+                "**Activity Commands:** Get help with activity commands.\n"
+                "**Giveaway Commands:** Get help with giveaway commands.\n"
+                "**Infraction Commands:** Get help with infraction commands.\n"
+                "**Partnership Commands:** Get help with partnership releated commands.\n"
+                "Please contact Support Server if you need further assistance.\n" \
+            ),
             color=BLANK_COLOR
         )
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm"))
+        view = HelpView()
         await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
@@ -478,3 +486,27 @@ class Utility(commands.Cog):
     
 async def setup(bot):
     await bot.add_cog(Utility(bot=bot))
+
+class HelpView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=300)
+    
+    @discord.ui.button(label="Activity Commands", custom_id="activity_commands", row=0)
+    async def activity_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from utils.embeds import activity_commands_embed
+        await interaction.response.send_message(embed=activity_commands_embed, ephemeral=True)
+    
+    @discord.ui.button(label="Giveaway Commands", custom_id="giveaway_commands", row=0)
+    async def giveaway_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from utils.embeds import giveaway_commands_embed
+        await interaction.response.send_message(embed=giveaway_commands_embed, ephemeral=True)
+    
+    @discord.ui.button(label="Infraction Commands", custom_id="infraction_commands", row=1)
+    async def infraction_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from utils.embeds import infraction_commands_embed
+        await interaction.response.send_message(embed=infraction_commands_embed, ephemeral=True)
+    
+    @discord.ui.button(label="Partnership Commands", custom_id="partnership_commands", row=1)
+    async def partnership_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from utils.embeds import partnership_commands_embed
+        await interaction.response.send_message(embed=partnership_commands_embed, ephemeral=True)

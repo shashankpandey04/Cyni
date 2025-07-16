@@ -1,7 +1,5 @@
 import discord
-import time
 from discord.ext import commands
-
 from utils.constants import YELLOW_COLOR
 from utils.utils import discord_time
 import datetime
@@ -10,139 +8,113 @@ class OnGuildRoleUpdate(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def _get_audit_log_entry(self, guild, action=discord.AuditLogAction.role_update):
+        """Get the most recent audit log entry for the specified action."""
+        try:
+            async for entry in guild.audit_logs(limit=1, action=action):
+                return entry
+        except discord.Forbidden:
+            return None
+        return None
+
+    async def _send_log_embed(self, channel, embed):
+        """Send an embed to the log channel with error handling."""
+        try:
+            await channel.send(embed=embed)
+        except discord.Forbidden:
+            pass
+        except Exception as e:
+            print(f"Error sending role update log: {e}")
+
+    def _create_base_embed(self, title, user, role, created_at):
+        """Create a base embed with common fields."""
+        user_mention = user.mention if user else "Unknown User"
+        return discord.Embed(
+            title=title,
+            description=f"{user_mention} updated {role.mention} on {created_at}",
+            color=YELLOW_COLOR
+        ).set_footer(text=f"Role ID: {role.id}")
+
     @commands.Cog.listener()
     async def on_guild_role_update(self, before, after):
         """
         This event is triggered when a role is updated in a guild.
-        :param before (discord.Role): The role before the update.
-        :param after (discord.Role): The role after the update.
         """
+        try:
+            # Early return checks
+            guild = after.guild
+            sett = await self.bot.settings.find_by_id(guild.id)
+            if not sett:
+                return
             
-        sett = await self.bot.settings.find_by_id(after.guild.id)
-        guild = after.guild
-        if not sett:
-            return
-        if sett.get("moderation_module", {}).get("enabled", False) is False:
-            return
-        if sett.get("moderation_module", {}).get("audit_log") is None:
-            return
-        guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
-        if not guild_log_channel:
-            return
-        created_at = discord_time(datetime.datetime.now())
+            moderation_module = sett.get("moderation_module", {})
+            if not moderation_module.get("enabled", False) or not moderation_module.get("audit_log"):
+                return
+                
+            guild_log_channel = guild.get_channel(moderation_module["audit_log"])
+            if not guild_log_channel:
+                return
 
-        #webhooks = await guild_log_channel.webhooks()
-        #cyni_webhook = None
-        #for webhook in webhooks:
-        #    if webhook.name == "Cyni":
-        #        cyni_webhook = webhook
-        #        break
-        
-        #if not cyni_webhook:
-        #    bot_avatar = await self.bot.user.avatar.read()
-        #    try:
-        #        cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
-        #    except discord.HTTPException:
-        #        cyni_webhook = None
+            # Get audit log entry once
+            audit_entry = await self._get_audit_log_entry(guild)
+            created_at = discord_time(datetime.datetime.now())
 
-        if before.name != after.name:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                embed = discord.Embed(
-                        title= " ",
-                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
-                        color=YELLOW_COLOR
-                    ).add_field(
-                        name="Before",
-                        value=f"{before.name}",
-                    ).add_field(
-                        name="After",
-                        value=f"{after.name}",
-                    ).set_footer(
-                        text=f"Role ID: {after.id}"
-                    )
-                #if cyni_webhook:
-                #    await cyni_webhook.send(embed=embed)
-                #else:
-                await guild_log_channel.send(embed=embed)
+            # Role name change
+            if before.name != after.name:
+                embed = self._create_base_embed("Role Name Updated", audit_entry.user if audit_entry else None, after, created_at)
+                embed.add_field(name="Before", value=before.name, inline=True)
+                embed.add_field(name="After", value=after.name, inline=True)
+                await self._send_log_embed(guild_log_channel, embed)
 
-        if before.color != after.color:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                embed = discord.Embed(
-                        title= "Role Color Update",
-                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
-                        color=YELLOW_COLOR
-                    ).add_field(
-                        name="Before",
-                        value=f"{before.color}",
-                    ).add_field(
-                        name="After",
-                        value=f"{after.color}",
-                    ).set_footer(
-                        text=f"Role ID: {after.id}"
-                    )
-                #if cyni_webhook:
-                #    await cyni_webhook.send(embed=embed)
-                #else:
-                await guild_log_channel.send(embed=embed)
+            # Role color change
+            if before.color != after.color:
+                embed = self._create_base_embed("Role Color Updated", audit_entry.user if audit_entry else None, after, created_at)
+                embed.add_field(name="Before", value=str(before.color), inline=True)
+                embed.add_field(name="After", value=str(after.color), inline=True)
+                await self._send_log_embed(guild_log_channel, embed)
 
-        if before.permissions != after.permissions:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
+            # Role permissions change
+            if before.permissions != after.permissions:
                 before_perms = [perm for perm, value in before.permissions if value]
                 after_perms = [perm for perm, value in after.permissions if value]
                 added_perms = set(after_perms) - set(before_perms)
                 removed_perms = set(before_perms) - set(after_perms)
                 
-                embed = discord.Embed(
-                        title= "Role Permissions Update",
-                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
-                        color=YELLOW_COLOR
-                    ).add_field(
-                        name="Added Permissions",
-                        value=", ".join(added_perms) if added_perms else "None",
-                    ).add_field(
-                        name="Removed Permissions",
-                        value=", ".join(removed_perms) if removed_perms else "None",
-                    ).set_footer(
-                        text=f"Role ID: {after.id}"
-                    )
-                #if cyni_webhook:
-                #    await cyni_webhook.send(embed=embed)
-                #else:
-                await guild_log_channel.send(embed=embed)
+                embed = self._create_base_embed("Role Permissions Updated", audit_entry.user if audit_entry else None, after, created_at)
+                embed.add_field(
+                    name="Added Permissions",
+                    value=", ".join(added_perms) if added_perms else "None",
+                    inline=False
+                )
+                embed.add_field(
+                    name="Removed Permissions", 
+                    value=", ".join(removed_perms) if removed_perms else "None",
+                    inline=False
+                )
+                await self._send_log_embed(guild_log_channel, embed)
 
-        if before.hoist != after.hoist:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                embed = discord.Embed(
-                        title= " ",
-                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
-                        color=YELLOW_COLOR
-                    ).add_field(
-                        name="Role Hoist",
-                        value=f"{before.hoist} -> {after.hoist}",
-                    ).set_footer(
-                        text=f"Role ID: {after.id}"
-                    )
-                #if cyni_webhook:
-                #    await cyni_webhook.send(embed=embed)
-                #else:
-                await guild_log_channel.send(embed=embed)
+            # Role hoist change
+            if before.hoist != after.hoist:
+                embed = self._create_base_embed("Role Hoist Updated", audit_entry.user if audit_entry else None, after, created_at)
+                embed.add_field(
+                    name="Display Separately",
+                    value=f"{'Enabled' if before.hoist else 'Disabled'} → {'Enabled' if after.hoist else 'Disabled'}",
+                    inline=False
+                )
+                await self._send_log_embed(guild_log_channel, embed)
 
-        if before.mentionable != after.mentionable:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_update):
-                embed = discord.Embed(
-                        title= " ",
-                        description=f"{entry.user.mention} updated {before.mention} on {created_at}",
-                        color=YELLOW_COLOR
-                    ).add_field(
-                        name="Role Mentionable",
-                        value=f"{before.mentionable} -> {after.mentionable}",
-                    ).set_footer(
-                        text=f"Role ID: {after.id}"
-                    )
-                #if cyni_webhook:
-                #    await cyni_webhook.send(embed=embed)
-                #else:
-                await guild_log_channel.send(embed=embed)
+            # Role mentionable change
+            if before.mentionable != after.mentionable:
+                embed = self._create_base_embed("Role Mentionable Updated", audit_entry.user if audit_entry else None, after, created_at)
+                embed.add_field(
+                    name="Mentionable",
+                    value=f"{'Enabled' if before.mentionable else 'Disabled'} → {'Enabled' if after.mentionable else 'Disabled'}",
+                    inline=False
+                )
+                await self._send_log_embed(guild_log_channel, embed)
+                
+        except Exception as e:
+            print(f"Error in on_guild_role_update: {e}")
 
 async def setup(bot):
     await bot.add_cog(OnGuildRoleUpdate(bot))

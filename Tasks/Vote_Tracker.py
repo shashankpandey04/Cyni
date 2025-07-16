@@ -7,7 +7,6 @@ async def vote_track(bot):
     """
     Track votes for the bot and removes the vote role if the user has not voted in the last 12 hours.
     """
-    start_time = time.time()
     try:
         votes = await bot.vote_tracker_document.find({})
         for vote in votes:
@@ -31,10 +30,5 @@ async def vote_track(bot):
                     continue
                 await user.remove_roles(vote_role, reason="Vote expired")
                 await bot.vote_tracker_document.delete_one({"_id": vote["_id"]})
-        print("Vote Tracker completed successfully.")
     except Exception as e:
         print(f"Vote Tracker encountered an error: {e}")
-                
-    print(f"Vote Tracker took {time.time() - start_time} seconds.")
-
-    

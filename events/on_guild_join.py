@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,18 +40,6 @@ class OnGuildJoin(commands.Cog):
         await guild_log_channel.send(
             embed=embed
         )
-        URL = "https://top.gg/api/bots/1136945734399295538/stats"
-        header = {
-            "Authorization": os.getenv("TOP_GG_TOKEN")
-        }
-        body = {
-            "server_count": len(self.bot.guilds),
-        }
-        async with self.bot.sessions.post(URL, headers=header, json=body) as response:
-            if response.status != 204:
-                print(f"Failed to update Top.gg stats: {response.status} - {await response.text()}")
-            else:
-                print("Top.gg stats updated successfully.")
 
 async def setup(bot):
     await bot.add_cog(OnGuildJoin(bot))
