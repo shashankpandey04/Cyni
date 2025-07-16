@@ -48,7 +48,7 @@ class OnGuildJoin(commands.Cog):
         body = {
             "server_count": len(self.bot.guilds),
         }
-        async with self.bot.session.post(URL, headers=header, json=body) as response:
+        async with self.bot.sessions.post(URL, headers=header, json=body) as response:
             if response.status != 204:
                 print(f"Failed to update Top.gg stats: {response.status} - {await response.text()}")
             else:

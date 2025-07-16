@@ -15,6 +15,7 @@ from utils.utils import get_prefix
 
 from Tasks.loa_check import loa_check
 from Tasks.GiveawayRoll import giveaway_roll
+from Tasks.Vote_Tracker import vote_track
 
 from utils.prc_api import PRC_API_Client
 from decouple import config
@@ -33,6 +34,7 @@ from Datamodels.afk import AFK
 from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
 from Datamodels.LOA import LOA
+from Datamodels.voteTracker import voteTracker
 
 
 load_dotenv()
@@ -78,6 +80,7 @@ class Bot(commands.Bot):
             self.partnership_document = Document(self.db, 'partnership')
             self.loa_document = Document(self.db, 'loa')
             self.erlc_document = Document(self.db, 'erlc')
+            self.vote_tracker_document = voteTracker(self.db, 'vote_tracker')
 
     async def close(self):
         print('Closing...')
@@ -104,6 +107,7 @@ class Bot(commands.Bot):
         self.partnership = Partnership(self.db, 'partnership')
         self.loa = LOA(self.db, 'loa')
         self.erlc = Document(self.db, 'erlc')
+        self.vote_tracker = voteTracker(self.db, 'vote_tracker')
         
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
@@ -150,6 +154,7 @@ class Bot(commands.Bot):
         change_status.start()
         loa_check.start(self)
         giveaway_roll.start(self)
+        vote_track.start(self)
 
         logging.info(f"Logged in as {bot.user}")
 

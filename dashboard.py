@@ -1295,7 +1295,13 @@ def vote_tracker_api():
     if auth_header != AUTH_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401
     data = request.json
-    print(f"Vote received: {data}")
+    URL = "http://127.0.0.1:5000/bot_vote_notification"
+    try:
+        response = requests.post(URL, json=data, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Failed to notify bot of vote: {e}")
+        return jsonify({"error": "Failed to notify bot"}), 500
     return jsonify({"status": "success", "message": "Vote recorded"}), 200
 
 def run_production():

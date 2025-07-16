@@ -861,6 +861,61 @@ class APIRoutes:
             logger.error(f"Failed to send application notification: {e}")
             raise HTTPException(status_code=500, detail="Failed to send application notification")
 
+    async def POST_bot_vote_notification(
+        self,
+        request: Request
+    ):
+        """Notify the bot about a vote on Top.gg."""
+        logger.debug("Received POST request to notify bot about a vote.")
+        
+        json_data = await request.json()
+        user_id = json_data.get("user")
+        bot_id = json_data.get("bot")
+
+        if not user_id or not bot_id:
+            logger.error("User ID or Bot ID not provided in the request.")
+            raise HTTPException(status_code=400, detail="User ID or Bot ID not provided")
+        
+        user_found = False
+        user = self.bot.get_user(int(user_id))
+        if user:
+            user_found = True
+        
+        VOTER_ROLE_ID = 1209464266898407444
+        
+        message = f"🎉 <@{user_id}> voted for CYNI on Top.gg!\nhttps://top.gg/bot/1136945734399295538/vote"
+
+        channel = self.bot.get_channel(1206244123837993000)
+        if not channel:
+            logger.error("Channel not found for ID: 1206244123837993000")
+            raise HTTPException(status_code=404, detail="Channel not found")
+        
+        try:
+            await channel.send(message)
+            if user_found:
+                guild = self.bot.get_guild(1152949579407442050)
+                if guild:
+                    member = guild.get_member(int(user_id))
+                    if member:
+                        role = guild.get_role(VOTER_ROLE_ID)
+                        if role and role not in member.roles:
+                            await member.add_roles(role, reason="User voted for CYNI on Top.gg")
+                            logger.debug(f"Added voter role to user: {member.name}.")
+                            await db.votes.insert_one({
+                                "user_id": user_id,
+                                "voted_at": datetime.datetime.now().timestamp()
+                            })
+                        else:
+                            logger.debug(f"User {member.name} already has the voter role or it does not exist.")
+                    else:
+                        logger.error(f"Member not found in guild: {guild.name} for user ID: {user_id}")
+                else:
+                    logger.error("Guild not found for ID: 1152949579407442050")
+            logger.debug(f"Sent vote notification to channel: {channel.name}.")
+        except Exception as e:
+            logger.error(f"Failed to send vote notification: {e}")
+            raise HTTPException(status_code=500, detail="Failed to send vote notification")
+   
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):
     def __init__(self, bot: commands.Bot):
