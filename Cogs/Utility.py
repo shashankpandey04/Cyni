@@ -510,3 +510,8 @@ class HelpView(discord.ui.View):
     async def partnership_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
         from utils.embeds import partnership_commands_embed
         await interaction.response.send_message(embed=partnership_commands_embed, ephemeral=True)
+
+    @discord.ui.button(label="Support Server", style=discord.ButtonStyle.link, row=2)
+    async def support_server(self, interaction: discord.Interaction, button: discord.ui.Button):
+        URL="https://discord.gg/J96XEbGNDm"
+        await interaction.response.send_message(f"Here is the link to our support server: {URL}", ephemeral=True)
