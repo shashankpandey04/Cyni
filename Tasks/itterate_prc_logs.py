@@ -225,7 +225,6 @@ class PRCLogsProcessor:
 
                 for log in batch:
                     try:
-                        # Parse player info (format: "PlayerName:Id")
                         player_parts = log.Player.split(":")
                         if len(player_parts) >= 2:
                             player_name = player_parts[0]
@@ -241,6 +240,9 @@ class PRCLogsProcessor:
                         emoji = "🟢" if log.Join else "🔴"
                         log_type = "Player Join Log" if log.Join else "Player Leave Log"
 
+                        #we only process data from past 1 minute
+                        if log.Timestamp and log.Timestamp < int(time.time()) - 60:
+                            continue
                         # Create embed for individual join/leave log
                         embed = discord.Embed(
                             title=f"{emoji} {log_type}",
