@@ -51,7 +51,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-class Bot(commands.Bot):
+class Bot(commands.AutoShardedBot):
 
     async def is_owner(self, user: User) -> bool:
 
@@ -168,7 +168,7 @@ bot = Bot(
     intents=intents,
     help_command=None,
     allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=True),
-    shard_count=1
+    shard_count=3  # Manually manage for now
 )
 
 bot.debug_server = [1152949579407442050]
@@ -218,6 +218,10 @@ async def change_status():
     await bot.change_presence(
         activity=discord.CustomActivity(name=status)
     )
+
+@bot.event
+async def on_shard_ready(shard_id):
+    logging.info(f"Shard {shard_id} is ready.")
 
 up_time = time.time()
 
