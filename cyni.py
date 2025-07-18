@@ -222,6 +222,10 @@ async def change_status():
 async def on_shard_ready(shard_id):
     logging.info(f"Shard {shard_id} is ready.")
 
+@bot.event
+async def on_connect():
+    print(f"Connected to Discord gateway. Region: {bot.ws.gateway}")
+
 up_time = time.time()
 
 class PremiumRequired(commands.CheckFailure):
