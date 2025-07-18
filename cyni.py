@@ -168,7 +168,6 @@ bot = Bot(
     intents=intents,
     help_command=None,
     allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=True),
-    shard_count=3  # Manually manage for now
 )
 
 bot.debug_server = [1152949579407442050]
