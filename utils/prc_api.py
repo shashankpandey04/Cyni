@@ -121,8 +121,7 @@ class PRC_API_Client:
 
     async def cog_unload(self):
         """Clean up when cog is unloaded."""
-        if self.session:
-            await self.session.close()
+        await self.session.close()
 
     async def fetch_server_key(self, server_id: int):
         return await self.bot.erlc.find_by_id(server_id)

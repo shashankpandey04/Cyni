@@ -8,8 +8,10 @@ from typing import List, Optional, Tuple
 from utils.constants import YELLOW_COLOR, BLANK_COLOR, RED_COLOR, GREEN_COLOR
 import utils.prc_api as prc_api
 from utils.prc_api import ServerPlayers, ServerStatus, ServerKillLogs, ServerJoinLogs, ResponseFailed, ServerLinkNotFound
-from cyni import is_management, is_staff
-from utils.utils import get_discord_by_roblox
+from cyni import is_management, is_staff, is_erlc_staff, is_erlc_management
+from utils.utils import get_discord_by_roblox, log_command_usage
+from utils.pagination import Pagination
+from UI.erlc import StaffRoles, LoggingChannels
 
 class ERLC(commands.Cog):
     """ERLC server management commands."""
@@ -23,6 +25,20 @@ class ERLC(commands.Cog):
     async def cog_unload(self):
         """Clean up when cog is unloaded."""
         self._roblox_cache.clear()
+        
+        # Close roblox client session if it has one
+        try:
+            if hasattr(self.roblox_client, 'close'):
+                await self.roblox_client.close()
+                print("ERLC cog: Roblox client closed")
+            elif hasattr(self.roblox_client, 'aclose'):
+                await self.roblox_client.aclose()
+                print("ERLC cog: Roblox client aclosed")
+            elif hasattr(self.roblox_client, '_client') and hasattr(self.roblox_client._client, 'aclose'):
+                await self.roblox_client._client.aclose()
+                print("ERLC cog: Roblox internal client closed")
+        except Exception as e:
+            print(f"ERLC cog: Error closing roblox client: {e}")
 
     @staticmethod
     def is_server_linked():
@@ -111,7 +127,7 @@ class ERLC(commands.Cog):
             )
         
         return embed
-    
+
     @commands.hybrid_group(
         name="erlc",
         extras={
@@ -125,10 +141,95 @@ class ERLC(commands.Cog):
         pass
 
     @server.command(
+        name="config",
+        aliases=["erlc-settings"],
+        extras={
+            "category": "ERLC"
+        }
+    )
+    @commands.guild_only()
+    @is_erlc_management()
+    async def erlc_config(self, ctx):
+        """
+        Configure your ERLC server settings.
+        """
+        if not ctx.author or not hasattr(ctx.author, 'id'):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Unable to identify the command user.",
+                    color=RED_COLOR
+                )
+            )
+            
+        try:
+            if isinstance(ctx, commands.Context):
+                await log_command_usage(self.bot, ctx.guild, ctx.author, "ERLC Config")
+        except:
+            pass
+            
+        try:
+            sett = await self.bot.settings.find_by_id(ctx.guild.id)
+            if not sett:
+                sett = {}
+            
+            # Ensure ERLC settings structure exists
+            if 'erlc' not in sett:
+                sett['erlc'] = {}
+                
+        except KeyError:
+            sett = {'erlc': {}}
+            
+        try:
+            embed1 = discord.Embed(
+                title="ERLC Staff Roles Configuration",
+                description=(
+                    "> Configure the roles that have access to ERLC commands.\n\n"
+                    "<:anglesmallright:1268850037861908571> **ERLC Staff Roles**\n"
+                    "- Roles that can use basic ERLC commands like server info, players, kills, etc.\n\n"
+                    "<:anglesmallright:1268850037861908571> **ERLC Management Roles**\n"
+                    "- Roles that can use management ERLC commands like linking servers and advanced configurations.\n\n"
+                    "> Use the dropdowns below to select the appropriate roles for your server."
+                ),
+                color=BLANK_COLOR
+            )
+            
+            embed2 = discord.Embed(
+                title="ERLC Logging Channels Configuration",
+                description=(
+                    "> Configure where ERLC events will be logged.\n\n"
+                    "<:anglesmallright:1268850037861908571> **Kill Logs Channel**\n"
+                    "- Channel where ERLC kill logs will be automatically posted.\n\n"
+                    "<:anglesmallright:1268850037861908571> **Join Logs Channel**\n"
+                    "- Channel where ERLC join/leave logs will be automatically posted.\n\n"
+                    "> Use the dropdowns below to select the appropriate channels for logging."
+                ),
+                color=BLANK_COLOR
+            )
+
+            all_embeds = [embed1, embed2]
+            views = [
+                StaffRoles(self.bot, ctx, sett),
+                LoggingChannels(self.bot, ctx, sett)
+            ]
+            
+            view = Pagination(self.bot, ctx.author.id, all_embeds, views)
+            await ctx.send(embed=embed1, view=view)
+
+        except Exception as e:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Something went wrong",
+                    description=f"```{e}```",
+                    color=RED_COLOR
+                )
+            )
+
+    @server.command(
         name="link",
         description="Link your Discord server to the ERLC server."
     )
-    @is_management()
+    @is_erlc_management()
     @app_commands.describe(key="The ERLC server key.")
     async def server_link(self, ctx: commands.Context, key: str):
         """Link Discord server to ERLC server."""
@@ -179,7 +280,7 @@ class ERLC(commands.Cog):
         name="info",
         description="Get information about the ERLC server."
     )
-    @is_staff()
+    @is_erlc_staff()
     @is_server_linked()
     async def erlc_info(self, ctx: commands.Context):
         """Get information about the ERLC server."""
@@ -231,7 +332,7 @@ class ERLC(commands.Cog):
         name="staff",
         description="Get information about the ERLC server staff."
     )
-    @is_staff()
+    @is_erlc_staff()
     @is_server_linked()
     async def erlc_staff(self, ctx: commands.Context):
         """Get information about the ERLC server staff."""
@@ -285,7 +386,7 @@ class ERLC(commands.Cog):
         name="kills",
         description="Get the kill logs of the server."
     )
-    @is_staff()
+    @is_erlc_staff()
     @is_server_linked()
     async def kills(self, ctx: commands.Context):
         """Get server kill logs."""
@@ -329,7 +430,7 @@ class ERLC(commands.Cog):
         name="players",
         description="Get current players in the server."
     )
-    @is_staff()
+    @is_erlc_staff()
     @is_server_linked()
     async def server_players(self, ctx: commands.Context):
         """Get current players in the server."""
@@ -412,7 +513,7 @@ class ERLC(commands.Cog):
         name="check",
         description="Check if all ERLC players are in the Discord server."
     )
-    @is_staff()
+    @is_erlc_staff()
     @is_server_linked()
     async def check(self, ctx: commands.Context):
         """Perform a Discord check on your server."""
@@ -490,7 +591,7 @@ class ERLC(commands.Cog):
         name="joinlogs",
         description="Get the join and leave logs of the server."
     )
-    @is_staff()
+    @is_erlc_staff()
     @is_server_linked()
     async def join_logs(self, ctx: commands.Context):
         """Get server join and leave logs."""

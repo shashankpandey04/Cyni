@@ -16,6 +16,7 @@ from utils.utils import get_prefix
 from Tasks.loa_check import loa_check
 from Tasks.GiveawayRoll import giveaway_roll
 from Tasks.Vote_Tracker import vote_track
+from Tasks.itterate_prc_logs import setup_prc_logs_processor
 
 from utils.prc_api import PRC_API_Client
 from decouple import config
@@ -51,6 +52,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
+_version = "7.8.0"
 class Bot(commands.AutoShardedBot):
 
     async def is_owner(self, user: User) -> bool:
@@ -84,6 +86,15 @@ class Bot(commands.AutoShardedBot):
 
     async def close(self):
         print('Closing...')
+        try:
+            if hasattr(self, 'prc_api') and self.prc_api:
+                await self.prc_api.cog_unload()
+            if hasattr(self, 'roblox') and self.roblox:
+                if hasattr(self.roblox, 'close'):
+                    await self.roblox.close()
+        except Exception as e:
+            print(f'Error closing API sessions: {e}')
+        
         await super().close()
         self.mongo.close()
         print('Closed!')
@@ -112,7 +123,7 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications", "Cogs.ERLC"]
+        UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications"]
         DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube"]
 
 
@@ -156,6 +167,7 @@ class Bot(commands.AutoShardedBot):
         loa_check.start(self)
         giveaway_roll.start(self)
         vote_track.start(self)
+        setup_prc_logs_processor(self)
 
         logging.info(f"Logged in as {bot.user}")
 
@@ -222,12 +234,7 @@ async def change_status():
 async def on_shard_ready(shard_id):
     logging.info(f"Shard {shard_id} is ready.")
 
-@bot.event
-async def on_connect():
-    print(f"Connected to Discord gateway. Region: {bot.ws.gateway}")
-
 up_time = time.time()
-
 class PremiumRequired(commands.CheckFailure):
     def __init__(self, message="=This server doesn't have Cyni Premium!"):
         self.message = message
@@ -272,6 +279,62 @@ async def staff_or_management_check(bot,guild,member):
         return True
     return False
 
+async def erlc_staff_check(bot, guild, member):
+    """Check if member has ERLC staff permissions or regular staff permissions."""
+    if member.guild_permissions.administrator:
+        return True
+    
+    # Check regular staff roles first
+    if await staff_check(bot, guild, member):
+        return True
+    
+    # Check ERLC-specific staff roles
+    guild_settings = await bot.settings.get(guild.id)
+    if guild_settings and "erlc" in guild_settings:
+        if "staff_roles" in guild_settings["erlc"]:
+            erlc_staff_roles = guild_settings["erlc"]["staff_roles"]
+            if erlc_staff_roles:
+                if isinstance(erlc_staff_roles, list):
+                    for role in erlc_staff_roles:
+                        if role in [r.id for r in member.roles]:
+                            return True
+                elif isinstance(erlc_staff_roles, int):
+                    if erlc_staff_roles in [r.id for r in member.roles]:
+                        return True
+    return False
+
+async def erlc_management_check(bot, guild, member):
+    """Check if member has ERLC management permissions or regular management permissions."""
+    if member.guild_permissions.administrator:
+        return True
+    
+    # Check regular management roles first
+    if await management_check(bot, guild, member):
+        return True
+    
+    # Check ERLC-specific management roles
+    guild_settings = await bot.settings.get(guild.id)
+    if guild_settings and "erlc" in guild_settings:
+        if "management_roles" in guild_settings["erlc"]:
+            erlc_management_roles = guild_settings["erlc"]["management_roles"]
+            if erlc_management_roles:
+                if isinstance(erlc_management_roles, list):
+                    for role in erlc_management_roles:
+                        if role in [r.id for r in member.roles]:
+                            return True
+                elif isinstance(erlc_management_roles, int):
+                    if erlc_management_roles in [r.id for r in member.roles]:
+                        return True
+    return False
+
+async def erlc_staff_or_management_check(bot, guild, member):
+    """Check if member has ERLC staff or management permissions."""
+    if member.guild_permissions.administrator:
+        return True
+    if await erlc_staff_check(bot, guild, member) or await erlc_management_check(bot, guild, member):
+        return True
+    return False
+
 async def premium_check(bot, guild):
     guild_settings = await bot.settings.get(guild.id)
     if guild_settings:
@@ -301,6 +364,27 @@ def is_staff_or_management():
         if await staff_or_management_check(ctx.bot,ctx.guild,ctx.author):
             return True
         raise commands.MissingPermissions(["Staff or Management"])
+    return commands.check(predicate)
+
+def is_erlc_staff():
+    async def predicate(ctx):
+        if await erlc_staff_check(ctx.bot, ctx.guild, ctx.author):
+            return True
+        raise commands.MissingPermissions(["ERLC Staff"])
+    return commands.check(predicate)
+
+def is_erlc_management():
+    async def predicate(ctx):
+        if await erlc_management_check(ctx.bot, ctx.guild, ctx.author):
+            return True
+        raise commands.MissingPermissions(["ERLC Management"])
+    return commands.check(predicate)
+
+def is_erlc_staff_or_management():
+    async def predicate(ctx):
+        if await erlc_staff_or_management_check(ctx.bot, ctx.guild, ctx.author):
+            return True
+        raise commands.MissingPermissions(["ERLC Staff or Management"])
     return commands.check(predicate)
 
 async def fetch_invite(guild_id):
@@ -350,8 +434,11 @@ else:
     logging.info("Using Development Token")
 
 def run():
+    """Run the bot with simple shutdown."""
     try:
         bot.run(bot_token)
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received, bot stopping...")
     except Exception as e:
         logging.error(f"Error: {e}", exc_info=True)
 
