@@ -4,7 +4,7 @@ from discord.ext import commands
 from cyni import afk_users
 from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
-from cyni import up_time, is_staff
+from cyni import up_time, is_staff, _version
 from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 from utils.pagination import Pagination
@@ -47,7 +47,7 @@ class Utility(commands.Cog):
                 f"📡 **WebSocket:** `{ws_latency}ms`\n"
                 f"🗃️ **Database:** `{db_latency}ms`\n"
                 f"⏱️ **Uptime:** {uptime_relative}\n"
-                f"🛠️ **Version:** `v7.8`"
+                f"🛠️ **Version:** `v{_version}`"
                 f"{shard_info}"
             )
         )

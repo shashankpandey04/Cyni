@@ -52,7 +52,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-_version = "7.8.0"
+_version = "8.0.0"
 class Bot(commands.AutoShardedBot):
 
     async def is_owner(self, user: User) -> bool:
