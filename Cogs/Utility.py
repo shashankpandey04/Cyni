@@ -20,37 +20,47 @@ class Utility(commands.Cog):
 
     @commands.hybrid_command(
         name="ping",
-        extras={
-            "category": "General"
-        }
+        description="Check the bot's latency.",
+        extras={"category": "General"}
     )
-    async def ping(self, ctx):
+    async def ping(self, ctx: commands.Context):
         """
-        Get the bot's latency.
+        Displays the bot's WebSocket latency, database latency, and uptime.
         """
-        latency = round(self.bot.latency * 1000)
+        ws_latency = round(self.bot.latency * 1000)
+
+        start_time = time.perf_counter()
+        await self.bot.settings.find_one({})
+        db_latency = round((time.perf_counter() - start_time) * 1000)
+
+        uptime_seconds = int(time.time() - up_time)
+        uptime_relative = f"<t:{int(time.time() - uptime_seconds)}:R>"
+
+        shard_info = ""
+        if hasattr(ctx.guild, "shard_id") and self.bot.shard_count > 1:
+            shard_info = f"\n🔀 **Shard:** `{ctx.guild.shard_id + 1}/{self.bot.shard_count}`"
+
         embed = discord.Embed(
-            title="Pong!",
-            description=f"Latency: {latency}ms",
-            color=BLANK_COLOR
-        )
-        embed.set_author(
-            name=f"{ctx.author}",
-            icon_url=ctx.author.avatar.url
-        )
-        embed.set_footer(
-            text="Cyni Systems!",
-            icon_url=self.bot.user.avatar.url
-        )
-        view = discord.ui.View()
-        view.add_item(
-            discord.ui.Button(
-                label="CYNI Status Page",
-                url=f"https://cyni.quprdigital.tk/status",
-                row=0
+            title="🏓 Pong!",
+            color=ctx.author.top_role.color or BLANK_COLOR,
+            description=(
+                f"📡 **WebSocket:** `{ws_latency}ms`\n"
+                f"🗃️ **Database:** `{db_latency}ms`\n"
+                f"⏱️ **Uptime:** {uptime_relative}\n"
+                f"🛠️ **Version:** `v7.8`"
+                f"{shard_info}"
             )
         )
-        await ctx.send(embed=embed, view=view)
+        embed.set_author(
+            name=str(ctx.author),
+            icon_url=ctx.author.display_avatar.url
+        )
+        embed.set_footer(
+            text="Cyni Systems",
+            icon_url=self.bot.user.display_avatar.url
+        )
+
+        await ctx.send(embed=embed)
 
     @commands.hybrid_command(
         name="about",
@@ -511,7 +521,6 @@ class HelpView(discord.ui.View):
         from utils.embeds import partnership_commands_embed
         await interaction.response.send_message(embed=partnership_commands_embed, ephemeral=True)
 
-    @discord.ui.button(label="Support Server", style=discord.ButtonStyle.link, row=2)
+    @discord.ui.button(label="Support Server", custom_id="support_server", row=1)
     async def support_server(self, interaction: discord.Interaction, button: discord.ui.Button):
-        URL="https://discord.gg/J96XEbGNDm"
-        await interaction.response.send_message(f"Here is the link to our support server: {URL}", ephemeral=True)
+        await interaction.response.send_message(f"Here is the link to our support server: {button.url}", ephemeral=True)

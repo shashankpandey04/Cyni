@@ -3,11 +3,11 @@ from discord.ext import commands
 from discord import app_commands
 import roblox
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from utils.constants import YELLOW_COLOR, BLANK_COLOR, RED_COLOR, GREEN_COLOR
 import utils.prc_api as prc_api
-from utils.prc_api import ServerPlayers, ServerStatus, ServerKillLogs, ServerJoinLogs, ResponseFailed
+from utils.prc_api import ServerPlayers, ServerStatus, ServerKillLogs, ServerJoinLogs, ResponseFailed, ServerLinkNotFound
 from cyni import is_management, is_staff
 from utils.utils import get_discord_by_roblox
 
@@ -17,31 +17,45 @@ class ERLC(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.roblox_client = roblox.Client()
+        # Cache for Roblox user info to reduce API calls
+        self._roblox_cache = {}
 
     async def cog_unload(self):
         """Clean up when cog is unloaded."""
-        # roblox.Client doesn't need explicit closing
-        pass
+        self._roblox_cache.clear()
 
+    @staticmethod
     def is_server_linked():
         """Check if the server is linked to an ERLC server."""
         async def predicate(ctx: commands.Context):
             try:
                 await ctx.bot.prc_api._fetch_server_status(ctx.guild.id)
                 return True
-            except (prc_api.ResponseFailed, Exception) as e:
-                raise prc_api.ServerLinkNotFound(str(e))
+            except (prc_api.ResponseFailed, Exception):
+                raise ServerLinkNotFound("Server is not linked to an ERLC server.")
         return commands.check(predicate)
 
-    async def _get_roblox_user_info(self, user_id: int) -> tuple[str, str]:
-        """Get Roblox user info with error handling."""
+    async def _get_roblox_user_info(self, user_id: int) -> Tuple[str, str]:
+        """Get Roblox user info with caching and error handling."""
+        if user_id in self._roblox_cache:
+            cached_data = self._roblox_cache[user_id]
+            return cached_data['name'], cached_data['link']
+        
         try:
             user = await self.roblox_client.get_user(user_id)
-            return user.name, f"[{user.name}](https://roblox.com/users/{user_id}/profile)"
+            name = user.name
+            link = f"[{name}](https://roblox.com/users/{user_id}/profile)"
+            
+            # Cache the result
+            self._roblox_cache[user_id] = {'name': name, 'link': link}
+            return name, link
         except roblox.UserNotFound:
             return "Unknown", "Unknown"
+        except Exception as e:
+            self.bot.logger.error(f"Error fetching Roblox user {user_id}: {e}")
+            return "Error", "Error"
 
-    async def _create_base_embed(self, title: str, ctx: commands.Context, description: str = "") -> discord.Embed:
+    def _create_base_embed(self, title: str, ctx: commands.Context, description: str = "") -> discord.Embed:
         """Create a base embed with common styling."""
         return discord.Embed(
             title=title,
@@ -49,11 +63,54 @@ class ERLC(commands.Cog):
             color=BLANK_COLOR
         ).set_author(
             name=ctx.guild.name,
-            icon_url=ctx.guild.icon
+            icon_url=ctx.guild.icon.url if ctx.guild.icon else None
         ).set_footer(
             text="Cyni Bot | ERLC Integration",
-            icon_url=self.bot.user.avatar
+            icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None
         )
+    
+    async def _handle_prc_error(self, ctx: commands.Context, error: Exception, action: str):
+        """Handle PRC API errors with specific messages."""
+        if isinstance(error, ResponseFailed):
+            if error.code == 422:
+                embed = discord.Embed(
+                    title="Server Offline",
+                    description="Your ERLC server appears to be offline.",
+                    color=YELLOW_COLOR
+                )
+            elif error.code == 401:
+                embed = discord.Embed(
+                    title="Invalid API Key",
+                    description="Your server's API key is invalid. Please re-link your server.",
+                    color=RED_COLOR
+                )
+            elif error.code == 403:
+                embed = discord.Embed(
+                    title="Access Denied",
+                    description="Access denied to the ERLC server. Check your permissions.",
+                    color=RED_COLOR
+                )
+            elif error.code == 429:
+                embed = discord.Embed(
+                    title="Rate Limited",
+                    description="Too many requests. Please try again later.",
+                    color=YELLOW_COLOR
+                )
+            else:
+                embed = discord.Embed(
+                    title=f"PRC API Error ({error.code})",
+                    description="There seems to be an issue with the PRC API. Try again later.",
+                    color=RED_COLOR
+                )
+        else:
+            self.bot.logger.error(f"Error in {action}: {error}")
+            embed = discord.Embed(
+                title="Error",
+                description=f"An error occurred while {action}.",
+                color=RED_COLOR
+            )
+        
+        return embed
     
     @commands.hybrid_group(
         name="erlc",
@@ -76,6 +133,15 @@ class ERLC(commands.Cog):
     async def server_link(self, ctx: commands.Context, key: str):
         """Link Discord server to ERLC server."""
         try:
+            # Validate the key format
+            if not key or len(key) < 10:
+                embed = discord.Embed(
+                    title="Invalid Key Format",
+                    description="The provided key appears to be too short. Please provide a valid ERLC server key.",
+                    color=RED_COLOR
+                )
+                return await ctx.send(embed=embed, ephemeral=True)
+            
             is_valid = await self.bot.prc_api._send_test_request(key)
             
             if not is_valid:
@@ -95,9 +161,11 @@ class ERLC(commands.Cog):
                     color=GREEN_COLOR
                 )
             
-            respond = ctx.send if not ctx.interaction else ctx.interaction.response.send_message
-            await respond(embed=embed, ephemeral=True)
+            await ctx.send(embed=embed, ephemeral=True)
             
+        except ResponseFailed as e:
+            embed = await self._handle_prc_error(ctx, e, "linking server")
+            await ctx.send(embed=embed, ephemeral=True)
         except Exception as e:
             self.bot.logger.error(f"Error linking server: {e}")
             embed = discord.Embed(
@@ -105,8 +173,7 @@ class ERLC(commands.Cog):
                 description="An error occurred while linking the server.",
                 color=RED_COLOR
             )
-            respond = ctx.send if not ctx.interaction else ctx.interaction.response.send_message
-            await respond(embed=embed, ephemeral=True)
+            await ctx.send(embed=embed, ephemeral=True)
 
     @server.command(
         name="info",
@@ -133,7 +200,7 @@ class ERLC(commands.Cog):
                     _, co_owner_link = await self._get_roblox_user_info(co_owner_id)
                     co_owners.append(co_owner_link)
 
-            embed = await self._create_base_embed(
+            embed = self._create_base_embed(
                 "Emergency Response: Liberty County Server Information",
                 ctx,
                 f"""
@@ -147,16 +214,18 @@ class ERLC(commands.Cog):
                 > **Co-Owners:** {', '.join(co_owners)}
                 """
             )
-            embed.set_thumbnail(url=ctx.guild.icon)
+            
+            if ctx.guild.icon:
+                embed.set_thumbnail(url=ctx.guild.icon.url)
+            
             await ctx.send(embed=embed)
             
+        except ResponseFailed as e:
+            embed = await self._handle_prc_error(ctx, e, "fetching server information")
+            await ctx.send(embed=embed)
         except Exception as e:
-            self.bot.logger.error(f"Error fetching server info: {e}")
-            await ctx.send(embed=discord.Embed(
-                title="Error",
-                description="Failed to fetch server information.",
-                color=RED_COLOR
-            ))
+            embed = await self._handle_prc_error(ctx, e, "fetching server information")
+            await ctx.send(embed=embed)
 
     @server.command(
         name="staff",
@@ -170,7 +239,7 @@ class ERLC(commands.Cog):
         
         try:
             players: List[ServerPlayers] = await self.bot.prc_api._fetch_server_players(ctx.guild.id)
-            embed = await self._create_base_embed("Server Staff", ctx)
+            embed = self._create_base_embed("Server Staff", ctx)
 
             # Categorize players by permission level
             staff_categories = {
@@ -195,7 +264,7 @@ class ERLC(commands.Cog):
                         for player in staff_list
                     ]
                     embed.add_field(
-                        name=category,
+                        name=f"{category} ({len(staff_list)})",
                         value='\n'.join(staff_links),
                         inline=False
                     )
@@ -205,13 +274,12 @@ class ERLC(commands.Cog):
 
             await ctx.send(embed=embed)
             
+        except ResponseFailed as e:
+            embed = await self._handle_prc_error(ctx, e, "fetching staff information")
+            await ctx.send(embed=embed)
         except Exception as e:
-            self.bot.logger.error(f"Error fetching staff: {e}")
-            await ctx.send(embed=discord.Embed(
-                title="Error",
-                description="Failed to fetch staff information.",
-                color=RED_COLOR
-            ))
+            embed = await self._handle_prc_error(ctx, e, "fetching staff information")
+            await ctx.send(embed=embed)
 
     @server.command(
         name="kills",
@@ -225,10 +293,14 @@ class ERLC(commands.Cog):
         
         try:
             kill_logs: List[ServerKillLogs] = await self.bot.prc_api._fetch_server_killlogs(ctx.guild.id)
-            embed = await self._create_base_embed("Server Kill Logs", ctx)
+            embed = self._create_base_embed("Server Kill Logs", ctx)
+
+            if not kill_logs:
+                embed.description = "> No kill logs found."
+                return await ctx.send(embed=embed)
 
             # Sort logs by timestamp (newest first) and build description
-            sorted_logs = sorted(kill_logs, key=lambda log: log.timestamp, reverse=True)
+            sorted_logs = sorted(kill_logs, key=lambda log: log.timestamp or 0, reverse=True)
             log_entries = []
             
             for log in sorted_logs:
@@ -236,23 +308,22 @@ class ERLC(commands.Cog):
                     break
                 
                 # Check if timestamp is valid
-                timestamp_str = f"<t:{int(log.timestamp)}:R>" if log.timestamp is not None else "Unknown time"
+                timestamp_str = f"<t:{int(log.timestamp)}:R>" if log.timestamp else "Unknown time"
                     
                 entry = (f"> [{log.killer_username}](https://roblox.com/users/{log.killer_user_id}/profile) "
                         f"killed [{log.killed_username}](https://roblox.com/users/{log.killed_user_id}/profile) "
                         f"• {timestamp_str}")
                 log_entries.append(entry)
 
-            embed.description = '\n'.join(log_entries) if log_entries else "> No kill logs found."
+            embed.description = '\n'.join(log_entries) if log_entries else "> No recent kill logs found."
             await ctx.send(embed=embed)
             
+        except ResponseFailed as e:
+            embed = await self._handle_prc_error(ctx, e, "fetching kill logs")
+            await ctx.send(embed=embed)
         except Exception as e:
-            self.bot.logger.error(f"Error fetching kill logs: {e}")
-            await ctx.send(embed=discord.Embed(
-                title="Error",
-                description="Failed to fetch kill logs.",
-                color=RED_COLOR
-            ))
+            embed = await self._handle_prc_error(ctx, e, "fetching kill logs")
+            await ctx.send(embed=embed)
 
     @server.command(
         name="players",
@@ -275,6 +346,9 @@ class ERLC(commands.Cog):
             
             # Build player lists with proper formatting
             def format_player_list(player_list, include_team=True, include_links=True):
+                if not player_list:
+                    return "None"
+                
                 if include_links:
                     if include_team:
                         return ', '.join([f'[{p.username} ({p.team})](https://roblox.com/users/{p.id}/profile)' for p in player_list])
@@ -291,7 +365,7 @@ class ERLC(commands.Cog):
             
             if staff_players:
                 staff_text = format_player_list(staff_players)
-                description_parts.append(f"**{status.name} Staff [{len(staff_players)}]**\n{staff_text}")
+                description_parts.append(f"**{status.Name} Staff [{len(staff_players)}]**\n{staff_text}")
             
             if regular_players:
                 players_text = format_player_list(regular_players)
@@ -321,15 +395,18 @@ class ERLC(commands.Cog):
                 
                 description = '\n\n'.join(description_parts)
 
-            embed = await self._create_base_embed(f"Server Players [{len(players)}]", ctx, description)
+            if not description.strip():
+                description = "> No players currently online."
+
+            embed = self._create_base_embed(f"Server Players [{len(players)}]", ctx, description)
             await ctx.send(embed=embed)
 
+        except ResponseFailed as e:
+            embed = await self._handle_prc_error(ctx, e, "fetching player information")
+            await ctx.send(embed=embed)
         except Exception as e:
-            await ctx.send(embed=discord.Embed(
-                title="Error",
-                description="Failed to fetch player information.",
-                color=RED_COLOR
-            ))
+            embed = await self._handle_prc_error(ctx, e, "fetching player information")
+            await ctx.send(embed=embed)
 
     @server.command(
         name="check",
@@ -360,17 +437,30 @@ class ERLC(commands.Cog):
             missing_players = []
             guild_members = {member.id: member for member in ctx.guild.members}
             
+            # Create a more efficient search pattern
+            member_names = set()
+            for member in guild_members.values():
+                member_names.add(member.name.lower())
+                member_names.add(member.display_name.lower())
+                if member.global_name:
+                    member_names.add(member.global_name.lower())
+            
             for player in players:
                 member_found = False
+                player_name_lower = player.username.lower()
                 
-                # Check by display name patterns
-                pattern = re.compile(re.escape(player.username), re.IGNORECASE)
-                for member in guild_members.values():
-                    if (pattern.search(member.name) or 
-                        pattern.search(member.display_name) or 
-                        (member.global_name and pattern.search(member.global_name))):
-                        member_found = True
-                        break
+                # Quick check against pre-built set
+                if player_name_lower in member_names:
+                    member_found = True
+                else:
+                    # Fallback to regex for partial matches
+                    pattern = re.compile(re.escape(player.username), re.IGNORECASE)
+                    for member in guild_members.values():
+                        if (pattern.search(member.name) or 
+                            pattern.search(member.display_name) or 
+                            (member.global_name and pattern.search(member.global_name))):
+                            member_found = True
+                            break
                 
                 # Check by Roblox-Discord link if not found
                 if not member_found:
@@ -384,25 +474,16 @@ class ERLC(commands.Cog):
                 if not member_found:
                     missing_players.append(f"> [{player.username}](https://roblox.com/users/{player.id}/profile)")
 
-            embed = await self._create_base_embed("Players in ERLC Not in Discord", ctx)
+            embed = self._create_base_embed("Players in ERLC Not in Discord", ctx)
             embed.description = '\n'.join(missing_players) if missing_players else "> All players are in the Discord server."
             
             await msg.edit(embed=embed)
             
-        except ResponseFailed:
-            embed = discord.Embed(
-                title="PRC API Error",
-                description="An error occurred while fetching players from the PRC API.",
-                color=RED_COLOR
-            )
+        except ResponseFailed as e:
+            embed = await self._handle_prc_error(ctx, e, "performing Discord check")
             await msg.edit(embed=embed)
         except Exception as e:
-            self.bot.logger.error(f"Error in Discord check: {e}")
-            embed = discord.Embed(
-                title="Error",
-                description="An unexpected error occurred during the check.",
-                color=RED_COLOR
-            )
+            embed = await self._handle_prc_error(ctx, e, "performing Discord check")
             await msg.edit(embed=embed)
 
     @server.command(
@@ -413,15 +494,32 @@ class ERLC(commands.Cog):
     @is_server_linked()
     async def join_logs(self, ctx: commands.Context):
         """Get server join and leave logs."""
-        await ctx.typing()
+        embed = discord.Embed(
+            title="Getting Join Logs...",
+            description="Fetching server join and leave logs.",
+            color=BLANK_COLOR
+        )
+        msg = await ctx.send(embed=embed)
         
         try:
             join_logs: List[ServerJoinLogs] = await self.bot.prc_api._fetch_server_join_logs(ctx.guild.id)
-            embed = await self._create_base_embed("Server Join & Leave Logs", ctx)
+            
+            if not join_logs:
+                embed = discord.Embed(
+                    title="No Join Logs Found",
+                    description="No recent join logs were found.",
+                    color=BLANK_COLOR
+                )
+                return await msg.edit(embed=embed)
+            
+            embed = self._create_base_embed("Server Join & Leave Logs", ctx)
 
             # Sort logs by timestamp (newest first) and build description
             sorted_logs = sorted(join_logs, key=lambda log: log.Timestamp, reverse=True)
             log_entries = []
+            
+            # Create user cache to reduce API calls
+            username_cache = {}
             
             for log in sorted_logs:
                 if len('\n'.join(log_entries)) > 3800:  # Leave room for other embed content
@@ -432,7 +530,15 @@ class ERLC(commands.Cog):
                 if len(player_parts) > 1:
                     player_name = player_parts[0]
                     player_id = player_parts[1]
-                    player_link = f"[{player_name}](https://roblox.com/users/{player_id}/profile)"
+                    
+                    # Cache usernames to reduce API calls
+                    if player_id not in username_cache:
+                        try:
+                            username_cache[player_id] = await self.bot.roblox._get_username_by_id(int(player_id))
+                        except Exception:
+                            username_cache[player_id] = player_name
+                    
+                    player_link = f"[{username_cache[player_id]}](https://roblox.com/users/{player_id}/profile)"
                 else:
                     player_name = player_parts[0]
                     player_link = player_name
@@ -440,19 +546,18 @@ class ERLC(commands.Cog):
                 status = 'Joined' if log.Join else 'Left'
                 # Check if timestamp is valid
                 timestamp_str = f"<t:{int(log.Timestamp)}:R>" if log.Timestamp is not None else "Unknown time"
-                entry = f"> {player_link} {status} the server • {timestamp_str}"
+                entry = f"> **{status}:** {player_link} • {timestamp_str}"
                 log_entries.append(entry)
 
             embed.description = '\n'.join(log_entries) if log_entries else "> No join logs found."
-            await ctx.send(embed=embed)
+            await msg.edit(embed=embed)
             
+        except ResponseFailed as e:
+            embed = await self._handle_prc_error(ctx, e, "fetching join logs")
+            await msg.edit(embed=embed)
         except Exception as e:
-            self.bot.logger.error(f"Error fetching join logs: {e}")
-            await ctx.send(embed=discord.Embed(
-                title="Error",
-                description="Failed to fetch join logs.",
-                color=RED_COLOR
-            ))
+            embed = await self._handle_prc_error(ctx, e, "fetching join logs")
+            await msg.edit(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(ERLC(bot))

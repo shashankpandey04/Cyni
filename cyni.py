@@ -126,6 +126,7 @@ class Bot(commands.Bot):
         for extension in Cogs:
             try:
                 if extension in DISCONTINUED_EXTENSIONS:
+                    logging.info(f'Skipping loading of discontinued extension {extension}.')
                     continue
                 await self.load_extension(extension)
                 logging.info(f'Loaded extension {extension}.')
@@ -346,3 +347,6 @@ def run():
         bot.run(bot_token)
     except Exception as e:
         logging.error(f"Error: {e}", exc_info=True)
+
+if __name__ == "__main__":
+    run()

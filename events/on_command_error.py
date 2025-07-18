@@ -11,7 +11,7 @@ from discord.ext import commands
 from utils.utils import gen_error_uid
 from dotenv import load_dotenv
 
-from utils.prc_api import ResponseFailed
+from utils.prc_api import ResponseFailed, ServerLinkNotFound
 from utils.constants import BLANK_COLOR, RED_COLOR
 
 load_dotenv()
@@ -55,6 +55,11 @@ class CommandErrorHandler(commands.Cog):
                 
             elif isinstance(error, commands.CommandOnCooldown):
                 embed.description = f"This command is on cooldown. Try again in {error.retry_after:.2f}s."
+                
+            elif isinstance(error, ServerLinkNotFound):
+                embed.title = "ERLC Server Not Linked"
+                embed.description = "This Discord server is not linked to an ERLC server. Use `/erlc link` to link your server first."
+                embed.color = BLANK_COLOR
                 
             elif isinstance(error, commands.CheckFailure):
                 embed.description = "You do not have permission to run this command."
