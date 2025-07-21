@@ -73,16 +73,11 @@
               <span>Moderation</span>
             </a>
 
-            <!-- AutoMod with Premium indicator -->
-            <div class="relative">
-              <a href="{{ url_for('automod.automod_settings', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
-                <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
-                <span>AutoMod</span>
-                <span class="ml-auto px-1.5 py-0.5 text-xs bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 rounded-full font-medium">
-                  <i data-lucide="crown" class="w-2.5 h-2.5 mr-0.5 inline"></i>PRO
-                </span>
-              </a>
-            </div>
+            <!-- AutoMod -->
+            <a href="{{ url_for('automod.automod_settings', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+              <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
+              <span>AutoMod</span>
+            </a>
 
             <a href="{{ url_for('welcome_module.welcome', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
               <i data-lucide="users" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
@@ -125,14 +120,6 @@
           </div>
         </div>
       </nav>
-    </div>
-
-    <!-- Footer -->
-    <div class="p-6 border-t border-white/20 dark:border-slate-700/30 flex-shrink-0">
-      <div class="glass-effect rounded-xl p-4 text-center">
-        <p class="text-xs text-slate-600 dark:text-slate-400 mb-2">Cyni Bot Dashboard</p>
-        <p class="text-xs text-slate-500 dark:text-slate-500">v2.3</p>
-      </div>
     </div>
   </div>
 </aside>

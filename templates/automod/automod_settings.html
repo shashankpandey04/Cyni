@@ -17,85 +17,36 @@
         <p class="text-slate-600 dark:text-slate-400">Configure automated moderation features for your server.</p>
       </div>
 
-      <!-- Premium Status Card -->
+      <!-- AutoMod Status Card -->
       <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden mb-8">
         <div class="p-6">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
-              <div class="flex-shrink-0 h-12 w-12 {% if is_premium %}bg-gradient-to-br from-yellow-400 to-yellow-600{% else %}bg-gray-400{% endif %} rounded-lg flex items-center justify-center">
-                <i data-lucide="{% if is_premium %}crown{% else %}lock{% endif %}" class="h-6 w-6 text-white"></i>
+              <div class="flex-shrink-0 h-12 w-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <i data-lucide="shield-check" class="h-6 w-6 text-white"></i>
               </div>
               <div class="ml-4">
                 <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-                  {% if is_premium %}Premium Status{% else %}Premium Required{% endif %}
+                  AutoMod Features
                 </h2>
                 <p class="text-sm text-slate-600 dark:text-slate-400">
-                  {% if is_premium %}
-                    Your server has premium access. AutoMod features are <span class="text-green-400 font-medium">available</span>.
-                  {% else %}
-                    AutoMod is a premium feature. <span class="text-amber-400 font-medium">Upgrade to access</span> these settings.
-                  {% endif %}
+                  Most AutoMod features are <span class="text-green-400 font-medium">free</span>. Vanity protection requires <span class="text-amber-400 font-medium">premium</span>.
                 </p>
               </div>
             </div>
             {% if not is_premium %}
             <button onclick="showPremiumModal()" class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-medium rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200">
               <i data-lucide="crown" class="w-4 h-4 mr-2 inline"></i>
-              Upgrade to Premium
+              Upgrade for Vanity Protection
             </button>
             {% endif %}
           </div>
         </div>
       </div>
 
-      {% if not is_premium %}
-      <!-- Premium Features Preview -->
-      <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden mb-8 opacity-75">
-        <div class="p-6">
-          <h3 class="text-xl font-semibold text-slate-900 dark:text-white mb-4">Premium AutoMod Features</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              <i data-lucide="shield-alert" class="w-8 h-8 text-red-500 mb-2"></i>
-              <h4 class="font-semibold text-slate-900 dark:text-white">Raid Detection</h4>
-              <p class="text-sm text-slate-600 dark:text-slate-400">Protect against mass joins and raids</p>
-            </div>
-            <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              <i data-lucide="zap" class="w-8 h-8 text-yellow-500 mb-2"></i>
-              <h4 class="font-semibold text-slate-900 dark:text-white">Spam Detection</h4>
-              <p class="text-sm text-slate-600 dark:text-slate-400">Automatically handle message spam</p>
-            </div>
-            <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              <i data-lucide="message-square-x" class="w-8 h-8 text-purple-500 mb-2"></i>
-              <h4 class="font-semibold text-slate-900 dark:text-white">Custom Keywords</h4>
-              <p class="text-sm text-slate-600 dark:text-slate-400">Block specific words and phrases</p>
-            </div>
-            <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              <i data-lucide="link-2-off" class="w-8 h-8 text-blue-500 mb-2"></i>
-              <h4 class="font-semibold text-slate-900 dark:text-white">Link Blocking</h4>
-              <p class="text-sm text-slate-600 dark:text-slate-400">Control link sharing with whitelist/blacklist</p>
-            </div>
-            <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              <i data-lucide="user-check" class="w-8 h-8 text-green-500 mb-2"></i>
-              <h4 class="font-semibold text-slate-900 dark:text-white">Role Exemptions</h4>
-              <p class="text-sm text-slate-600 dark:text-slate-400">Exempt trusted roles from automod</p>
-            </div>
-            <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              <i data-lucide="hash" class="w-8 h-8 text-indigo-500 mb-2"></i>
-              <h4 class="font-semibold text-slate-900 dark:text-white">Channel Exemptions</h4>
-              <p class="text-sm text-slate-600 dark:text-slate-400">Exclude specific channels from automod</p>
-            </div>
-            <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-              <i data-lucide="shield-check" class="w-8 h-8 text-purple-500 mb-2"></i>
-              <h4 class="font-semibold text-slate-900 dark:text-white">Vanity URL Protection</h4>
-              <p class="text-sm text-slate-600 dark:text-slate-400">Protect your server's vanity URL from unauthorized changes</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% else %}
-      
       <!-- AutoMod Settings Form -->
       <form method="POST" class="space-y-8">
+        
         <!-- Raid Detection Settings -->
         <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
           <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
@@ -328,7 +279,8 @@
                 </div>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="link_enabled" class="sr-only peer" {% if automod_settings.get('link_blocking', {}).get('enabled', False) %}checked{% endif %}>
+                <input type="checkbox" name="link_enabled" class="sr-only peer" 
+                       {% if automod_settings.get('link_blocking', {}).get('enabled', False) %}checked{% endif %}>
                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
               </label>
             </div>
@@ -379,10 +331,11 @@
                   <option value="whitelist">Whitelist</option>
                 </select>
               </div>
-              <button type="submit" name="add_domain" value="1" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200">
+              <button type="submit" name="action_type" value="link_blocking" onclick="this.form.add_domain.value='1'" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200">
                 <i data-lucide="plus" class="w-4 h-4 mr-2 inline"></i>
                 Add Domain
               </button>
+              <input type="hidden" name="add_domain" value="">
             </div>
             
             <!-- Domain Lists -->
@@ -396,7 +349,7 @@
                   {% for domain in blacklist %}
                   <div class="flex items-center justify-between p-2 bg-red-50 dark:bg-red-900/20 rounded">
                     <span class="text-sm text-slate-900 dark:text-white">{{ domain }}</span>
-                    <button type="submit" name="delete_domain" value="1" onclick="this.form.domain_to_delete.value='{{ domain }}'; this.form.domain_delete_type.value='blacklist'"
+                    <button type="submit" name="action_type" value="link_blocking" onclick="this.form.delete_domain.value='1'; this.form.domain_to_delete.value='{{ domain }}'; this.form.domain_delete_type.value='blacklist'"
                             class="text-red-500 hover:text-red-700 transition-colors">
                       <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
@@ -417,7 +370,7 @@
                   {% for domain in whitelist %}
                   <div class="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
                     <span class="text-sm text-slate-900 dark:text-white">{{ domain }}</span>
-                    <button type="submit" name="delete_domain" value="1" onclick="this.form.domain_to_delete.value='{{ domain }}'; this.form.domain_delete_type.value='whitelist'"
+                    <button type="submit" name="action_type" value="link_blocking" onclick="this.form.delete_domain.value='1'; this.form.domain_to_delete.value='{{ domain }}'; this.form.domain_delete_type.value='whitelist'"
                             class="text-red-500 hover:text-red-700 transition-colors">
                       <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
@@ -430,6 +383,7 @@
               </div>
             </div>
             
+            <input type="hidden" name="delete_domain" value="">
             <input type="hidden" name="domain_to_delete">
             <input type="hidden" name="domain_delete_type">
             
@@ -504,24 +458,24 @@
           </div>
         </div>
 
-        <!-- Vanity Protection Settings -->
-        <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
-          <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <i data-lucide="shield-check" class="w-6 h-6 text-purple-500 mr-3"></i>
-                <div>
-                  <h3 class="text-xl font-semibold text-slate-900 dark:text-white">Vanity URL Protection</h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-400">Protect your server's vanity URL from unauthorized changes</p>
+        {% if is_premium %}
+            <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
+            <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
+                <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-purple-500 mr-3"></i>
+                    <div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-white">Vanity URL Protection</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Protect your server's vanity URL from unauthorized changes</p>
+                    </div>
                 </div>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="vanity_enabled" class="sr-only peer" 
-                       {% if automod_settings.get('vanity_protection', {}).get('enabled', False) %}checked{% endif %}>
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
-              </label>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="vanity_enabled" class="sr-only peer" 
+                        {% if automod_settings.get('vanity_protection', {}).get('enabled', False) %}checked{% endif %}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+                </label>
+                </div>
             </div>
-          </div>
           
           <div class="p-6 space-y-6">
             <!-- Protection Description -->
@@ -594,8 +548,22 @@
             </button>
           </div>
         </div>
+        {% else %}
+        <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
+          <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <i data-lucide="shield-off" class="w-6 h-6 text-red-500 mr-3"></i>
+                <div>
+                  <h3 class="text-xl font-semibold text-slate-900 dark:text-white">Vanity URL Protection</h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-400">This feature requires a premium subscription</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
       </form>
-      {% endif %}
     </main>
   </div>
 </div>
@@ -607,14 +575,14 @@
       <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
         <i data-lucide="crown" class="w-8 h-8 text-white"></i>
       </div>
-      <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Premium Required</h3>
+      <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Premium Required for Vanity Protection</h3>
       <p class="text-slate-600 dark:text-slate-400 mb-6">
-        AutoMod is a premium feature. Upgrade your server to access advanced moderation tools and keep your community safe.
+        Vanity URL protection is a premium feature. Most AutoMod features are free, but this advanced security feature requires a premium subscription.
       </p>
       <div class="space-y-3">
         <button onclick="closePremiumModal()" class="w-full px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-medium rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200">
           <i data-lucide="crown" class="w-4 h-4 mr-2 inline"></i>
-          Upgrade to Premium
+          Upgrade for Vanity Protection
         </button>
         <button onclick="closePremiumModal()" class="w-full px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
           Maybe Later
@@ -627,6 +595,19 @@
 <script>
 // Initialize Lucide icons
 lucide.createIcons();
+
+// Auto-hide flash messages after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+  const flashMessages = document.querySelectorAll('.flash-message');
+  flashMessages.forEach(function(message) {
+    setTimeout(function() {
+      message.style.opacity = '0';
+      setTimeout(function() {
+        message.remove();
+      }, 300);
+    }, 5000);
+  });
+});
 
 // Premium modal functions
 function showPremiumModal() {

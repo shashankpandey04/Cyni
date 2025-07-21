@@ -142,6 +142,10 @@ def logout():
 def docs():
     return redirect(url_for("index"))
 
+@app.route("/premium")
+def premium():
+    return render_template("premium.html")
+
 @app.route('/giveaway/<message_id>', methods=["GET","POST"])
 def giveaway(message_id):
     giveaway = mongo_db["giveaways"].find_one({"message_id": int(message_id)})

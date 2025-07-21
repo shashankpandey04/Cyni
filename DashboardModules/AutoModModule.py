@@ -28,20 +28,47 @@ def automod_settings(guild_id):
     settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
     is_premium = settings.get("premium", False)
     
-    if request.headers.get('Content-Type') == 'application/json' and not is_premium:
-        return jsonify({"error": "Premium required", "premium": False}), 403
-    
     automod_settings = settings.get("automod_module", {})
     
     roles = {role.id: role.name for role in guild.roles if role.name != "@everyone"}
     channels = {channel.id: channel.name for channel in guild.text_channels}
     
     if request.method == 'POST':
-        if not is_premium:
-            flash('This feature is only available for premium servers.', 'warning')
-            return redirect(url_for('automod.automod_settings', guild_id=guild_id))
-        
         action_type = request.form.get('action_type')
+        print(f"Form submitted - action_type: {action_type}")
+        print(f"Form data: {dict(request.form)}")
+        
+        # Check for special actions
+        if request.form.get('add_keyword') == '1':
+            action_type = 'custom_keyword'
+        elif request.form.get('add_domain') == '1':
+            action_type = 'link_blocking'
+        elif request.form.get('delete_keyword') == '1':
+            action_type = 'custom_keyword'
+        elif request.form.get('delete_domain') == '1':
+            action_type = 'link_blocking'
+        
+        # If no specific action_type, determine from form data with meaningful changes
+        if not action_type or action_type == 'None':
+            # Check which section has actual meaningful data/changes
+            if ('raid_enabled' in request.form and request.form.get('raid_enabled')) or \
+               (request.form.get('raid_alert_channel') and request.form.get('raid_alert_channel').strip()):
+                action_type = 'raid_detection'
+            elif ('spam_enabled' in request.form and request.form.get('spam_enabled')) or \
+                 (request.form.get('spam_alert_channel') and request.form.get('spam_alert_channel').strip()):
+                action_type = 'spam_detection'
+            elif ('keyword_enabled' in request.form and request.form.get('keyword_enabled')) or \
+                 (request.form.get('keyword_alert_channel') and request.form.get('keyword_alert_channel').strip()):
+                action_type = 'custom_keyword'
+            elif ('link_enabled' in request.form and request.form.get('link_enabled')) or \
+                 (request.form.get('link_alert_channel') and request.form.get('link_alert_channel').strip()):
+                action_type = 'link_blocking'
+            elif request.form.getlist('exempt_roles') or request.form.getlist('exempt_channels'):
+                action_type = 'exemptions'
+            elif ('vanity_enabled' in request.form and request.form.get('vanity_enabled')) or \
+                 request.form.getlist('vanity_exempt_roles') or \
+                 (request.form.get('vanity_exempt_users') and request.form.get('vanity_exempt_users').strip()):
+                action_type = 'vanity_protection'
 
         if action_type == 'raid_detection':
             _handle_raid_detection_update(guild_id, request.form)
@@ -54,13 +81,23 @@ def automod_settings(guild_id):
         elif action_type == 'exemptions':
             _handle_exemptions_update(guild_id, request.form)
         elif action_type == 'vanity_protection':
+            if not is_premium:
+                flash('Vanity protection is only available for premium servers.', 'warning')
+                return redirect(url_for('automod.automod_settings', guild_id=guild_id))
+            # Only guild owner can modify vanity protection settings
             if guild.owner_id != int(session["user_id"]):
                 flash("Only the guild owner can modify vanity protection settings.", "danger")
                 return redirect(url_for('automod.automod_settings', guild_id=guild_id))
             _handle_vanity_protection_update(guild_id, request.form)
+        else:
+            print(f"Unknown action_type: {action_type}")
+            flash('Invalid action type', 'error')
         
-        settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
-        automod_settings = settings.get("automod_module", {})
+        return redirect(url_for('automod.automod_settings', guild_id=guild_id))
+        
+    # GET request - show the form
+    settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
+    automod_settings = settings.get("automod_module", {})
     
     return render_template("automod/automod_settings.html", 
                           guild=guild,
@@ -69,6 +106,52 @@ def automod_settings(guild_id):
                           channels=channels,
                           is_premium=is_premium,
                           is_owner=guild.owner_id == int(session["user_id"]))
+
+@automod.route('/dashboard/<guild_id>/settings/automod/toggle', methods=['POST'])
+@login_required
+def automod_toggle(guild_id):
+    """AJAX endpoint for handling toggle changes without page refresh"""
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return jsonify({'success': False, 'message': 'Guild not found'}), 404
+        
+    member = guild.get_member(int(session["user_id"]))
+    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
+        return jsonify({'success': False, 'message': 'No permission'}), 403
+
+    settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
+    is_premium = settings.get("premium", False)
+    
+    try:
+        action_type = request.json.get('action_type')
+        enabled = request.json.get('enabled', False)
+        
+        # Handle vanity protection premium check
+        if action_type == 'vanity_protection':
+            if not is_premium:
+                return jsonify({'success': False, 'message': 'Vanity protection requires premium'}), 403
+            if guild.owner_id != int(session["user_id"]):
+                return jsonify({'success': False, 'message': 'Only guild owner can modify vanity protection'}), 403
+        
+        # Update the specific toggle in database
+        update_path = f"automod_module.{action_type}.enabled"
+        mongo_db["settings"].update_one(
+            {"_id": guild_id},
+            {"$set": {
+                "automod_module.enabled": True,
+                update_path: enabled
+            }},
+            upsert=True
+        )
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{action_type.replace("_", " ").title()} {"enabled" if enabled else "disabled"} successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 def _handle_raid_detection_update(guild_id, form_data):
     """Handle raid detection settings update"""
@@ -194,9 +277,11 @@ def _handle_custom_keyword_update(guild_id, form_data, automod_settings):
 
 def _handle_link_blocking_update(guild_id, form_data, automod_settings):
     """Handle link blocking settings update"""
+    print(f"DEBUG: _handle_link_blocking_update called with form_data: {dict(form_data)}")
     link_settings = automod_settings.get("link_blocking", {})
     
-    if 'add_domain' in form_data:
+    if form_data.get('add_domain') == '1':
+        print("DEBUG: Handling add_domain")
         # Add new domain to whitelist/blacklist
         domain = form_data.get('new_domain', '').strip().lower()
         list_type = form_data.get('domain_list_type', 'blacklist')
@@ -227,7 +312,8 @@ def _handle_link_blocking_update(guild_id, form_data, automod_settings):
         
         flash(f"Domain '{domain}' added to {list_type} successfully", "success")
     
-    elif 'delete_domain' in form_data:
+    elif form_data.get('delete_domain') == '1':
+        print("DEBUG: Handling delete_domain")
         # Delete domain from whitelist/blacklist
         domain = form_data.get('domain_to_delete', '')
         list_type = form_data.get('domain_delete_type', 'blacklist')
@@ -251,6 +337,7 @@ def _handle_link_blocking_update(guild_id, form_data, automod_settings):
         flash(f"Domain '{domain}' removed from {list_type} successfully", "success")
     
     else:
+        print("DEBUG: Handling general link blocking settings update")
         enabled = 'link_enabled' in form_data
         block_all_links = 'block_all_links' in form_data
         block_discord_invites = 'block_discord_invites' in form_data
@@ -259,6 +346,8 @@ def _handle_link_blocking_update(guild_id, form_data, automod_settings):
         alert_channel = form_data.get('link_alert_channel')
         if alert_channel:
             alert_channel = int(alert_channel)
+        
+        print(f"DEBUG: Settings to update - enabled: {enabled}, action: {action}, alert_channel: {alert_channel}")
 
         mongo_db["settings"].update_one(
             {"_id": guild_id},
@@ -274,6 +363,7 @@ def _handle_link_blocking_update(guild_id, form_data, automod_settings):
             upsert=True
         )
         
+        print("DEBUG: Database update completed")
         flash("Link blocking settings updated successfully", "success")
 
 def _handle_exemptions_update(guild_id, form_data):

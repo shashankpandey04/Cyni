@@ -183,18 +183,16 @@ class OnMessage(commands.Cog):
         """Handle link blocking."""
         automod_settings = settings.get("automod_module", {})
         link_settings = automod_settings.get("link_blocking", {})
-        
+
         if not automod_settings.get("enabled", False) or not link_settings.get("enabled", False):
             return False
-            
-        # Check exemptions
+ 
         if (self._is_exempt_from_automod(message.author, automod_settings) or 
             self._is_channel_exempt_from_automod(message.channel, automod_settings)):
             return False
         
         message_content = message.content
         
-        # Check for Discord invites first
         if link_settings.get("block_discord_invites", False):
             if self.discord_invite_pattern.search(message_content):
                 await self._process_link_violation(message, link_settings, "Discord invite", message_content)
@@ -449,45 +447,38 @@ class OnMessage(commands.Cog):
         Handle all message events with optimized processing.
         """
         try:
-            # Early returns for efficiency
             if message.author == self.bot.user or message.author.bot:
                 return
                 
-            if not message.guild:  # Skip DMs
+            if not message.guild:
                 return
 
-            # Handle ping command
             if await self._handle_ping_command(message):
                 return
 
-            # Handle n-word filter (early return if triggered)
             if await self._handle_n_word_filter(message):
                 return
 
-            # Handle AFK removal (early return if user was AFK)
             if await self._handle_afk_removal(message):
                 return
 
-            # Handle AFK mentions
             await self._handle_afk_mentions(message)
 
             # Get settings once and reuse
             settings = await self.bot.settings.get(message.guild.id)
             if not settings:
                 return
-
-            # Handle AutoMod features (process in order of priority)
-            # Spam detection first (can prevent other checks if triggered)
+            
             if await self._handle_automod_spam_detection(message, settings):
-                return
+                pass #So we can continue processing other automod features
                 
             # Keyword filtering
             if await self._handle_automod_keywords(message, settings):
-                return
-                
+                pass #So we can continue processing other automod features
+
             # Link blocking
             if await self._handle_automod_links(message, settings):
-                return
+                pass #So we can continue processing other automod features
 
             # Handle anti-ping module
             await self._handle_anti_ping(message, settings)
