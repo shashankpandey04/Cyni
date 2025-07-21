@@ -6,11 +6,10 @@ import os
 from dotenv import load_dotenv
 import datetime
 import re
+from Database.Mongo import mongo_db
 
 load_dotenv()
 
-mongo_client = MongoClient(os.getenv("MONGO_URI"))
-mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") else mongo_client["dev"]
 bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
@@ -23,6 +22,11 @@ def youtube_settings(guild_id):
     guild = bot.get_guild(guild_id)
     if not guild:
         flash('Guild not found', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    setting = mongo_db["settings"].find_one({"_id": guild_id})
+    if not setting.get('premium', False):
+        flash('This feature is only available for premium servers.', 'warning')
         return redirect(url_for('dashboard'))
         
     member = guild.get_member(int(session["user_id"]))

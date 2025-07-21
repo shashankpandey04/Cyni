@@ -1,50 +1,97 @@
-<nav class="col-md-3 col-lg-2 d-md-block sidebar" style="background-color: #000; border-right: 1px solid #f0ad4e;">
-    <div class="position-sticky">
-        <p class="text-light text-left mt-3">
-            <a href="{{ url_for('dashboard') }}" class="text-light">Dashboard</a>
-        </p>
-        <p class="text-light text-left">
-            <a href="{{url_for('mod_panel',guild_id=guild.id)}}" class="text-light">Moderation Panel</a>
-        </p>
-        <p class="text-light text-left">
-            <a href="{{url_for('mod_logs',guild_id=guild.id)}}" class="text-light">Moderation Logs</a>
-        </p>
-        <p class="text-light text-left">
-            <a href="{{url_for('view_members',guild_id=guild.id)}}" class="text-light">Manage Members</a>
-        </p>
-        <!--
-        <p class="text-light text-left">
-            <a href="#" class="text-light">CAD Panel</a>
-        </p>
-        -->
-    </div>
-</nav>
+<!-- Mobile Sidebar Overlay -->
+<div id="mod-sidebar-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden hidden"></div>
 
-<style>
-    .dropdown-content {
-        position: absolute;
-        background-color: #000; /* Black background for the dropdown */
-        min-width: 160px;
-        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-        z-index: 1;
-        border-radius: 5px; /* Optional: rounded corners */
-    }
-    .dropdown-content ul {
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
-    }
-    .dropdown-content li {
-        padding: 12px 16px; /* Increased padding for better spacing */
-        text-decoration: none;
-        display: block;
-        border: 1px solid #f0ad4e; /* Gold border for each notification */
-        margin: 5px 0; /* Space between notifications */
-        background-color: #000; /* Ensure background is black */
-        color: #f0ad4e; /* Gold text color */
-        border-radius: 5px ; /* Optional: rounded corners for notifications */
-    }
-    .dropdown-content li:hover {
-        background-color: #333; /* Darker background on hover */
-    }
-</style>
+<!-- Moderation Sidebar -->
+<aside id="mod-sidebar" class="fixed top-16 bottom-0 left-0 w-64 glass-effect bg-white/10 dark:bg-black/20 border-r border-white/20 dark:border-slate-700/30 transition-all duration-300 shadow-xl z-50 transform md:translate-x-0 -translate-x-full">
+  <div class="flex flex-col h-full">
+    <!-- Header -->
+    <div class="px-6 py-6 border-b border-white/20 dark:border-slate-700/30 flex-shrink-0">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="w-8 h-8 bg-gradient-to-br from-red-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
+            <i data-lucide="shield" class="w-4 h-4 text-white"></i>
+          </div>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Mod Panel</h2>
+        </div>
+        <!-- Mobile Close Button -->
+        <button id="mod-sidebar-close" class="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex-1 py-6 overflow-y-auto no-scrollbar">
+      <nav class="space-y-2 px-4">
+        <!-- Dashboard Link -->
+        <a href="{{ url_for('dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <!-- Moderation Panel -->
+        <a href="{{ url_for('mod_panel', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+          <i data-lucide="shield-alert" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
+          <span>Moderation Panel</span>
+        </a>
+
+        <!-- Moderation Logs -->
+        <a href="{{ url_for('mod_logs', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+          <i data-lucide="scroll-text" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
+          <span>Moderation Logs</span>
+        </a>
+
+        <!-- Manage Members -->
+        <a href="{{ url_for('view_members', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+          <i data-lucide="users" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
+          <span>Manage Members</span>
+        </a>
+
+        <!-- Divider -->
+        <hr class="border-white/20 dark:border-slate-700/30 my-4">
+
+        <!-- Guild Settings -->
+        <a href="{{ url_for('guild', guild_id=guild.id) }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+          <i data-lucide="settings" class="w-5 h-5 mr-3 text-slate-500 dark:text-slate-400"></i>
+          <span>Guild Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t border-white/20 dark:border-slate-700/30 flex-shrink-0">
+      <div class="flex items-center text-xs text-slate-500 dark:text-slate-400">
+        <i data-lucide="shield-check" class="w-4 h-4 mr-2"></i>
+        <span>Moderation Tools</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Mobile Toggle Script -->
+<script>
+// Mobile sidebar toggle for moderation panel
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.getElementById('mod-sidebar');
+  const overlay = document.getElementById('mod-sidebar-overlay');
+  const closeBtn = document.getElementById('mod-sidebar-close');
+  
+  // Initialize Lucide icons
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+  
+  function closeSidebar() {
+    sidebar.classList.add('-translate-x-full');
+    overlay.classList.add('hidden');
+  }
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeSidebar);
+  }
+  
+  if (overlay) {
+    overlay.addEventListener('click', closeSidebar);
+  }
+});
+</script>

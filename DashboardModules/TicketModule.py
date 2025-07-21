@@ -8,11 +8,10 @@ import datetime
 import json
 import uuid
 import requests
+from Database.Mongo import mongo_db
 
 load_dotenv()
 
-mongo_client = MongoClient(os.getenv("MONGO_URI"))
-mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") else mongo_client["dev"]
 bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
 
 ticket_module = Blueprint('ticket_module', __name__)

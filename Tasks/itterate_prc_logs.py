@@ -51,9 +51,11 @@ class PRCLogsProcessor:
         """Get username with caching to reduce API calls."""
         if user_id not in self.username_cache:
             try:
-                username = await self.bot.roblox._get_username_by_id(user_id)
+                # Offload potentially blocking API call to a thread
+                username = await asyncio.to_thread(self.bot.roblox._get_username_by_id, user_id)
                 self.username_cache[user_id] = username
-            except Exception:
+            except Exception as e:
+                self.logger.error(f"Error fetching username for user {user_id}: {e}")
                 self.username_cache[user_id] = f"User {user_id}"
         return self.username_cache[user_id]
 
@@ -101,18 +103,13 @@ class PRCLogsProcessor:
         try:
             # Fetch kill logs from PRC API
             kill_logs: List[ServerKillLogs] = await self.bot.prc_api._fetch_server_killlogs(guild_id)
-            
+
             if not kill_logs:
                 return
 
             # Get last processed timestamp for this guild
             last_timestamp = self.last_kill_log_timestamp.get(guild_id, 0)
-            new_logs = []
-
-            # Filter for new logs only
-            for log in kill_logs:
-                if log.timestamp and log.timestamp > last_timestamp:
-                    new_logs.append(log)
+            new_logs = [log for log in kill_logs if log.timestamp and log.timestamp > last_timestamp]
 
             if not new_logs:
                 return
@@ -134,25 +131,9 @@ class PRCLogsProcessor:
 
                 for log in batch:
                     try:
-                        # Parse killer info (format: "PlayerName:Id")
-                        killer_parts = log.Killer.split(":")
-                        if len(killer_parts) >= 2:
-                            killer_name = killer_parts[0]
-                            killer_id = killer_parts[1]
-                            killer_link = f"[{killer_name}](https://roblox.com/users/{killer_id}/profile)"
-                        else:
-                            killer_name = log.Killer
-                            killer_link = killer_name
-
-                        # Parse killed info (format: "PlayerName:Id")
-                        killed_parts = log.Killed.split(":")
-                        if len(killed_parts) >= 2:
-                            killed_name = killed_parts[0]
-                            killed_id = killed_parts[1]
-                            killed_link = f"[{killed_name}](https://roblox.com/users/{killed_id}/profile)"
-                        else:
-                            killed_name = log.Killed
-                            killed_link = killed_name
+                        # Parse killer and killed info asynchronously
+                        killer_name, killer_link = await self._parse_player_info(log.Killer)
+                        killed_name, killed_link = await self._parse_player_info(log.Killed)
 
                         # Create embed for individual kill log
                         embed = discord.Embed(
@@ -186,6 +167,22 @@ class PRCLogsProcessor:
                 self.logger.error(f"PRC API error for kill logs guild {guild_id}: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error processing kill logs for guild {guild_id}: {e}")
+
+    async def _parse_player_info(self, player_info: str):
+        """Parse player info into name and profile link."""
+        try:
+            player_parts = player_info.split(":")
+            if len(player_parts) >= 2:
+                player_name = player_parts[0]
+                player_id = player_parts[1]
+                player_link = f"[{player_name}](https://roblox.com/users/{player_id}/profile)"
+            else:
+                player_name = player_info
+                player_link = player_name
+            return player_name, player_link
+        except Exception as e:
+            self.logger.error(f"Error parsing player info: {e}")
+            return player_info, player_info
 
     async def process_join_logs(self, guild_id: int, join_logs_channel_id: int):
         """Process and send join/leave logs for a guild."""

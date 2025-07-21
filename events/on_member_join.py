@@ -4,10 +4,89 @@ from discord.ext import commands
 from utils.constants import GREEN_COLOR
 from utils.utils import discord_time
 import datetime
+import asyncio
+import logging
 
 class OnMemberJoin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Raid detection tracking
+        self.join_timestamps = {}  # guild_id: [timestamps]
+
+    async def _handle_automod_raid_detection(self, member, settings):
+        """Handle raid detection AutoMod."""
+        automod_settings = settings.get("automod_module", {})
+        raid_settings = automod_settings.get("raid_detection", {})
+        
+        if not automod_settings.get("enabled", False) or not raid_settings.get("enabled", False):
+            return False
+            
+        guild_id = member.guild.id
+        current_time = time.time()
+        
+        # Initialize guild tracking if not exists
+        if guild_id not in self.join_timestamps:
+            self.join_timestamps[guild_id] = []
+            
+        # Add current join timestamp
+        self.join_timestamps[guild_id].append(current_time)
+        
+        # Clean old timestamps outside time window
+        time_window = raid_settings.get("time_window", 10)
+        self.join_timestamps[guild_id] = [
+            timestamp for timestamp in self.join_timestamps[guild_id]
+            if current_time - timestamp <= time_window
+        ]
+        
+        # Check if threshold exceeded
+        join_threshold = raid_settings.get("join_threshold", 5)
+        if len(self.join_timestamps[guild_id]) >= join_threshold:
+            action = raid_settings.get("action", "kick")
+            
+            try:
+                # Take action on the member
+                if action == "kick":
+                    await member.kick(reason="AutoMod: Raid detection")
+                    action_text = "kicked"
+                elif action == "ban":
+                    await member.ban(reason="AutoMod: Raid detection", delete_message_days=0)
+                    action_text = "banned"
+                else:
+                    action_text = "detected"
+                
+                # Send alert
+                embed = discord.Embed(
+                    title="🚨 AutoMod: Raid Detected",
+                    description=f"**Member:** {member.mention}\n**Action:** {action_text}\n**Joins in window:** {len(self.join_timestamps[guild_id])}/{join_threshold}",
+                    color=0xff0000,
+                    timestamp=datetime.datetime.utcnow()
+                )
+                embed.add_field(name="Time Window", value=f"{time_window} seconds", inline=True)
+                embed.add_field(name="Account Created", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
+                embed.set_thumbnail(url=member.display_avatar.url)
+                
+                await self._send_automod_alert(member.guild, raid_settings.get("alert_channel"), embed)
+                
+                return True
+                
+            except discord.Forbidden:
+                logging.warning(f"AutoMod: Insufficient permissions to handle raid member {member.id}")
+            except Exception as e:
+                logging.error(f"AutoMod raid detection error: {e}")
+        
+        return False
+
+    async def _send_automod_alert(self, guild, alert_channel_id, embed):
+        """Send AutoMod alert to specified channel."""
+        if not alert_channel_id:
+            return
+            
+        try:
+            alert_channel = guild.get_channel(alert_channel_id)
+            if alert_channel:
+                await alert_channel.send(embed=embed)
+        except Exception as e:
+            logging.error(f"Error sending AutoMod alert: {e}")
 
     async def _send_log_embed(self, channel, embed):
         """Send an embed to the log channel with error handling."""
@@ -71,6 +150,12 @@ class OnMemberJoin(commands.Cog):
             if not sett:
                 return
 
+            # Handle AutoMod raid detection first (may result in immediate action)
+            if await self._handle_automod_raid_detection(member, sett):
+                # If raid action was taken, still log the join but don't process welcome
+                await self._handle_audit_log(member, guild, sett)
+                return
+
             # Handle audit logging
             await self._handle_audit_log(member, guild, sett)
             
@@ -79,6 +164,7 @@ class OnMemberJoin(commands.Cog):
             
         except Exception as e:
             print(f"Error in on_member_join: {e}")
+            logging.error(f"Error in on_member_join: {e}")
 
     async def _handle_audit_log(self, member, guild, sett):
         """Handle audit logging for member join."""

@@ -3,55 +3,171 @@
 {% block title %}Moderation Panel | Cyni{% endblock %}
 
 {% block content %}
-<div class="flex h-screen bg-gray-900">
-    <div class="flex-1 ml-64 overflow-y-auto bg-gradient-to-br from-gray-900 to-gray-800">
-        <!-- Side Navbar -->
-        {% include 'mod_sidebar.html' %}
-        <hr class="my-4" style="border-color: #f0ad4e;">
-        
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-4">
-            <!-- Animated Header -->
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom animate__animated animate__fadeIn">
-                <h4 class="h4 text-light">Moderation Panel</h4>
+<!-- Main Layout Container -->
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 pt-16">
+  <!-- Include Moderation Sidebar -->
+  {% include 'mod_sidebar.html' %}
+  
+  <!-- Main Content Area -->
+  <div class="md:ml-64">
+    <main class="p-6 lg:p-8 max-w-7xl mx-auto">
+      <!-- Page Header -->
+      <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 mb-8 shadow-lg">
+        <div class="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
+          <!-- Icon and Title -->
+          <div class="flex items-center">
+            <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center mr-4">
+              <i data-lucide="shield" class="w-6 h-6 text-white"></i>
             </div>
+            <div>
+              <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white">Moderation Panel</h1>
+              <p class="text-slate-600 dark:text-slate-400">Manage your server's moderation tools and activities</p>
+            </div>
+          </div>
+          
+          <!-- Quick Stats -->
+          <div class="flex-1 md:text-right">
+            <div class="inline-flex items-center px-4 py-2 glass-effect rounded-lg">
+              <i data-lucide="users" class="w-4 h-4 mr-2 text-slate-600 dark:text-slate-400"></i>
+              <span class="text-sm font-medium text-slate-900 dark:text-white">{{ guild.member_count }} Members</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- Animated Cards Section -->
-            <div class="row animate__animated animate__fadeInUp">
-                <div class="col-md-4 mb-4">
-                    <div class="card bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px;">
-                        <div class="card-body text-center">
-                            <i class="bi bi-people-fill text-warning mb-3" style="font-size: 2rem;"></i>
-                            <h5 class="card-title">Manage Members</h5>
-                            <p class="card-text">View guild members.</p>
-                            <a href="{{url_for('view_members',guild_id=guild.id)}}" class="btn btn-outline-warning">View Members</a>
-                        </div>
-                    </div>
-                </div>
-                <!--
-                <div class="col-md-4 mb-4">
-                    <div class="card bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px;">
-                        <div class="card-body text-center">
-                            <i class="bi bi-shield-fill-check text-success mb-3" style="font-size: 2rem;"></i>
-                            <h5 class="card-title">Roles & Permissions</h5>
-                            <p class="card-text">Set and update role permissions.</p>
-                            <a href="#" class="btn btn-outline-success">Manage Roles</a>
-                        </div>
-                    </div>
-                </div>
-                -->
-                <div class="col-md-4 mb-4">
-                    <div class="card bg-dark text-light" style="border: 1px solid #f0ad4e; border-radius: 10px;">
-                        <div class="card-body text-center">
-                            <i class="bi bi-hammer text-danger mb-3" style="font-size: 2rem;"></i>
-                            <h5 class="card-title">Moderation Logs</h5>
-                            <p class="card-text">Review moderation activity.</p>
-                            <a href="{{url_for('mod_logs',guild_id=guild.id)}}" class="btn btn-outline-danger">View Logs</a>
-                        </div>
-                    </div>
-                </div>
+      <!-- Moderation Tools Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Manage Members Card -->
+        <a href="{{ url_for('view_members', guild_id=guild.id) }}" class="group block">
+          <div class="glass-effect rounded-2xl p-6 border border-white/60 dark:border-slate-700/60 hover:border-blue-500/60 dark:hover:border-blue-400/60 transition-all duration-300 hover:shadow-lg hover:scale-105">
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="users" class="w-6 h-6 text-white"></i>
+              </div>
+              <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors duration-300"></i>
             </div>
-        </main>
-    </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Manage Members</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm">View, search, and manage all guild members. Access member profiles and moderation actions.</p>
+          </div>
+        </a>
+
+        <!-- Moderation Logs Card -->
+        <a href="{{ url_for('mod_logs', guild_id=guild.id) }}" class="group block">
+          <div class="glass-effect rounded-2xl p-6 border border-white/60 dark:border-slate-700/60 hover:border-red-500/60 dark:hover:border-red-400/60 transition-all duration-300 hover:shadow-lg hover:scale-105">
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="scroll-text" class="w-6 h-6 text-white"></i>
+              </div>
+              <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 group-hover:text-red-500 transition-colors duration-300"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Moderation Logs</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm">Review all moderation actions, update case status, and maintain audit trails.</p>
+          </div>
+        </a>
+
+        <!-- Guild Settings Card -->
+        <a href="{{ url_for('guild', guild_id=guild.id) }}" class="group block">
+          <div class="glass-effect rounded-2xl p-6 border border-white/60 dark:border-slate-700/60 hover:border-purple-500/60 dark:hover:border-purple-400/60 transition-all duration-300 hover:shadow-lg hover:scale-105">
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="settings" class="w-6 h-6 text-white"></i>
+              </div>
+              <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 group-hover:text-purple-500 transition-colors duration-300"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Guild Settings</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm">Configure bot settings, moderation modules, and server-specific features.</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Quick Actions Section -->
+      <div class="glass-effect rounded-2xl p-6 border border-white/60 dark:border-slate-700/60 mb-8">
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center">
+          <i data-lucide="zap" class="w-6 h-6 mr-3 text-yellow-500"></i>
+          Quick Actions
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Quick Action Buttons -->
+          <button class="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-md hover:shadow-lg">
+            <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i>
+            Add Member Role
+          </button>
+          
+          <button class="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-medium rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all duration-200 shadow-md hover:shadow-lg">
+            <i data-lucide="alert-triangle" class="w-4 h-4 mr-2"></i>
+            Send Warning
+          </button>
+          
+          <button class="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-md hover:shadow-lg">
+            <i data-lucide="volume-x" class="w-4 h-4 mr-2"></i>
+            Timeout Member
+          </button>
+          
+          <button class="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-200 shadow-md hover:shadow-lg">
+            <i data-lucide="ban" class="w-4 h-4 mr-2"></i>
+            Ban Member
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="glass-effect rounded-2xl p-6 border border-white/60 dark:border-slate-700/60">
+        <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center">
+          <i data-lucide="activity" class="w-6 h-6 mr-3 text-blue-500"></i>
+          Recent Moderation Activity
+        </h2>
+        
+        <div class="space-y-4">
+          <!-- Activity Items (placeholder) -->
+          <div class="flex items-center p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-4">
+              <i data-lucide="user-plus" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-slate-900 dark:text-white">New member joined</p>
+              <p class="text-xs text-slate-600 dark:text-slate-400">2 minutes ago</p>
+            </div>
+          </div>
+          
+          <div class="flex items-center p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mr-4">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-slate-900 dark:text-white">Warning issued to member</p>
+              <p class="text-xs text-slate-600 dark:text-slate-400">15 minutes ago</p>
+            </div>
+          </div>
+          
+          <div class="flex items-center p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+              <i data-lucide="settings" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-slate-900 dark:text-white">Bot settings updated</p>
+              <p class="text-xs text-slate-600 dark:text-slate-400">1 hour ago</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-6 text-center">
+          <a href="{{ url_for('mod_logs', guild_id=guild.id) }}" class="inline-flex items-center px-4 py-2 glass-effect text-slate-700 dark:text-slate-200 font-medium rounded-lg hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200">
+            <i data-lucide="eye" class="w-4 h-4 mr-2"></i>
+            View All Logs
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
+
+<script>
+// Initialize Lucide icons
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+});
+</script>
 {% endblock %}

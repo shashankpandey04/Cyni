@@ -1,6 +1,5 @@
 import discord
 from discord.ext import tasks
-import time
 import random
 from datetime import datetime
 

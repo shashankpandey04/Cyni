@@ -212,6 +212,46 @@
             </div>
             {% endif %}
 
+            <!-- AutoMod Module -->
+            {% set automod_enabled = guild_data.get('automod_module', {}).get('enabled', False) %}
+            {% set is_premium = guild_data.get('premium', False) %}
+            {% if automod_enabled and is_premium %}
+            <a href="{{ url_for('automod.automod_settings', guild_id=guild.id) }}" class="group flex items-center p-4 rounded-xl bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/30 transition-all duration-200 border border-white/60 dark:border-slate-700/60">
+              <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-200">
+                <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-slate-900 dark:text-slate-100">AutoMod</h4>
+                <p class="text-sm text-slate-600 dark:text-slate-400">Automated moderation settings</p>
+              </div>
+              <span class="px-2 py-1 text-xs bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 rounded-full font-medium">
+                <i data-lucide="crown" class="w-3 h-3 mr-1 inline"></i>PREMIUM
+              </span>
+            </a>
+            {% else %}
+            <div class="group flex items-center p-4 rounded-xl {% if is_premium %}bg-gray-100/50 dark:bg-gray-800/20 border border-gray-300/60 dark:border-gray-600/60{% else %}bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border border-yellow-200 dark:border-yellow-700/50{% endif %} relative cursor-pointer" 
+                 {% if is_premium %}onclick="window.location.href='{{ url_for('automod.automod_settings', guild_id=guild.id) }}'"{% else %}onclick="showPremiumModal()"{% endif %}>
+              <div class="w-10 h-10 bg-gradient-to-br {% if is_premium %}from-gray-400 to-gray-500{% else %}from-amber-400 to-orange-500{% endif %} rounded-lg flex items-center justify-center mr-4">
+                <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold {% if is_premium %}text-gray-600 dark:text-gray-400{% else %}text-slate-900 dark:text-slate-100{% endif %}">AutoMod</h4>
+                <p class="text-sm {% if is_premium %}text-gray-500 dark:text-gray-500{% else %}text-amber-700 dark:text-amber-300{% endif %}">
+                  {% if is_premium %}Module disabled{% else %}Premium feature - Click to upgrade{% endif %}
+                </p>
+              </div>
+              {% if is_premium %}
+              <span class="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-1 rounded-full hover:bg-blue-600 transition-colors">
+                Enable
+              </span>
+              {% else %}
+              <span class="px-2 py-1 text-xs bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 rounded-full font-medium">
+                <i data-lucide="crown" class="w-3 h-3 mr-1 inline"></i>PREMIUM
+              </span>
+              {% endif %}
+            </div>
+            {% endif %}
+
             <!-- Audit Logs - Always available if moderation is enabled -->
             {% if moderation_enabled %}
             <a href="{{ url_for('mod_logs', guild_id=guild.id) }}" class="group flex items-center p-4 rounded-xl bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/30 transition-all duration-200 border border-white/60 dark:border-slate-700/60">
@@ -219,22 +259,12 @@
                 <i data-lucide="scroll" class="w-5 h-5 text-white"></i>
               </div>
               <div>
-                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Audit Logs</h4>
-                <p class="text-sm text-slate-600 dark:text-slate-400">View server activity</p>
+                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Mod Panel</h4>
+                <p class="text-sm text-slate-600 dark:text-slate-400">Access moderation panel</p>
               </div>
             </a>
             {% endif %}
 
-            <!-- Member Management - Always available -->
-            <a href="{{ url_for('view_members', guild_id=guild.id) }}" class="group flex items-center p-4 rounded-xl bg-white/50 dark:bg-black/20 hover:bg-white/70 dark:hover:bg-black/30 transition-all duration-200 border border-white/60 dark:border-slate-700/60">
-              <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-200">
-                <i data-lucide="users" class="w-5 h-5 text-white"></i>
-              </div>
-              <div>
-                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Member Management</h4>
-                <p class="text-sm text-slate-600 dark:text-slate-400">View and manage members</p>
-              </div>
-            </a>
           </div>
         </div>
 
@@ -364,6 +394,27 @@
                 <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400 rounded-full">None</span>
               {% endif %}
             </div>
+
+            <!-- AutoMod Status -->
+            <div class="flex items-center justify-between p-3 rounded-lg bg-white/30 dark:bg-black/20">
+              <div class="flex items-center">
+                <i data-lucide="shield-check" class="w-4 h-4 mr-2 text-slate-600 dark:text-slate-400"></i>
+                <span class="text-sm font-medium text-slate-900 dark:text-slate-100">AutoMod</span>
+              </div>
+              {% set automod_enabled = guild_data.get('automod_module', {}).get('enabled', False) %}
+              {% set is_premium = guild_data.get('premium', False) %}
+              {% if automod_enabled and is_premium %}
+                <span class="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
+                  <i data-lucide="crown" class="w-3 h-3 mr-1 inline"></i>Enabled
+                </span>
+              {% elif is_premium %}
+                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400 rounded-full">Disabled</span>
+              {% else %}
+                <span class="px-2 py-1 text-xs font-medium bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 rounded-full">
+                  <i data-lucide="crown" class="w-3 h-3 mr-1 inline"></i>Premium
+                </span>
+              {% endif %}
+            </div>
           </div>
         </div>
 
@@ -400,4 +451,46 @@
     </div>
   </div>
 </div>
+
+<!-- Premium Modal -->
+<div id="premiumModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+    <div class="text-center">
+      <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="crown" class="w-8 h-8 text-white"></i>
+      </div>
+      <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Premium Required</h3>
+      <p class="text-slate-600 dark:text-slate-400 mb-6">
+        AutoMod is a premium feature. Upgrade your server to access advanced moderation tools and keep your community safe.
+      </p>
+      <div class="space-y-3">
+        <button onclick="closePremiumModal()" class="w-full px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white font-medium rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200">
+          <i data-lucide="crown" class="w-4 h-4 mr-2 inline"></i>
+          Upgrade to Premium
+        </button>
+        <button onclick="closePremiumModal()" class="w-full px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+          Maybe Later
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Premium modal functions
+function showPremiumModal() {
+  document.getElementById('premiumModal').classList.remove('hidden');
+}
+
+function closePremiumModal() {
+  document.getElementById('premiumModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('premiumModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closePremiumModal();
+  }
+});
+</script>
 {% endblock %}

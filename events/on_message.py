@@ -3,13 +3,274 @@ from discord.ext import commands
 import logging
 from cyni import afk_users
 import re
-from datetime import timedelta
+from datetime import timedelta, datetime
+import asyncio
+import time
 
 class OnMessage(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         # Pre-compile regex for better performance
         self.n_word_pattern = re.compile(r'n[i1]gg[aeiou]r?', re.IGNORECASE)
+        # AutoMod tracking
+        self.user_message_cache = {}  # Track user messages for spam detection
+        self.link_patterns = [
+            re.compile(r'https?://(?:[-\w.])+(?:\.[a-zA-Z]{2,4})+(?:/[^\s]*)?', re.IGNORECASE),
+            re.compile(r'www\.(?:[-\w.])+(?:\.[a-zA-Z]{2,4})+(?:/[^\s]*)?', re.IGNORECASE),
+            re.compile(r'(?:[-\w.])+\.(?:com|net|org|edu|gov|mil|int|eu|co\.uk|de|fr|it|es|nl|ca|au|jp|cn|in|br|mx|ru|za|se|no|dk|fi|pl|cz|hu|bg|ro|hr|gr|pt|ie|lu|mt|cy|lv|lt|ee|sk|si)', re.IGNORECASE)
+        ]
+        self.discord_invite_pattern = re.compile(r'discord\.gg/\w+|discord\.com/invite/\w+|discordapp\.com/invite/\w+', re.IGNORECASE)
+
+    def _is_exempt_from_automod(self, member, automod_settings):
+        """Check if a member is exempt from AutoMod."""
+        exemptions = automod_settings.get("exemptions", {})
+        exempt_roles = exemptions.get("roles", [])
+        
+        # Check if user has any exempt roles
+        user_role_ids = [role.id for role in member.roles]
+        return any(role_id in exempt_roles for role_id in user_role_ids)
+
+    def _is_channel_exempt_from_automod(self, channel, automod_settings):
+        """Check if a channel is exempt from AutoMod."""
+        exemptions = automod_settings.get("exemptions", {})
+        exempt_channels = exemptions.get("channels", [])
+        return channel.id in exempt_channels
+
+    async def _send_automod_alert(self, guild, alert_channel_id, embed):
+        """Send AutoMod alert to specified channel."""
+        if not alert_channel_id:
+            return
+            
+        try:
+            alert_channel = guild.get_channel(alert_channel_id)
+            if alert_channel:
+                await alert_channel.send(embed=embed)
+        except Exception as e:
+            logging.error(f"Error sending AutoMod alert: {e}")
+
+    async def _handle_automod_spam_detection(self, message, settings):
+        """Handle spam detection AutoMod."""
+        automod_settings = settings.get("automod_module", {})
+        spam_settings = automod_settings.get("spam_detection", {})
+        
+        if not automod_settings.get("enabled", False) or not spam_settings.get("enabled", False):
+            return False
+            
+        # Check exemptions
+        if (self._is_exempt_from_automod(message.author, automod_settings) or 
+            self._is_channel_exempt_from_automod(message.channel, automod_settings)):
+            return False
+            
+        user_id = message.author.id
+        current_time = time.time()
+        
+        # Initialize user cache if not exists
+        if user_id not in self.user_message_cache:
+            self.user_message_cache[user_id] = []
+            
+        # Add current message timestamp
+        self.user_message_cache[user_id].append(current_time)
+        
+        # Clean old messages outside time window
+        time_window = spam_settings.get("time_window", 3)
+        self.user_message_cache[user_id] = [
+            timestamp for timestamp in self.user_message_cache[user_id]
+            if current_time - timestamp <= time_window
+        ]
+        
+        # Check if threshold exceeded
+        message_threshold = spam_settings.get("message_threshold", 5)
+        if len(self.user_message_cache[user_id]) >= message_threshold:
+            action = spam_settings.get("action", "mute")
+            
+            try:
+                # Delete the triggering message
+                await message.delete()
+                
+                # Take action based on settings
+                if action == "mute":
+                    mute_duration = spam_settings.get("mute_duration", 10)
+                    timeout_until = discord.utils.utcnow() + timedelta(minutes=mute_duration)
+                    await message.author.edit(timed_out_until=timeout_until, reason="AutoMod: Spam detection")
+                    action_text = f"muted for {mute_duration} minutes"
+                elif action == "kick":
+                    await message.author.kick(reason="AutoMod: Spam detection")
+                    action_text = "kicked"
+                else:  # delete only
+                    action_text = "messages deleted"
+                
+                # Send alert
+                embed = discord.Embed(
+                    title="🚨 AutoMod: Spam Detected",
+                    description=f"**User:** {message.author.mention}\n**Action:** {action_text}\n**Channel:** {message.channel.mention}",
+                    color=0xff4444,
+                    timestamp=datetime.utcnow()
+                )
+                embed.add_field(name="Messages in time window", value=f"{len(self.user_message_cache[user_id])}/{message_threshold}", inline=True)
+                embed.add_field(name="Time window", value=f"{time_window} seconds", inline=True)
+                
+                await self._send_automod_alert(message.guild, spam_settings.get("alert_channel"), embed)
+                
+                # Clear user cache after action
+                self.user_message_cache[user_id] = []
+                return True
+                
+            except discord.Forbidden:
+                logging.warning(f"AutoMod: Insufficient permissions to handle spam from {message.author.id}")
+            except Exception as e:
+                logging.error(f"AutoMod spam detection error: {e}")
+        
+        return False
+
+    async def _handle_automod_keywords(self, message, settings):
+        """Handle custom keyword filtering."""
+        automod_settings = settings.get("automod_module", {})
+        keyword_settings = automod_settings.get("custom_keyword", {})
+        
+        if not automod_settings.get("enabled", False) or not keyword_settings.get("enabled", False):
+            return False
+            
+        # Check exemptions
+        if (self._is_exempt_from_automod(message.author, automod_settings) or 
+            self._is_channel_exempt_from_automod(message.channel, automod_settings)):
+            return False
+            
+        keywords = keyword_settings.get("keywords", [])
+        if not keywords:
+            return False
+            
+        message_content_lower = message.content.lower()
+        triggered_keywords = [keyword for keyword in keywords if keyword in message_content_lower]
+        
+        if triggered_keywords:
+            action = keyword_settings.get("action", "delete")
+            
+            try:
+                # Always delete the message
+                await message.delete()
+                
+                # Take additional action based on settings
+                if action == "warn":
+                    warning_msg = await message.channel.send(
+                        f"{message.author.mention}, your message contained prohibited content and has been removed.",
+                        delete_after=10
+                    )
+                elif action == "mute":
+                    timeout_until = discord.utils.utcnow() + timedelta(minutes=10)
+                    await message.author.edit(timed_out_until=timeout_until, reason="AutoMod: Prohibited keyword")
+                
+                # Send alert
+                embed = discord.Embed(
+                    title="🚨 AutoMod: Prohibited Keywords",
+                    description=f"**User:** {message.author.mention}\n**Action:** {action}\n**Channel:** {message.channel.mention}",
+                    color=0xff4444,
+                    timestamp=datetime.utcnow()
+                )
+                embed.add_field(name="Triggered Keywords", value=", ".join(triggered_keywords), inline=False)
+                embed.add_field(name="Message Content", value=message.content[:1000] + ("..." if len(message.content) > 1000 else ""), inline=False)
+                
+                await self._send_automod_alert(message.guild, keyword_settings.get("alert_channel"), embed)
+                return True
+                
+            except discord.Forbidden:
+                logging.warning(f"AutoMod: Insufficient permissions to handle keyword violation from {message.author.id}")
+            except Exception as e:
+                logging.error(f"AutoMod keyword detection error: {e}")
+        
+        return False
+
+    async def _handle_automod_links(self, message, settings):
+        """Handle link blocking."""
+        automod_settings = settings.get("automod_module", {})
+        link_settings = automod_settings.get("link_blocking", {})
+        
+        if not automod_settings.get("enabled", False) or not link_settings.get("enabled", False):
+            return False
+            
+        # Check exemptions
+        if (self._is_exempt_from_automod(message.author, automod_settings) or 
+            self._is_channel_exempt_from_automod(message.channel, automod_settings)):
+            return False
+        
+        message_content = message.content
+        
+        # Check for Discord invites first
+        if link_settings.get("block_discord_invites", False):
+            if self.discord_invite_pattern.search(message_content):
+                await self._process_link_violation(message, link_settings, "Discord invite", message_content)
+                return True
+        
+        # Check for general links
+        found_links = []
+        for pattern in self.link_patterns:
+            found_links.extend(pattern.findall(message_content))
+        
+        if not found_links:
+            return False
+            
+        block_all_links = link_settings.get("block_all_links", False)
+        whitelist_mode = link_settings.get("whitelist_mode", False)
+        whitelist = link_settings.get("whitelist", [])
+        blacklist = link_settings.get("blacklist", [])
+        
+        should_block = False
+        violation_reason = ""
+        
+        if block_all_links:
+            should_block = True
+            violation_reason = "All links blocked"
+        elif whitelist_mode:
+            # In whitelist mode, block all links not in whitelist
+            should_block = not any(any(domain in link for domain in whitelist) for link in found_links)
+            violation_reason = "Link not in whitelist"
+        else:
+            # In blacklist mode, block links in blacklist
+            should_block = any(any(domain in link for domain in blacklist) for link in found_links)
+            violation_reason = "Link in blacklist"
+        
+        if should_block:
+            await self._process_link_violation(message, link_settings, violation_reason, message_content, found_links)
+            return True
+            
+        return False
+
+    async def _process_link_violation(self, message, link_settings, reason, content, links=None):
+        """Process a link violation."""
+        action = link_settings.get("action", "delete")
+        
+        try:
+            # Always delete the message
+            await message.delete()
+            
+            # Take additional action based on settings
+            if action == "warn":
+                await message.channel.send(
+                    f"{message.author.mention}, links are not allowed in this channel.",
+                    delete_after=10
+                )
+            elif action == "mute":
+                timeout_until = discord.utils.utcnow() + timedelta(minutes=10)
+                await message.author.edit(timed_out_until=timeout_until, reason=f"AutoMod: {reason}")
+            
+            # Send alert
+            embed = discord.Embed(
+                title="🚨 AutoMod: Link Blocked",
+                description=f"**User:** {message.author.mention}\n**Reason:** {reason}\n**Action:** {action}\n**Channel:** {message.channel.mention}",
+                color=0xff4444,
+                timestamp=datetime.utcnow()
+            )
+            
+            if links:
+                embed.add_field(name="Blocked Links", value="\n".join(links[:5]), inline=False)
+            
+            embed.add_field(name="Message Content", value=content[:1000] + ("..." if len(content) > 1000 else ""), inline=False)
+            
+            await self._send_automod_alert(message.guild, link_settings.get("alert_channel"), embed)
+            
+        except discord.Forbidden:
+            logging.warning(f"AutoMod: Insufficient permissions to handle link violation from {message.author.id}")
+        except Exception as e:
+            logging.error(f"AutoMod link blocking error: {e}")
 
     async def _handle_ping_command(self, message):
         """Handle simple ping command."""
@@ -213,6 +474,19 @@ class OnMessage(commands.Cog):
             # Get settings once and reuse
             settings = await self.bot.settings.get(message.guild.id)
             if not settings:
+                return
+
+            # Handle AutoMod features (process in order of priority)
+            # Spam detection first (can prevent other checks if triggered)
+            if await self._handle_automod_spam_detection(message, settings):
+                return
+                
+            # Keyword filtering
+            if await self._handle_automod_keywords(message, settings):
+                return
+                
+            # Link blocking
+            if await self._handle_automod_links(message, settings):
                 return
 
             # Handle anti-ping module

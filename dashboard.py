@@ -14,6 +14,7 @@ import markdown
 import json
 
 from DashboardModules.WelcomeModule import welcome_route
+from DashboardModules.AutoModModule import automod
 
 FILES_URL = "https://files.cyni.quprdigital.tk/upload"
 
@@ -44,6 +45,7 @@ Session(app)
 
 # Register Blueprint
 app.register_blueprint(welcome_route)
+app.register_blueprint(automod)
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)
