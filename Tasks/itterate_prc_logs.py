@@ -109,13 +109,13 @@ class PRCLogsProcessor:
 
             # Get last processed timestamp for this guild
             last_timestamp = self.last_kill_log_timestamp.get(guild_id, 0)
-            new_logs = [log for log in kill_logs if log.timestamp and log.timestamp > last_timestamp]
+            new_logs = [log for log in kill_logs if log.Timestamp and log.Timestamp > last_timestamp]
 
             if not new_logs:
                 return
 
             # Sort by timestamp (oldest first for chronological posting)
-            new_logs.sort(key=lambda x: x.timestamp or 0)
+            new_logs.sort(key=lambda x: x.Timestamp or 0)
 
             # Get the channel (with caching)
             channel = await self.get_cached_channel(kill_logs_channel_id)
@@ -138,9 +138,9 @@ class PRCLogsProcessor:
                         # Create embed for individual kill log
                         embed = discord.Embed(
                             title="🔫 ERLC Kill Log",
-                            description=f"{killer_link} killed {killed_link} <t:{int(log.timestamp)}:R>",
+                            description=f"{killer_link} killed {killed_link} <t:{int(log.Timestamp)}:R>",
                             color=RED_COLOR,
-                            timestamp=datetime.fromtimestamp(log.timestamp) if log.timestamp else datetime.now()
+                            timestamp=datetime.fromtimestamp(log.Timestamp) if log.Timestamp else datetime.now()
                         )
 
                         embed.set_footer(
@@ -151,7 +151,7 @@ class PRCLogsProcessor:
                         embeds.append(embed)
 
                         # Update last processed timestamp
-                        self.last_kill_log_timestamp[guild_id] = log.timestamp
+                        self.last_kill_log_timestamp[guild_id] = log.Timestamp
 
                     except Exception as e:
                         self.logger.error(f"Error processing kill log for guild {guild_id}: {e}")
