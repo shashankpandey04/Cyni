@@ -69,7 +69,7 @@ class OnMemberUpdate(commands.Cog):
         after_nick = after.nick or "None"
         
         embed = await generate_embed(
-            guild.id,
+            guild,
             title="Nickname Changed",
             category="logging",
             description=f"{user_mention} updated {before.mention}'s nickname on {created_at}",
@@ -94,7 +94,7 @@ class OnMemberUpdate(commands.Cog):
             
             role_mentions = [role.mention for role in role_added]
             embed = await generate_embed(
-                guild.id,
+                guild,
                 title="Role Added",
                 category="logging",
                 description=f"Added {', '.join(role_mentions)} to {before.mention}",
@@ -115,7 +115,7 @@ class OnMemberUpdate(commands.Cog):
             
             role_mentions = [role.mention for role in role_removed]
             embed = await generate_embed(
-                guild.id,
+                guild,
                 title="Role Removed",
                 category="logging",
                 description=f"Removed {', '.join(role_mentions)} from {before.mention}",

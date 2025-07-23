@@ -35,13 +35,8 @@ class OnThreadCreate(commands.Cog):
 
         created_at = discord_time(datetime.datetime.now())
         async for entry in thread.guild.audit_logs(limit=1, action=discord.AuditLogAction.thread_create):
-            # embed = discord.Embed(
-            #         description=f"{entry.user.mention} created {thread.mention} \n **Channel:** {thread.parent.mention} \n {created_at}",
-            #         color=YELLOW_COLOR
-            #     ).set_footer(
-            #         text=f"Thread ID: {thread.id}"
-            #     )
             embed = await generate_embed(
+                guild=thread.guild,
                 title="Thread Created",
                 description=f"{entry.user.mention} created {thread.mention}",
                 category="logging",

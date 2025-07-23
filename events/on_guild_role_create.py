@@ -37,7 +37,7 @@ class OnGuildRoleCreate(commands.Cog):
 
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_create):
                 embed = await generate_embed(
-                    guild.id,
+                    guild,
                     title="Role Created",
                     category="logging",
                     description=f"{entry.user.mention} created {role.name} on {created_at}",

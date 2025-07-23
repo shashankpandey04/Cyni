@@ -53,19 +53,8 @@ class OnMessageEdit(commands.Cog):
             after_content = after.content[:1021] + "..." if len(after.content) > 1024 else after.content
             
             created_at = discord_time(datetime.datetime.now())
-            
-            # embed = discord.Embed(
-            #     title="Message Edited",
-            #     description=f"Message by {before.author.mention} edited {created_at} in {before.channel.mention}",
-            #     color=YELLOW_COLOR
-            # )
-            
-            # embed.add_field(name="Before", value=before_content or "(empty)", inline=False)
-            # embed.add_field(name="After", value=after_content or "(empty)", inline=False)
-            # embed.set_footer(text=f"Message ID: {before.id} | User ID: {before.author.id}")
-            # embed.add_field(name="Jump to Message", value=f"[Click Here]({after.jump_url})", inline=False)
             embed = await generate_embed(
-                before.guild.id,
+                before.guild,
                 title="Message Edited",
                 category="logging",
                 description=f"Message by {before.author.mention} edited {created_at}",

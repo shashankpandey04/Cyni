@@ -34,7 +34,7 @@ class OnMemberRemove(commands.Cog):
         left_at = discord_time(datetime.datetime.now())
 
         embed = await generate_embed(
-            guild.id,
+            guild,
             title="Member Left",
             category="logging",
             description=f"{member.mention} left the server on {left_at}",

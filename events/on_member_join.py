@@ -48,7 +48,7 @@ class OnMemberJoin(commands.Cog):
                     action_text = "detected"
                 
                 embed = await generate_embed(
-                    guild_id,
+                    guild=member.guild,
                     title="🚨 AutoMod: Raid Detected",
                     category="automod",
                     description="",
@@ -196,7 +196,7 @@ class OnMemberJoin(commands.Cog):
         #     text=f"User ID: {member.id}"
         # )
         embed = await generate_embed(
-            guild.id,
+            guild,
             title="Member Joined",
             category="logging",
             description=description,
@@ -242,7 +242,7 @@ class OnMemberJoin(commands.Cog):
                 # if member.avatar:
                 #     embed.set_thumbnail(url=member.avatar)
                 embed = await generate_embed(
-                    guild.id,
+                    guild,
                     title=embed_title,
                     category="customization",
                     description=formatted_message,

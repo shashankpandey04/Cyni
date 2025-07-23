@@ -56,7 +56,7 @@ class OnGuildRoleDelete(commands.Cog):
             user_mention = audit_entry.user.mention if audit_entry else "System"
 
             embed = await generate_embed(
-                guild.id,
+                guild,
                 title="Role Deleted",
                 category="logging",
                 description=f"{user_mention} deleted **{role.name}** on {created_at}",

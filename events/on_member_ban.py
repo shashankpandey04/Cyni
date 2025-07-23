@@ -58,7 +58,7 @@ class OnMemberBan(commands.Cog):
             created_at = discord_time(datetime.datetime.now())
             
             embed = await generate_embed(
-                guild.id,
+                guild,
                 title="Member Banned",
                 category="logging",
                 description=f"{ban_entry.user.mention} banned {user.mention} on {created_at}",

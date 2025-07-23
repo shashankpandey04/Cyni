@@ -63,7 +63,7 @@ class OnGuildRoleUpdate(commands.Cog):
 
             if before.name != after.name:
                 embed = await generate_embed(
-                    guild.id,
+                    guild,
                     title="Role Name Updated",
                     category="logging",
                     description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role name {created_at}",
@@ -77,7 +77,7 @@ class OnGuildRoleUpdate(commands.Cog):
 
             if before.color != after.color:
                 embed = await generate_embed(
-                    guild.id,
+                    guild,
                     title="Role Color Updated",
                     category="logging",
                     description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role color {created_at}",
@@ -95,7 +95,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 added_perms = set(after_perms) - set(before_perms)
                 removed_perms = set(before_perms) - set(after_perms)
                 embed = await generate_embed(
-                    guild.id,
+                    guild,
                     title="Role Permissions Updated",
                     category="logging",
                     description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role permissions {created_at}",
@@ -109,7 +109,7 @@ class OnGuildRoleUpdate(commands.Cog):
 
             if before.hoist != after.hoist:
                 embed = await generate_embed(
-                    guild.id,
+                    guild,
                     title="Role Hoist Updated",
                     category="logging",
                     description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role hoist {created_at}",
@@ -122,7 +122,7 @@ class OnGuildRoleUpdate(commands.Cog):
 
             if before.mentionable != after.mentionable:
                 embed = await generate_embed(
-                    guild.id,
+                    guild,
                     title="Role Mentionable Updated",
                     category="logging",
                     description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role mentionables {created_at}",

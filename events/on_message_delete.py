@@ -95,32 +95,8 @@ class OnMessageDelete(commands.Cog):
                 deletion_type = "self-deleted"
                 description = f"Message sent by {message.author.mention} was deleted on {created_at}"
             
-            # embed = discord.Embed(
-            #     title="Message Deleted",
-            #     description=description,
-            #     color=RED_COLOR
-            # ).add_field(
-            #     name="Channel",
-            #     value=message.channel.mention,
-            #     inline=True
-            # ).add_field(
-            #     name="Author",
-            #     value=f"{message.author.mention}\n({message.author.name})",
-            #     inline=True
-            # ).add_field(
-            #     name="Deletion Type",
-            #     value=deletion_type.title(),
-            #     inline=True
-            # ).add_field(
-            #     name="Message Content",
-            #     value=f"```{self._truncate_content(message.content)}```",
-            #     inline=False
-            # ).set_footer(
-            #     text=f"Message ID: {message.id} • Channel ID: {message.channel.id}"
-            # )
-
             embed = await generate_embed(
-                guild_id=message.guild.id,
+                guild=message.guild,
                 title="Message Deleted",
                 category="logging",
                 description=description,
