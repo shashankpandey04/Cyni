@@ -66,7 +66,7 @@ class ERLC(commands.Cog):
         except roblox.UserNotFound:
             return "Unknown", "Unknown"
         except Exception as e:
-            self.bot.logger.error(f"Error fetching Roblox user {user_id}: {e}")
+            print(f"Error fetching Roblox user {user_id}: {e}")
             return "Error", "Error"
 
     def _create_base_embed(self, title: str, ctx: commands.Context, description: str = "") -> discord.Embed:
@@ -117,7 +117,7 @@ class ERLC(commands.Cog):
                     color=RED_COLOR
                 )
         else:
-            self.bot.logger.error(f"Error in {action}: {error}")
+            print(f"Error in {action}: {error}")
             embed = discord.Embed(
                 title="Error",
                 description=f"An error occurred while {action}.",
@@ -269,7 +269,7 @@ class ERLC(commands.Cog):
             embed = await self._handle_prc_error(ctx, e, "linking server")
             await ctx.send(embed=embed, ephemeral=True)
         except Exception as e:
-            self.bot.logger.error(f"Error linking server: {e}")
+            print(f"Error linking server: {e}")
             embed = discord.Embed(
                 title="Error",
                 description="An error occurred while linking the server.",

@@ -70,7 +70,7 @@ class OnMessageEdit(commands.Cog):
             await guild_log_channel.send(embed=embed)
             
         except Exception as e:
-            self.bot.logger.error(f"Error in on_message_edit event: {str(e)}")
+            print(f"Error in on_message_edit event: {str(e)}")
 
 async def setup(bot):
     await bot.add_cog(OnMessageEdit(bot))
