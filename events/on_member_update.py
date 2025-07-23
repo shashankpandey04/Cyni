@@ -68,7 +68,7 @@ class OnMemberUpdate(commands.Cog):
         before_nick = before.nick or "None"
         after_nick = after.nick or "None"
         
-        embed = await generate_embed(
+        embed = generate_embed(
             guild,
             title="Nickname Changed",
             category="logging",
@@ -93,7 +93,7 @@ class OnMemberUpdate(commands.Cog):
             user_mention = audit_entry.user.mention if audit_entry else "Unknown User"
             
             role_mentions = [role.mention for role in role_added]
-            embed = await generate_embed(
+            embed = generate_embed(
                 guild,
                 title="Role Added",
                 category="logging",
@@ -114,7 +114,7 @@ class OnMemberUpdate(commands.Cog):
             user_mention = audit_entry.user.mention if audit_entry else "Unknown User"
             
             role_mentions = [role.mention for role in role_removed]
-            embed = await generate_embed(
+            embed = generate_embed(
                 guild,
                 title="Role Removed",
                 category="logging",

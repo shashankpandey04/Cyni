@@ -33,7 +33,7 @@ class OnMemberRemove(commands.Cog):
 
         left_at = discord_time(datetime.datetime.now())
 
-        embed = await generate_embed(
+        embed = generate_embed(
             guild,
             title="Member Left",
             category="logging",

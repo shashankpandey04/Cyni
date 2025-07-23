@@ -57,7 +57,7 @@ class OnMemberBan(commands.Cog):
             # Build and send embed
             created_at = discord_time(datetime.datetime.now())
             
-            embed = await generate_embed(
+            embed = generate_embed(
                 guild,
                 title="Member Banned",
                 category="logging",

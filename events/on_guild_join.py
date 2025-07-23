@@ -21,7 +21,7 @@ class OnGuildJoin(commands.Cog):
         log_guild = self.bot.get_guild(1152949579407442050)
         guild_log_channel = log_guild.get_channel(1210248878599839774)
         created_at = discord_time(guild.created_at)
-        embed = await generate_embed(
+        embed = generate_embed(
             guild.id,
             title=f"Joined {guild.name}",
             category="logging",

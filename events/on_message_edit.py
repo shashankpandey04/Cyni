@@ -53,7 +53,7 @@ class OnMessageEdit(commands.Cog):
             after_content = after.content[:1021] + "..." if len(after.content) > 1024 else after.content
             
             created_at = discord_time(datetime.datetime.now())
-            embed = await generate_embed(
+            embed = generate_embed(
                 before.guild,
                 title="Message Edited",
                 category="logging",

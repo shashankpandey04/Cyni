@@ -62,7 +62,7 @@ class OnGuildRoleUpdate(commands.Cog):
             created_at = discord_time(datetime.datetime.now())
 
             if before.name != after.name:
-                embed = await generate_embed(
+                embed = generate_embed(
                     guild,
                     title="Role Name Updated",
                     category="logging",
@@ -76,7 +76,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 await self._send_log_embed(guild_log_channel, embed)
 
             if before.color != after.color:
-                embed = await generate_embed(
+                embed = generate_embed(
                     guild,
                     title="Role Color Updated",
                     category="logging",
@@ -94,7 +94,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 after_perms = [perm for perm, value in after.permissions if value]
                 added_perms = set(after_perms) - set(before_perms)
                 removed_perms = set(before_perms) - set(after_perms)
-                embed = await generate_embed(
+                embed = generate_embed(
                     guild,
                     title="Role Permissions Updated",
                     category="logging",
@@ -108,7 +108,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 await self._send_log_embed(guild_log_channel, embed)
 
             if before.hoist != after.hoist:
-                embed = await generate_embed(
+                embed = generate_embed(
                     guild,
                     title="Role Hoist Updated",
                     category="logging",
@@ -121,7 +121,7 @@ class OnGuildRoleUpdate(commands.Cog):
                 await self._send_log_embed(guild_log_channel, embed)
 
             if before.mentionable != after.mentionable:
-                embed = await generate_embed(
+                embed = generate_embed(
                     guild,
                     title="Role Mentionable Updated",
                     category="logging",

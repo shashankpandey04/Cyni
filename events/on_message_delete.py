@@ -95,7 +95,7 @@ class OnMessageDelete(commands.Cog):
                 deletion_type = "self-deleted"
                 description = f"Message sent by {message.author.mention} was deleted on {created_at}"
             
-            embed = await generate_embed(
+            embed = generate_embed(
                 guild=message.guild,
                 title="Message Deleted",
                 category="logging",

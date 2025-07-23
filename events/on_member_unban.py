@@ -33,7 +33,7 @@ class OnMemberUnBan(commands.Cog):
 
         created_at = discord_time(datetime.datetime.now())
         async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.unban):
-            embed = await generate_embed(
+            embed = generate_embed(
                 guild,
                 title="Member Unbanned",
                 description=f"{user.mention} was unbanned.",

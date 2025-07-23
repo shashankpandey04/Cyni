@@ -37,7 +37,7 @@ class OnVoiceStateUpdate(commands.Cog):
 
         action_time = discord_time(datetime.datetime.now())
         if before.channel is None and after.channel is not None:
-            embed = await generate_embed(
+            embed = generate_embed(
                 guild=guild,
                 title="Voice Channel Joined",
                 description=f"{member.mention} joined voice channel {after.channel.mention} on {action_time}",
@@ -51,7 +51,7 @@ class OnVoiceStateUpdate(commands.Cog):
             await guild_log_channel.send(embed=embed)
 
         elif before.channel is not None and after.channel is None:
-            embed = await generate_embed(
+            embed = generate_embed(
                 guild=guild,
                 title="Voice Channel Left",
                 description=f"{member.mention} left voice channel {before.channel.mention} on {action_time}",
