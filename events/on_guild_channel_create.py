@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from utils.constants import RED_COLOR, GREEN_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
 
 class OnGuildChannelCreate(commands.Cog):
@@ -16,6 +16,8 @@ class OnGuildChannelCreate(commands.Cog):
         :param channel (discord.TextChannel): The channel that was created.
         """
         try:
+            if not (await self.bot.premium.find_by_id(channel.guild.id)) or not self.bot.is_premium:
+                return 
             sett = await self.bot.settings.find_by_id(channel.guild.id)
             guild = channel.guild
             if not sett:
@@ -29,12 +31,19 @@ class OnGuildChannelCreate(commands.Cog):
                 return
             created_at = discord_time(datetime.datetime.now())
 
+            # Get premium status and custom colors for embed generation
+            premium_status = sett.get("premium", False)
+            custom_colors = sett.get("customization", {}).get("embed_colors", {}) if premium_status else {}
+
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_create):
-                embed = discord.Embed(
+                embed = generate_embed(
+                    guild,
+                    title="Channel Created",
+                    category="logging",
                     description=f"{entry.user.mention} created {channel.mention} on {created_at}",
-                    color=GREEN_COLOR
-                ).set_footer(
-                    text=f"Channel ID: {channel.id}"
+                    footer=f"Channel ID: {channel.id}",
+                    premium=premium_status,
+                    custom_colors=custom_colors
                 )
                 await guild_log_channel.send(embed=embed)
         except Exception as e:

@@ -4,10 +4,11 @@ from discord.ext import commands
 from datetime import  timedelta
 import datetime
 import re
-import pytz
 import uuid
 from utils.constants import BLANK_COLOR
 import requests
+
+from Database.Mongo import mongo_db
 
 async def get_prefix(bot, message):
     """
@@ -307,3 +308,59 @@ def time_converter(parameter: str) -> int:
                 return int(number.strip()) * multiplier
 
     raise ValueError("Invalid time format")
+
+def parse_color(hex_or_int) -> discord.Color:
+    if isinstance(hex_or_int, int):
+        return discord.Color(hex_or_int)
+    if isinstance(hex_or_int, str) and hex_or_int.startswith("#"):
+        return discord.Color(int(hex_or_int.strip("#"), 16))
+    return discord.Color.default()
+
+def generate_embed(
+    guild: discord.Guild,
+    title: str,
+    category: str = "general",
+    description: str = None,
+    fields: list = None,
+    footer: str = None,
+    timestamp: bool = False,
+    premium: bool = False,
+    custom_colors: dict = None
+) -> discord.Embed:
+    category_colors = {
+        "logging": discord.Color.yellow(),
+        "moderation": discord.Color.red(),
+        "info": discord.Color.blurple(),
+        "success": discord.Color.green(),
+        "error": discord.Color.dark_red(),
+        "general": discord.Color.dark_gray()
+    }
+
+    if premium and custom_colors:
+        custom_hex = custom_colors.get(category.lower())
+        if custom_hex:
+            color = parse_color(custom_hex)
+        else:
+            color = category_colors.get(category.lower(), discord.Color.dark_gray())
+    else:
+        color = category_colors.get(category.lower(), discord.Color.dark_gray())
+
+    embed = discord.Embed(title=title, description=description or "", color=color)
+
+    if fields:
+        for field in fields:
+            embed.add_field(
+                name=field.get("name", "—"),
+                value=field.get("value", "—"),
+                inline=field.get("inline", False)
+            )
+
+    if premium:
+        embed.set_footer(text=f"{footer} | CYNI Premium", icon_url=guild.icon.url if guild.icon else None)
+    else:
+        embed.set_footer(text=f"{footer} | By Cyni", icon_url=guild.icon.url if guild.icon else None)
+
+    if timestamp:
+        embed.timestamp = datetime.utcnow()
+
+    return embed

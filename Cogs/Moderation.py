@@ -361,6 +361,13 @@ class Moderation(commands.Cog):
         """
         Ban a user.
         """
+        if not ctx.guild.me.guild_permissions.ban_members:
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "I do not have permission to ban members.",
+                    color = discord.Color.red()
+                )
+            )
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,f"Ban {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
@@ -480,6 +487,14 @@ class Moderation(commands.Cog):
                 )
             )
         userid = int(userid)
+        banned_users = await ctx.guild.bans()
+        if not any(ban.user.id == userid for ban in banned_users):
+            return await ctx.send(
+                embed = discord.Embed(
+                    description = "User is not banned.",
+                    color = discord.Color.red()
+                )
+            )
         member = discord.Object(id=userid)
         await ctx.guild.unban(member, reason=reason)
 

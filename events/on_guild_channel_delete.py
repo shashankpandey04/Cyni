@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.constants import RED_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
 
 class OnGuildChannelDelete(commands.Cog):
@@ -47,7 +47,8 @@ class OnGuildChannelDelete(commands.Cog):
         This event is triggered when a channel is deleted in a guild.
         """
         try:
-            # Early return checks
+            if not (await self.bot.premium.find_by_id(channel.guild.id)) or not self.bot.is_premium:
+                return
             guild = channel.guild
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
@@ -61,54 +62,55 @@ class OnGuildChannelDelete(commands.Cog):
             if not guild_log_channel:
                 return
 
-            # Get audit log entry
             audit_entry = await self._get_audit_log_entry(guild)
             created_at = discord_time(datetime.datetime.now())
-            
-            # Get channel information before it's deleted
+
+            premium_status = sett.get("premium", False)
+            custom_colors = sett.get("customization", {}).get("embed_colors", {}) if premium_status else {}
+
             channel_icon = self._get_channel_type_icon(channel.type)
             channel_type_name = str(channel.type).replace('_', ' ').title()
-            
-            # Create embed with proper channel name (not mention since it's deleted)
-            user_mention = audit_entry.user.mention if audit_entry else "Unknown User"
-            
-            embed = discord.Embed(
+
+            user_mention = audit_entry.user.mention if audit_entry else "System"
+
+            embed = generate_embed(
+                guild,
                 title="Channel Deleted",
+                category="logging",
                 description=f"{user_mention} deleted **{channel_icon} {channel.name}** on {created_at}",
-                color=RED_COLOR
-            ).add_field(
-                name="Channel Information",
-                value=f"**Name:** {channel.name}\n**Type:** {channel_type_name}\n**Category:** {channel.category.name if channel.category else 'None'}",
-                inline=False
-            ).set_footer(
-                text=f"Channel ID: {channel.id}"
+                fields=[
+                    {
+                        "name": "Channel Information",
+                        "value": f"**Name:** {channel.name}\n**Type:** {channel_type_name}\n**Category:** {channel.category.name if channel.category else 'None'}",
+                        "inline": False
+                    }
+                ],
+                footer=f"Channel ID: {channel.id}",
+                premium=premium_status,
+                custom_colors=custom_colors
             )
-            
-            # Add additional information based on channel type
+
             if hasattr(channel, 'topic') and channel.topic:
                 embed.add_field(
                     name="Topic",
-                    value=channel.topic[:1024],  # Limit to prevent embed field length errors
+                    value=channel.topic[:1024],
                     inline=False
                 )
-            
-            # Add position information
+
             if hasattr(channel, 'position'):
                 embed.add_field(
                     name="Position",
                     value=str(channel.position),
                     inline=True
                 )
-            
-            # Add NSFW status for text channels
+
             if hasattr(channel, 'is_nsfw') and channel.is_nsfw():
                 embed.add_field(
                     name="NSFW",
                     value="Yes",
                     inline=True
                 )
-            
-            # Add reason if available in audit log
+
             if audit_entry and audit_entry.reason:
                 embed.add_field(
                     name="Reason",

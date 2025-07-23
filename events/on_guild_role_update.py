@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.constants import YELLOW_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
 
 class OnGuildRoleUpdate(commands.Cog):
@@ -41,8 +41,9 @@ class OnGuildRoleUpdate(commands.Cog):
         This event is triggered when a role is updated in a guild.
         """
         try:
-            # Early return checks
             guild = after.guild
+            if not (await self.bot.premium.find_by_id(guild.id)) or not self.bot.is_premium:
+                return
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
                 return
@@ -55,64 +56,77 @@ class OnGuildRoleUpdate(commands.Cog):
             if not guild_log_channel:
                 return
 
-            # Get audit log entry once
             audit_entry = await self._get_audit_log_entry(guild)
             created_at = discord_time(datetime.datetime.now())
 
-            # Role name change
             if before.name != after.name:
-                embed = self._create_base_embed("Role Name Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(name="Before", value=before.name, inline=True)
-                embed.add_field(name="After", value=after.name, inline=True)
+                embed = await generate_embed(
+                    guild.id,
+                    title="Role Name Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role name from **{before.name}** to **{after.name}** on {created_at}",
+                    footer=f"Role ID: {after.id}",
+                )
                 await self._send_log_embed(guild_log_channel, embed)
 
-            # Role color change
             if before.color != after.color:
-                embed = self._create_base_embed("Role Color Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(name="Before", value=str(before.color), inline=True)
-                embed.add_field(name="After", value=str(after.color), inline=True)
+                embed = await generate_embed(
+                    guild.id,
+                    title="Role Color Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role color from **{before.color}** to **{after.color}** on {created_at}",
+                    footer=f"Role ID: {after.id}",
+                    fields=[
+                        {"name": "Before", "value": str(before.color), "inline": True},
+                        {"name": "After", "value": str(after.color), "inline": True}
+                    ]
+                )
                 await self._send_log_embed(guild_log_channel, embed)
 
-            # Role permissions change
             if before.permissions != after.permissions:
                 before_perms = [perm for perm, value in before.permissions if value]
                 after_perms = [perm for perm, value in after.permissions if value]
                 added_perms = set(after_perms) - set(before_perms)
                 removed_perms = set(before_perms) - set(after_perms)
-                
-                embed = self._create_base_embed("Role Permissions Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(
-                    name="Added Permissions",
-                    value=", ".join(added_perms) if added_perms else "None",
-                    inline=False
-                )
-                embed.add_field(
-                    name="Removed Permissions", 
-                    value=", ".join(removed_perms) if removed_perms else "None",
-                    inline=False
+                embed = await generate_embed(
+                    guild.id,
+                    title="Role Permissions Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role permissions on {created_at}",
+                    footer=f"Role ID: {after.id}",
+                    fields=[
+                        {"name": "Added Permissions", "value": ", ".join(added_perms) if added_perms else "None", "inline": False},
+                        {"name": "Removed Permissions", "value": ", ".join(removed_perms) if removed_perms else "None", "inline": False}
+                    ]
                 )
                 await self._send_log_embed(guild_log_channel, embed)
 
-            # Role hoist change
             if before.hoist != after.hoist:
-                embed = self._create_base_embed("Role Hoist Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(
-                    name="Display Separately",
-                    value=f"{'Enabled' if before.hoist else 'Disabled'} → {'Enabled' if after.hoist else 'Disabled'}",
-                    inline=False
+                embed = await generate_embed(
+                    guild.id,
+                    title="Role Hoist Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role hoist on {created_at}",
+                    footer=f"Role ID: {after.id}",
+                    fields=[
+                        {"name": "Display Separately", "value": f"{'Enabled' if before.hoist else 'Disabled'} → {'Enabled' if after.hoist else 'Disabled'}", "inline": False}
+                    ]
                 )
                 await self._send_log_embed(guild_log_channel, embed)
 
-            # Role mentionable change
             if before.mentionable != after.mentionable:
-                embed = self._create_base_embed("Role Mentionable Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(
-                    name="Mentionable",
-                    value=f"{'Enabled' if before.mentionable else 'Disabled'} → {'Enabled' if after.mentionable else 'Disabled'}",
-                    inline=False
+                embed = await generate_embed(
+                    guild.id,
+                    title="Role Mentionable Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role mentionable on {created_at}",
+                    footer=f"Role ID: {after.id}",
+                    fields=[
+                        {"name": "Mentionable", "value": f"{'Enabled' if before.mentionable else 'Disabled'} → {'Enabled' if after.mentionable else 'Disabled'}", "inline": False}
+                    ]
                 )
                 await self._send_log_embed(guild_log_channel, embed)
-                
+
         except Exception as e:
             print(f"Error in on_guild_role_update: {e}")
 

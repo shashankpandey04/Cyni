@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from utils.utils import compare_overwrites, discord_time
+from utils.utils import compare_overwrites, discord_time, generate_embed
 from utils.constants import YELLOW_COLOR
 import datetime
 
@@ -41,7 +41,8 @@ class OnGuildChannelUpdate(commands.Cog):
         This event is triggered when a channel is updated in a guild.
         """
         try:
-            # Early return checks
+            if not (await self.bot.premium.find_by_id(before.guild.id)) or not self.bot.is_premium:
+                return
             guild = before.guild
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
@@ -55,35 +56,63 @@ class OnGuildChannelUpdate(commands.Cog):
             if not guild_log_channel:
                 return
 
-            # Get audit log entry once
             audit_entry = await self._get_audit_log_entry(guild)
             created_at = discord_time(datetime.datetime.now())
 
-            # Channel name change
+            premium_status = sett.get("premium", False)
+            custom_colors = sett.get("customization", {}).get("embed_colors", {}) if premium_status else {}
+
             if before.name != after.name:
-                embed = self._create_base_embed("Channel Name Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(name="Before", value=before.name, inline=True)
-                embed.add_field(name="After", value=after.name, inline=True)
-                embed.add_field(name="Category", value=str(before.category) if before.category else "None", inline=False)
+                embed = generate_embed(
+                    guild,
+                    title="Channel Name Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated {after.mention} on {created_at}",
+                    fields=[
+                        {"name": "Before", "value": before.name, "inline": True},
+                        {"name": "After", "value": after.name, "inline": True},
+                        {"name": "Category", "value": str(before.category) if before.category else "None", "inline": False}
+                    ],
+                    footer=f"Channel ID: {after.id}",
+                    premium=premium_status,
+                    custom_colors=custom_colors
+                )
                 await self._send_log_embed(guild_log_channel, embed)
 
-            # Channel category change
             if before.category != after.category:
-                embed = self._create_base_embed("Channel Category Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(name="Channel", value=before.name, inline=False)
-                embed.add_field(name="Before", value=str(before.category) if before.category else "None", inline=True)
-                embed.add_field(name="After", value=str(after.category) if after.category else "None", inline=True)
+                embed = generate_embed(
+                    guild,
+                    title="Channel Category Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated {after.mention} on {created_at}",
+                    fields=[
+                        {"name": "Channel", "value": before.name, "inline": False},
+                        {"name": "Before", "value": str(before.category) if before.category else "None", "inline": True},
+                        {"name": "After", "value": str(after.category) if after.category else "None", "inline": True}
+                    ],
+                    footer=f"Channel ID: {after.id}",
+                    premium=premium_status,
+                    custom_colors=custom_colors
+                )
                 await self._send_log_embed(guild_log_channel, embed)
 
-            # NSFW setting change
             if hasattr(before, 'is_nsfw') and before.is_nsfw() != after.is_nsfw():
-                embed = self._create_base_embed("Channel NSFW Setting Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(name="Channel", value=before.name, inline=False)
-                embed.add_field(name="Before", value=f"NSFW: {'Enabled' if before.is_nsfw() else 'Disabled'}", inline=True)
-                embed.add_field(name="After", value=f"NSFW: {'Enabled' if after.is_nsfw() else 'Disabled'}", inline=True)
+                embed = generate_embed(
+                    guild,
+                    title="Channel NSFW Setting Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated {after.mention} on {created_at}",
+                    fields=[
+                        {"name": "Channel", "value": before.name, "inline": False},
+                        {"name": "Before", "value": f"NSFW: {'Enabled' if before.is_nsfw() else 'Disabled'}", "inline": True},
+                        {"name": "After", "value": f"NSFW: {'Enabled' if after.is_nsfw() else 'Disabled'}", "inline": True}
+                    ],
+                    footer=f"Channel ID: {after.id}",
+                    premium=premium_status,
+                    custom_colors=custom_colors
+                )
                 await self._send_log_embed(guild_log_channel, embed)
 
-            # Permission overwrites change
             if before.overwrites != after.overwrites:
                 changes = compare_overwrites(before.overwrites, after.overwrites)
                 if changes:
@@ -96,21 +125,40 @@ class OnGuildChannelUpdate(commands.Cog):
                         human_readable_changes.append(f"**{target_name}**: {readable_name} ({old_symbol} → {new_symbol})")
                     
                     formatted_changes = "\n".join(human_readable_changes) if human_readable_changes else "No detailed permission changes available"
-                    
-                    # Get specific overwrite audit log entry
+
                     overwrite_entry = await self._get_audit_log_entry(guild, discord.AuditLogAction.overwrite_update)
-                    embed = self._create_base_embed("Channel Permissions Updated", overwrite_entry.user if overwrite_entry else None, after, created_at)
-                    embed.add_field(name="Channel", value=before.name, inline=False)
-                    embed.add_field(name="Permission Changes", value=formatted_changes[:1024], inline=False)  # Limit field length
+                    embed = generate_embed(
+                        guild,
+                        title="Channel Permissions Updated",
+                        category="logging",
+                        description=f"{overwrite_entry.user.mention if overwrite_entry else 'Unknown User'} updated {after.mention} on {created_at}",
+                        fields=[
+                            {"name": "Channel", "value": before.name, "inline": False},
+                            {"name": "Permission Changes", "value": formatted_changes[:1024], "inline": False}
+                        ],
+                        footer=f"Channel ID: {after.id}",
+                        premium=premium_status,
+                        custom_colors=custom_colors
+                    )
                     await self._send_log_embed(guild_log_channel, embed)
 
-            # Channel type change
             if before.type != after.type:
-                embed = self._create_base_embed("Channel Type Updated", audit_entry.user if audit_entry else None, after, created_at)
-                embed.add_field(name="Channel", value=before.name, inline=False)
-                embed.add_field(name="Before", value=str(before.type).replace('_', ' ').title(), inline=True)
-                embed.add_field(name="After", value=str(after.type).replace('_', ' ').title(), inline=True)
+                embed = generate_embed(
+                    guild,
+                    title="Channel Type Updated",
+                    category="logging",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated {after.mention} on {created_at}",
+                    fields=[
+                        {"name": "Channel", "value": before.name, "inline": False},
+                        {"name": "Before", "value": str(before.type).replace('_', ' ').title(), "inline": True},
+                        {"name": "After", "value": str(after.type).replace('_', ' ').title(), "inline": True}
+                    ],
+                    footer=f"Channel ID: {after.id}",
+                    premium=premium_status,
+                    custom_colors=custom_colors
+                )
                 await self._send_log_embed(guild_log_channel, embed)
+
         except discord.Forbidden:
             pass
         except Exception as e:

@@ -961,7 +961,7 @@ def ban_appeal_manage(guild_id):
         flash("Ban appeal application updated successfully.")
         return redirect(url_for("ban_appeal", guild_id=guild_id))
 
-@app.route('/banappeal/apply/<guild_id>', methods=["GET", "POST"])
+@app.route('/banappeal/<guild_id>', methods=["GET", "POST"])
 @login_required
 def ban_appeal(guild_id):
     guild = bot.get_guild(int(guild_id))

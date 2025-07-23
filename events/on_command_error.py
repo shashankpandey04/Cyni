@@ -2,13 +2,12 @@ import datetime
 import os
 import traceback
 import logging
-from utils.utils import gen_error_uid
+from utils.utils import generate_embed
 from cyni import PremiumRequired
 
 import discord
 from discord.ext import commands
 
-from utils.utils import gen_error_uid
 from dotenv import load_dotenv
 
 from utils.prc_api import ResponseFailed, ServerLinkNotFound
@@ -25,17 +24,33 @@ class CommandErrorHandler(commands.Cog):
     async def on_command_error(self, ctx, error):
         """The event triggered when an error is raised while invoking a command."""
         
-        # Early returns for special cases
         if hasattr(ctx.command, 'on_error') or isinstance(error, commands.CommandNotFound):
             return
         
-        # Get the original exception
         error = getattr(error, 'original', error)
-        
-        # Create standard error embed template
-        embed = discord.Embed(title="Error", color=RED_COLOR)
-        
-        # Handle different error types
+
+        # Get premium status and custom colors for embed generation
+        guild = ctx.guild
+        if guild:
+            try:
+                sett = await self.bot.settings.find_by_id(guild.id)
+                premium_status = sett.get("premium", False) if sett else False
+                custom_colors = sett.get("customization", {}).get("embed_colors", {}) if premium_status else {}
+            except:
+                premium_status = False
+                custom_colors = {}
+        else:
+            premium_status = False
+            custom_colors = {}
+
+        embed = generate_embed(
+            guild, 
+            title="Error", 
+            category="error",
+            premium=premium_status,
+            custom_colors=custom_colors
+        )
+
         try:
             if isinstance(error, PremiumRequired):
                 embed.title = "Premium Required"
@@ -83,45 +98,9 @@ class CommandErrorHandler(commands.Cog):
             elif "'AutoShardedConnectionState' object has no attribute '_interaction'" in str(error):
                 embed.description = "There was an issue processing this command as a hybrid command. Try using the regular command prefix."
             
-            # Catch-all for other CommandInvokeErrors
-            elif isinstance(error, commands.CommandInvokeError):
-                error_id = f"ERR-{ctx.command.name}-{ctx.author.id}-{ctx.message.id}"
-                embed.description = f"An unexpected error occurred. Error ID: `{error_id}`"
-                
-                # Log the full error
-                error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
-                self.logger.error(f"Command {ctx.command} error ID {error_id}: {error_message}")
-                
-                # Log to error channel if configured
-                if hasattr(self.bot, 'error_channel_id') and self.bot.error_channel_id:
-                    try:
-                        error_channel = self.bot.get_channel(self.bot.error_channel_id)
-                        if error_channel:
-                            error_embed = discord.Embed(
-                                title=f"Error ID: {error_id}",
-                                description=f"```py\n{error_message[:4000]}```",
-                                color=discord.Color.red()
-                            )
-                            error_embed.add_field(name="Command", value=ctx.command.qualified_name)
-                            error_embed.add_field(name="Author", value=f"{ctx.author} ({ctx.author.id})")
-                            error_embed.add_field(name="Channel", value=f"{ctx.channel} ({ctx.channel.id})")
-                            if ctx.guild:
-                                error_embed.add_field(name="Guild", value=f"{ctx.guild.name} ({ctx.guild.id})")
-                            await error_channel.send(embed=error_embed)
-                    except Exception as e:
-                        self.logger.error(f"Failed to log error to error channel: {e}")
-                
-            else:
-                # Unhandled error type
-                error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
-                self.logger.error(f"Unhandled command error in {ctx.command}: {error_message}")
-                embed.description = f"An unknown error occurred: {str(error)[:1000]}"
-            
-            # Send the error message to the user
             await ctx.send(embed=embed)
             
         except Exception as e:
-            # Error in the error handler itself
             self.logger.error(f"Error in the error handler: {str(e)}")
             try:
                 await ctx.send("An error occurred while processing your command.")

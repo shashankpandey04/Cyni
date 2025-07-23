@@ -36,6 +36,7 @@ from Datamodels.Applications import Applications
 from Datamodels.Partnership import Partnership
 from Datamodels.LOA import LOA
 from Datamodels.voteTracker import voteTracker
+from Datamodels.Premium import Premium
 
 
 load_dotenv()
@@ -65,7 +66,10 @@ class Bot(commands.AutoShardedBot):
     def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
-            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") else self.mongo["dev"]
+            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else self.mongo["dev"]
+            self.bot_version = _version
+            self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
+            self.premium_document = Document(self.db, 'premium')
             self.settings_document = Document(self.db, 'settings')
             self.analytics_document = Document(self.db, 'analytics')
             self.warnings_document = Document(self.db, 'warnings')
@@ -119,7 +123,8 @@ class Bot(commands.AutoShardedBot):
         self.loa = LOA(self.db, 'loa')
         self.erlc = Document(self.db, 'erlc')
         self.vote_tracker = voteTracker(self.db, 'vote_tracker')
-        
+        self.premium = Premium(self.db, 'premium')
+
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]

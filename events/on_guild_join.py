@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from utils.constants import BLANK_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 
 class OnGuildJoin(commands.Cog):
     def __init__(self, bot):
@@ -21,8 +21,10 @@ class OnGuildJoin(commands.Cog):
         log_guild = self.bot.get_guild(1152949579407442050)
         guild_log_channel = log_guild.get_channel(1210248878599839774)
         created_at = discord_time(guild.created_at)
-        embed = discord.Embed(
+        embed = await generate_embed(
+            guild.id,
             title=f"Joined {guild.name}",
+            category="logging",
             description=f"""
             > **Owner:** {guild.owner}
             > **Members:** {guild.member_count}
@@ -31,7 +33,7 @@ class OnGuildJoin(commands.Cog):
             > **User Count:** {len([member for member in guild.members if not member.bot])}
             > **Guild Count:** {len(self.bot.guilds)}
             """,
-            color=BLANK_COLOR
+            footer=f"Created at: {created_at}"
         )
         try:
             embed.set_thumbnail(url=guild.icon_url)

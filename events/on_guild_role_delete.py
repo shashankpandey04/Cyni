@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.constants import RED_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
 
 class OnGuildRoleDelete(commands.Cog):
@@ -32,8 +32,9 @@ class OnGuildRoleDelete(commands.Cog):
         This event is triggered when a role is deleted in a guild.
         """
         try:
-            # Early return checks
             guild = role.guild
+            if not (await self.bot.premium.find_by_id(role.guild.id)) or not self.bot.is_premium:
+                return
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
                 return
@@ -45,23 +46,24 @@ class OnGuildRoleDelete(commands.Cog):
             guild_log_channel = guild.get_channel(moderation_module["audit_log"])
             if not guild_log_channel:
                 return
-
-            # Get audit log entry
+            
             audit_entry = await self._get_audit_log_entry(guild)
             created_at = discord_time(datetime.datetime.now())
             
-            # Create and send embed
-            user_mention = audit_entry.user.mention if audit_entry else "Unknown User"
-            embed = discord.Embed(
+            user_mention = audit_entry.user.mention if audit_entry else "System"
+
+            embed = await generate_embed(
+                guild.id,
                 title="Role Deleted",
+                category="logging",
                 description=f"{user_mention} deleted **{role.name}** on {created_at}",
-                color=RED_COLOR
-            ).add_field(
-                name="Role Information",
-                value=f"**Name:** {role.name}\n**Color:** {role.color}\n**Position:** {role.position}\n**Members:** {len(role.members)}",
-                inline=False
-            ).set_footer(
-                text=f"Role ID: {role.id}"
+                footer=f"Role ID: {role.id}",
+                fields=[
+                    {"name": "Role Information",
+                     "value": f"**Name:** {role.name}\n**Color:** {role.color}\n**Position:** {role.position}\n**Members:** {len(role.members)}",
+                     "inline": False
+                    },
+                ]
             )
 
             await self._send_log_embed(guild_log_channel, embed)
