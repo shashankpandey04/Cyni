@@ -72,8 +72,7 @@ class CommandErrorHandler(commands.Cog):
                 embed.color = BLANK_COLOR
                 
             elif isinstance(error, UsePremiumBotError):
-                embed.description = str(error)
-                embed.color = RED_COLOR
+                return #cause we don't want to send an embed for this error
                 
             elif isinstance(error, UseRegularBotError):
                 embed.description = str(error)
