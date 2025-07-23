@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
 from utils.constants import YELLOW_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
+from cyni import premium_check_fun
 import datetime
 
 class OnWebhookUpdate(commands.Cog):
@@ -121,10 +122,12 @@ class OnWebhookUpdate(commands.Cog):
         This event is triggered when a channel's webhooks are updated.
         """
         try:
-            # Early return checks
             guild = channel.guild
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
+                return
+            premium_status = await premium_check_fun(self.bot, guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
                 return
             
             moderation_module = sett.get("moderation_module", {})

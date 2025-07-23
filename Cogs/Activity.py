@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.utils import log_command_usage
+from cyni import is_management, is_staff, premium_check
 
 
 class Activity(commands.Cog):
@@ -25,6 +26,9 @@ class Activity(commands.Cog):
             "category": "Activity"
         }
     )
+    @is_staff()
+    @premium_check()
+    @commands.guild_only()
     async def leaderboard(self, ctx):
         """
         Get the activity leaderboard.
@@ -41,12 +45,14 @@ class Activity(commands.Cog):
 
         staff_activity["staff"] = sorted(staff_activity["staff"], key=lambda x: x["messages"], reverse=True)
         
-        for i in range(0, len(staff_activity["staff"]), 25):
-            embed.description = ""
-            for member in staff_activity["staff"][i:i+25]:
-                user = ctx.guild.get_member(member["_id"])
-                if user:
-                    embed.description += f"> {user.mention}\n<a:animated_arrow:1345685591538401320> {member['messages']} messages\n\n"
+        embed.description = ""
+        for idx, member in enumerate(staff_activity["staff"], start=1):
+            user = ctx.guild.get_member(member["_id"])
+            if user:
+                embed.description += (
+                    f"**#{idx}** {user.mention}\n"
+                    f"> **{member['messages']}** messages\n\n"
+                )
             await ctx.send(embed=embed)
 
     @activity.command(
@@ -55,7 +61,9 @@ class Activity(commands.Cog):
             "category": "Activity"
         }
     )
-    @commands.has_permissions(administrator=True)
+    @is_management()
+    @premium_check()
+    @commands.guild_only()
     async def reset(self, ctx):
         """
         Reset the activity leaderboard.
@@ -76,6 +84,9 @@ class Activity(commands.Cog):
             "category": "Activity"
         }
     )
+    @is_staff()
+    @premium_check()
+    @commands.guild_only()
     async def stats(self, ctx, member: discord.Member = None):
         """
         Get a member's activity stats.

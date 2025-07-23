@@ -2,7 +2,8 @@ import discord
 import datetime
 from discord.ext import commands
 from utils.constants import RED_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
+from cyni import premium_check_fun
 
 class OnMemberBan(commands.Cog):
     def __init__(self, bot):
@@ -32,7 +33,10 @@ class OnMemberBan(commands.Cog):
         This event is triggered when a member is banned from a guild.
         """
         try:
-            # Early return checks
+            premium_status = await premium_check_fun(self.bot, guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
+                return
+            
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
                 return
@@ -53,29 +57,25 @@ class OnMemberBan(commands.Cog):
             # Build and send embed
             created_at = discord_time(datetime.datetime.now())
             
-            embed = discord.Embed(
+            embed = await generate_embed(
+                guild.id,
                 title="Member Banned",
+                category="logging",
                 description=f"{ban_entry.user.mention} banned {user.mention} on {created_at}",
-                color=RED_COLOR
-            ).add_field(
-                name="Banned User",
-                value=f"**Username:** {user.name}\n**ID:** {user.id}\n**Mention:** {user.mention}",
-                inline=False
-            ).add_field(
-                name="Banned By",
-                value=f"**Username:** {ban_entry.user.name}\n**ID:** {ban_entry.user.id}",
-                inline=False
-            ).set_footer(text=f"User ID: {user.id}")
+                footer=f"User ID: {user.id}",
+                fields=[
+                    {"name": "Banned User", "value": f"**Username:** {user.name}\n**ID:** {user.id}\n**Mention:** {user.mention}", "inline": False},
+                    {"name": "Banned By", "value": f"**Username:** {ban_entry.user.name}\n**ID:** {ban_entry.user.id}", "inline": False}
+                ]
+            )
             
-            # Add ban reason if available
             if ban_entry.reason:
                 embed.add_field(
                     name="Reason",
                     value=ban_entry.reason,
                     inline=False
                 )
-            
-            # Add user avatar if available
+
             if user.avatar:
                 embed.set_thumbnail(url=user.avatar.url)
             

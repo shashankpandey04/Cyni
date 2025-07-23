@@ -333,7 +333,9 @@ def generate_embed(
         "info": discord.Color.blurple(),
         "success": discord.Color.green(),
         "error": discord.Color.dark_red(),
-        "general": discord.Color.dark_gray()
+        "general": discord.Color.dark_gray(),
+        "automod": discord.Color.teal(),
+        "customization": discord.Color.purple(),
     }
 
     if premium and custom_colors:

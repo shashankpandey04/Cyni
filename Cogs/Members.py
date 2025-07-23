@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
-from cyni import is_staff
+from cyni import is_staff, premium_check
 from discord import app_commands
 from utils.utils import log_command_usage
 from utils.basic_pager import BasicPager
@@ -16,6 +16,7 @@ class Members(commands.Cog):
     )
     @app_commands.guild_only()
     @is_staff()
+    @premium_check()
     async def membercount(self, ctx: commands.Context):
         """
         Get the member count of the server.
@@ -59,6 +60,8 @@ class Members(commands.Cog):
         excluded_role="Exclude members with this role (optional)."
     )
     @is_staff()
+    @premium_check()
+    @commands.guild_only()
     async def members_roled(self, ctx: commands.Context, role: discord.Role, excluded_role: discord.Role = None):
         """
         Get a list of members with a specific role, optionally excluding members with another role.

@@ -38,6 +38,26 @@ from Datamodels.LOA import LOA
 from Datamodels.voteTracker import voteTracker
 from Datamodels.Premium import Premium
 
+# Custom exceptions for premium checks
+class PremiumCheckError(commands.CheckFailure):
+    """Base exception for premium check failures"""
+    pass
+
+class UsePremiumBotError(PremiumCheckError):
+    """Raised when a premium server tries to use a non-premium bot"""
+    def __init__(self):
+        super().__init__("This server has premium enabled. Please use the CYNI Premium bot to access this feature.")
+
+class UseRegularBotError(PremiumCheckError):
+    """Raised when a non-premium server tries to use a premium bot"""
+    def __init__(self):
+        super().__init__("This server is not premium enabled. Please use the regular CYNI bot instead of the premium bot.")
+
+class NotPremiumError(PremiumCheckError):
+    """Raised when a non-premium server tries to access premium features"""
+    def __init__(self):
+        super().__init__("This server is not premium enabled. Please upgrade to CYNI Premium to access this feature.")
+
 
 load_dotenv()
 
@@ -240,10 +260,6 @@ async def on_shard_ready(shard_id):
     logging.info(f"Shard {shard_id} is ready.")
 
 up_time = time.time()
-class PremiumRequired(commands.CheckFailure):
-    def __init__(self, message="=This server doesn't have Cyni Premium!"):
-        self.message = message
-        super().__init__(self.message)
 
 async def staff_check(bot,guild,member):
     if member.guild_permissions.administrator:
@@ -340,15 +356,18 @@ async def erlc_staff_or_management_check(bot, guild, member):
         return True
     return False
 
-async def premium_check(bot, guild):
-    guild_settings = await bot.settings.get(guild.id)
-    if guild_settings:
-        try:
-            if "premium" in guild_settings.keys():
-                if guild_settings['premium']['enabled']:
-                    return True
-        except KeyError:
-            return False
+async def should_block_event(bot, guild):
+    """Check if an event should be blocked due to bot/server premium mismatch."""
+    premium_status = await premium_check_fun(bot, guild)
+    return premium_status in ["use_premium_bot", "use_regular_bot"]
+
+async def premium_check_fun(bot, guild):
+    premium = await bot.premium.find_by_id(guild.id)
+    if not premium and bot.is_premium:
+        return "use_regular_bot"
+    if premium and not bot.is_premium:
+        return "use_premium_bot"
+    return True
 
 def is_staff():
     async def predicate(ctx):
@@ -392,6 +411,17 @@ def is_erlc_staff_or_management():
         raise commands.MissingPermissions(["ERLC Staff or Management"])
     return commands.check(predicate)
 
+def premium_check():
+    """Decorator that only blocks premium servers using non-premium bots"""
+    async def predicate(ctx):
+        premium_status = await premium_check_fun(ctx.bot, ctx.guild)
+        if premium_status == "use_premium_bot":
+            raise UsePremiumBotError()
+        elif premium_status == "use_regular_bot":
+            raise UseRegularBotError()
+        return True
+    return commands.check(predicate)
+
 async def fetch_invite(guild_id):
     guild = bot.get_guild(guild_id)
     if not guild:
@@ -415,13 +445,6 @@ async def fetch_invite(guild_id):
         return invite.url
     except discord.Forbidden:
         raise ValueError("Failed to get invite")
-
-def is_premium():
-    async def predicate(ctx):
-        if await premium_check(ctx.bot, ctx.guild):
-            return True
-        raise PremiumRequired()
-    return commands.check(predicate)
 
 def bot_ready():
     if bot.is_ready():

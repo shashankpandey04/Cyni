@@ -1,8 +1,9 @@
 import discord
 from discord.ext import commands
 from utils.constants import YELLOW_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
+from cyni import premium_check_fun
 
 class OnMemberUpdate(commands.Cog):
     def __init__(self, bot):
@@ -26,26 +27,16 @@ class OnMemberUpdate(commands.Cog):
         except Exception as e:
             print(f"Error sending member update log: {e}")
 
-    def _create_base_embed(self, description, user, member, created_at):
-        """Create a base embed with common fields."""
-        return discord.Embed(
-            description=description,
-            color=YELLOW_COLOR
-        ).set_author(
-            name=str(member),
-            icon_url=member.avatar.url if member.avatar else None
-        ).set_footer(
-            text=f"User ID: {member.id}"
-        )
-
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
         """
         This event is triggered when a member's information is updated.
         """
         try:
-            # Early return checks
             guild = before.guild
+            premium_status = await premium_check_fun(self.bot, guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
+                return
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
                 return
@@ -60,11 +51,9 @@ class OnMemberUpdate(commands.Cog):
 
             created_at = discord_time(datetime.datetime.now())
             
-            # Handle nickname changes
             if before.nick != after.nick:
                 await self._handle_nickname_change(before, after, guild, guild_log_channel, created_at)
-                
-            # Handle role changes
+
             if before.roles != after.roles:
                 await self._handle_role_changes(before, after, guild, guild_log_channel, created_at)
                 
@@ -79,12 +68,17 @@ class OnMemberUpdate(commands.Cog):
         before_nick = before.nick or "None"
         after_nick = after.nick or "None"
         
-        description = f"{user_mention} updated {before.mention}'s nickname on {created_at}"
-        embed = self._create_base_embed(description, audit_entry.user if audit_entry else None, before, created_at)
-        embed.add_field(
-            name="Nickname Change",
-            value=f"**Before:** {before_nick}\n**After:** {after_nick}",
-            inline=False
+        embed = await generate_embed(
+            guild.id,
+            title="Nickname Changed",
+            category="logging",
+            description=f"{user_mention} updated {before.mention}'s nickname on {created_at}",
+            footer=f"User ID: {before.id}",
+            fields=[
+                {"name": "Before", "value": before_nick, "inline": True},
+                {"name": "After", "value": after_nick, "inline": True},
+                {"name": "Username", "value": f"{before.name} (`{before.id}`)", "inline": True}
+            ]
         )
         
         await self._send_log_embed(guild_log_channel, embed)
@@ -99,12 +93,18 @@ class OnMemberUpdate(commands.Cog):
             user_mention = audit_entry.user.mention if audit_entry else "Unknown User"
             
             role_mentions = [role.mention for role in role_added]
-            description = f"{user_mention} added {', '.join(role_mentions)} to {before.mention} on {created_at}"
-            embed = self._create_base_embed(description, audit_entry.user if audit_entry else None, before, created_at)
-            embed.add_field(
-                name="Roles Added",
-                value=', '.join(role_mentions),
-                inline=False
+            embed = await generate_embed(
+                guild.id,
+                title="Role Added",
+                category="logging",
+                description=f"Added {', '.join(role_mentions)} to {before.mention}",
+                footer=f"User ID: {before.id}",
+                fields=[
+                    {"name": "Roles Added", "value": ', '.join(role_mentions), "inline": False},
+                    {"name": "Username", "value": f"{before.name}#{before.discriminator}", "inline": True},
+                    {"name": "Added By", "value": f"{user_mention} (`{audit_entry.user.id}`)" if audit_entry else "Unknown User", "inline": True},
+                    {"name": "Timestamp", "value": created_at, "inline": True}
+                ]
             )
             
             await self._send_log_embed(guild_log_channel, embed)
@@ -114,12 +114,18 @@ class OnMemberUpdate(commands.Cog):
             user_mention = audit_entry.user.mention if audit_entry else "Unknown User"
             
             role_mentions = [role.mention for role in role_removed]
-            description = f"{user_mention} removed {', '.join(role_mentions)} from {before.mention} on {created_at}"
-            embed = self._create_base_embed(description, audit_entry.user if audit_entry else None, before, created_at)
-            embed.add_field(
-                name="Roles Removed",
-                value=', '.join(role_mentions),
-                inline=False
+            embed = await generate_embed(
+                guild.id,
+                title="Role Removed",
+                category="logging",
+                description=f"Removed {', '.join(role_mentions)} from {before.mention}",
+                footer=f"User ID: {before.id}",
+                fields=[
+                    {"name": "Roles Removed", "value": ', '.join(role_mentions), "inline": False},
+                    {"name": "Username", "value": f"{before.name}#{before.discriminator}", "inline": True},
+                    {"name": "Removed By", "value": f"{user_mention} (`{audit_entry.user.id}`)" if audit_entry else "Unknown User", "inline": True},
+                    {"name": "Timestamp", "value": created_at, "inline": True}
+                ]
             )
             
             await self._send_log_embed(guild_log_channel, embed)

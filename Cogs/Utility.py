@@ -1,10 +1,10 @@
 import discord
 from discord.ext import commands
-
+from discord import app_commands
 from cyni import afk_users
 from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
-from cyni import up_time, is_staff, _version
+from cyni import up_time, is_staff, _version, premium_check
 from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 from utils.pagination import Pagination
@@ -23,6 +23,8 @@ class Utility(commands.Cog):
         description="Check the bot's latency.",
         extras={"category": "General"}
     )
+    @commands.guild_only()
+    @premium_check()
     async def ping(self, ctx: commands.Context):
         """
         Displays the bot's WebSocket latency, database latency, and uptime.
@@ -68,14 +70,16 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
-    async def about(self, ctx):
+    @commands.guild_only()
+    @premium_check()
+    async def about(self, ctx: commands.Context):
         """
         Get information about the bot.
         """
         latency = round(self.bot.latency * 1000)
         embed = discord.Embed(
             title="Cyni",
-            description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** <t:{int(up_time)}:R>\n**Latency:** {latency}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** v7.4",
+            description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** <t:{int(up_time)}:R>\n**Latency:** {latency}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** `v{_version}`",
             color=BLANK_COLOR
         )
         embed.set_author(
@@ -90,7 +94,6 @@ class Utility(commands.Cog):
         view.add_item(discord.ui.Button(label="Invite", url=f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot",row=0))
         view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm",row=0))
         view.add_item(discord.ui.Button(label="Dashboard", url="https://cyni.quprdigital.tk",row=1))
-        view.add_item(discord.ui.Button(label="Status Page", url="https://cyni.quprdigital.tk/status",row=1))
         await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
@@ -100,6 +103,9 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
+    @is_staff()
+    @app_commands.describe(reason="Reason for being AFK")
+    @premium_check()
     async def afk(self, ctx, *, reason: str = "No reason provided."):
         """
         Set your status as AFK.
@@ -113,7 +119,9 @@ class Utility(commands.Cog):
         await self.bot.afk.insert(
             {
                 "_id": ctx.author.id,
-                "reason": reason
+                "reason": reason,
+                "pings": [],
+                "timestamp": discord_time(ctx.message.created_at)
             }
         )
 
@@ -125,6 +133,8 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
+    @premium_check()
+    @app_commands.describe(user="User to get information about")
     async def whois(self, ctx, user: discord.Member = None):
         """
         Get information about a user.
@@ -231,6 +241,8 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
+    @app_commands.describe(user="User to get the avatar of")
+    @premium_check()
     async def avatar_user(self, ctx, user: discord.Member = None):
         """
         Get a user's avatar.
@@ -251,6 +263,7 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
+    @premium_check()
     async def avatar_server(self, ctx):
         """
         Get the server's icon.
@@ -270,6 +283,7 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
+    @premium_check()
     async def serverinfo(self, ctx: commands.Context):
         """
         Get information about the server.
@@ -308,6 +322,8 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
+    @premium_check()
     async def vote(self, ctx):
         """
         Vote for the bot.
@@ -320,6 +336,8 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
+    @premium_check()
     async def help(self, ctx):
         """
         Get help with the bot.
@@ -345,6 +363,8 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @commands.guild_only()
+    @premium_check()
     async def dashboard(self, ctx):
         """
         Get the bot's dashboard link.
@@ -363,8 +383,10 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @app_commands.describe(suggestion="Your suggestion for the server")
     @commands.guild_only()
-    async def suggest(self,ctx,suggestion:str):
+    @premium_check()
+    async def suggest(self, ctx, *, suggestion: str):
         """
         Suggest something in the server.
         """
@@ -442,6 +464,8 @@ class Utility(commands.Cog):
             "category": "General"
         }
     )
+    @app_commands.describe(error_id="The ID of the error to view")
+    @premium_check()
     async def sentry(self,ctx,error_id:str):
         """
         Get information about a sentry error.
@@ -481,6 +505,8 @@ class Utility(commands.Cog):
     )
     @commands.guild_only()
     @is_staff()
+    @app_commands.describe(message="The message to send")
+    @premium_check()
     async def say(self, ctx, *, message: str):
         """
         Make the bot say something.

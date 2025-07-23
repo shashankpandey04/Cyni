@@ -1,15 +1,13 @@
 import discord
 from discord.ext import commands
-from cyni import is_management
+from cyni import is_management, premium_check
 from utils.constants import BLANK_COLOR
 from datetime import datetime, timedelta
 import random
 from utils.utils import log_command_usage, parse_duration
-import collections.abc
 import re
 from discord import app_commands
 import traceback
-import sys
 
 class Giveaway(commands.Cog):
     def __init__(self, bot):
@@ -111,6 +109,7 @@ class Giveaway(commands.Cog):
     @app_commands.describe(duration = "Duration of the giveaway")
     @app_commands.describe(total_winner = "Total winner of the giveaway")
     @app_commands.describe(host = "Host of the giveaway")
+    @premium_check()
     async def create(self, ctx, title: str, description: str, duration: str, total_winner: int, host: discord.Member):
         """
         Create a giveaway.
@@ -186,6 +185,9 @@ class Giveaway(commands.Cog):
         }
     )
     @is_management()
+    @app_commands.describe(message_id="Message ID of the giveaway to roll")
+    @premium_check()
+    @commands.guild_only()
     async def roll(self, ctx, message_id: str):
         """
         Roll a giveaway.
@@ -216,6 +218,8 @@ class Giveaway(commands.Cog):
         }
     )
     @is_management()
+    @premium_check()
+    @commands.guild_only()
     async def list(self, ctx):
         """
         List all active giveaways.

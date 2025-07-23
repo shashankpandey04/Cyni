@@ -1,10 +1,10 @@
 import discord
-import time
 from discord.ext import commands
 
 from utils.constants import RED_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
+from cyni import premium_check_fun
 
 class OnMemberUnBan(commands.Cog):
     def __init__(self, bot):
@@ -17,7 +17,9 @@ class OnMemberUnBan(commands.Cog):
         :param guild (discord.Guild): The guild where the member was unbanned.
         :param user (discord.User): The user that was unbanned.
         """
-        
+        premium_status = await premium_check_fun(self.bot, guild)
+        if premium_status in ["use_premium_bot", "use_regular_bot"]:
+            return
         sett = await self.bot.settings.find_by_id(guild.id)
         if not sett:
             return
@@ -28,33 +30,20 @@ class OnMemberUnBan(commands.Cog):
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         if not guild_log_channel:
             return
-        
-        #webhooks = await guild_log_channel.webhooks()
-        #cyni_webhook = None
-        #for webhook in webhooks:
-        #    if webhook.name == "Cyni":
-        #        cyni_webhook = webhook
-        #        break
-        
-        #if not cyni_webhook:
-        #    bot_avatar = await self.bot.user.avatar.read()
-        #    try:
-        #        cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
-        #    except discord.HTTPException:
-        #        cyni_webhook = None
 
         created_at = discord_time(datetime.datetime.now())
-        async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.ban):
-            embed = discord.Embed(
-                    title= " ",
-                    description=f"{entry.user.mention} unbanned {user.mention}\nHe was unbanned {created_at}",
-                    color=RED_COLOR
-                ).set_footer(
-                    text=f"User ID: {user.id}"
-                )
-            #if cyni_webhook:
-            #    await cyni_webhook.send(embed=embed)
-            #else:
+        async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.unban):
+            embed = await generate_embed(
+                title=" ",
+                description=f"User Unbanned {user.mention}",
+                category="logging",
+                footer=f"User ID: {user.id}",
+                fields=[
+                    {"name": "Unbanned At", "value": created_at, "inline": True},
+                    {"name": "Username", "value": f"{user.name}#{user.discriminator}", "inline": True},
+                    {"name": "Moderator", "value": f"{entry.user.mention} (`{entry.user.id}`)", "inline": True}
+                ]
+            )
             await guild_log_channel.send(embed=embed)
 
 async def setup(bot):

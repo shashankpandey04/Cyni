@@ -3,6 +3,7 @@ from discord.ext import commands
 from utils.utils import compare_overwrites, discord_time, generate_embed
 from utils.constants import YELLOW_COLOR
 import datetime
+from cyni import premium_check_fun
 
 class OnGuildChannelUpdate(commands.Cog):
     def __init__(self, bot):
@@ -41,7 +42,8 @@ class OnGuildChannelUpdate(commands.Cog):
         This event is triggered when a channel is updated in a guild.
         """
         try:
-            if not (await self.bot.premium.find_by_id(before.guild.id)) or not self.bot.is_premium:
+            premium_status = await premium_check_fun(self.bot, before.guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
                 return
             guild = before.guild
             sett = await self.bot.settings.find_by_id(guild.id)

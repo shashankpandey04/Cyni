@@ -10,6 +10,8 @@ import time
 class OnMessage(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Track AFK user mentions
+        self.afk_mentions = {}  # {user_id: [{'message_url': str, 'author': str, 'timestamp': datetime}]}
         # Pre-compile regex for better performance
         self.n_word_pattern = re.compile(r'n[i1]gg[aeiou]r?', re.IGNORECASE)
         # AutoMod tracking
@@ -290,7 +292,6 @@ class OnMessage(commands.Cog):
                 timeout_until = discord.utils.utcnow() + timedelta(seconds=5)
                 await message.author.edit(timed_out_until=timeout_until, reason="N-word usage")
             except discord.Forbidden:
-                # Log if bot doesn't have permission to timeout
                 logging.warning(f"Unable to timeout user {message.author.id} for n-word usage")
             except Exception as e:
                 logging.error(f"Error in n-word filter: {e}")
@@ -303,29 +304,35 @@ class OnMessage(commands.Cog):
             return False
             
         try:
-            # Remove from memory
             del afk_users[message.author.id]
             
-            # Remove from database
+            afk_data = await self.bot.afk.find_by_id(message.author.id)
             await self.bot.afk.delete_by_id({"_id": message.author.id})
             
-            # Remove [AFK] from nickname
             if message.author.display_name.startswith("[AFK]"):
                 new_nick = message.author.display_name.replace("[AFK]", "").strip()
                 await message.author.edit(nick=new_nick)
             
-            # Send welcome back message
-            await message.channel.send(
-                f"Welcome back {message.author.mention}! I removed your AFK status.",
-                delete_after=2
-            )
+            welcome_msg = f"Welcome back {message.author.mention}! I removed your AFK status."
             
+            if afk_data and afk_data.get("pings"):
+                mentions_count = len(afk_data["pings"])
+                welcome_msg += f"\n\n**You were mentioned {mentions_count} time(s) while AFK:**"
+                
+                recent_mentions = afk_data["pings"][-5:]
+                for ping in recent_mentions:
+                    welcome_msg += f"\n-# {ping['author']} mentioned you: [Jump to message]({ping['message_url']})"
+                
+                if mentions_count > 5:
+                    welcome_msg += f"\n*...and {mentions_count - 5} more mentions*"
+            
+            await message.channel.send(welcome_msg, delete_after=15)
+            
+            if message.author.id in self.afk_mentions:
+                del self.afk_mentions[message.author.id]
+                
         except discord.Forbidden:
-            # Still remove from memory and database even if can't change nick
             pass
-        except Exception as e:
-            logging.error(f"Error removing AFK status: {e}")
-        
         return True
 
     async def _handle_afk_mentions(self, message):
@@ -336,12 +343,44 @@ class OnMessage(commands.Cog):
         for mentioned_user in message.mentions:
             if mentioned_user.id in afk_users:
                 try:
+                    afk_data = await self.bot.afk.find_by_id(mentioned_user.id)
+                    
+                    message_url = f"https://discord.com/channels/{message.guild.id}/{message.channel.id}/{message.id}"
+                    
+                    ping_data = {
+                        'message_url': message_url,
+                        'author': str(message.author),
+                        'timestamp': message.created_at
+                    }
+                    
+                    if afk_data:
+                        current_pings = afk_data.get("pings", [])
+                        current_pings.append(ping_data)
+                        
+                        await self.bot.afk.upsert({
+                            "_id": mentioned_user.id,
+                            "reason": afk_data.get("reason", "No reason provided"),
+                            "pings": current_pings,
+                            "timestamp": afk_data.get("timestamp")
+                        })
+                    
+                    afk_reason = afk_users[mentioned_user.id]
+                    timestamp_text = ""
+                    
+                    if afk_data and afk_data.get("timestamp"):
+                        timestamp_text = f" (AFK since {afk_data['timestamp']})"
+                    
+                    await message.channel.send(
+                        f"`{mentioned_user}` is currently AFK{timestamp_text}. Reason: {afk_reason}",
+                        delete_after=15
+                    )
+                    
+                except Exception as e:
+                    logging.error(f"Error handling AFK mention notification: {e}")
                     await message.channel.send(
                         f"`{mentioned_user}` is currently AFK. Reason: {afk_users[mentioned_user.id]}",
                         delete_after=15
                     )
-                except Exception as e:
-                    logging.error(f"Error sending AFK mention notification: {e}")
 
     async def _handle_anti_ping(self, message, settings):
         """Handle anti-ping module."""
@@ -358,7 +397,6 @@ class OnMessage(commands.Cog):
             if any(role_id in exempt_roles for role_id in author_role_ids):
                 return
             
-            # Check if mentioned user has affected roles
             affected_roles = anti_ping_module.get("affected_roles", [])
             
             for mentioned_user in message.mentions:
@@ -366,7 +404,6 @@ class OnMessage(commands.Cog):
                 
                 for role_id in mentioned_role_ids:
                     if role_id in affected_roles:
-                        # Find the role object for mention
                         role = message.guild.get_role(role_id)
                         if role:
                             embed = discord.Embed(
@@ -382,7 +419,7 @@ class OnMessage(commands.Cog):
                                 embed=embed,
                                 delete_after=15
                             )
-                            return  # Only send one warning per message
+                            return
                         
         except Exception as e:
             logging.error(f"Error in anti-ping module: {e}")
@@ -452,6 +489,10 @@ class OnMessage(commands.Cog):
                 
             if not message.guild:
                 return
+            
+            premium = await self.bot.premium.find_by_id(message.guild.id)
+            if premium and not self.bot.is_premium:
+                return
 
             if await self._handle_ping_command(message):
                 return
@@ -464,26 +505,21 @@ class OnMessage(commands.Cog):
 
             await self._handle_afk_mentions(message)
 
-            # Get settings once and reuse
             settings = await self.bot.settings.get(message.guild.id)
             if not settings:
                 return
             
             if await self._handle_automod_spam_detection(message, settings):
-                pass #So we can continue processing other automod features
-                
-            # Keyword filtering
+                pass
+            
             if await self._handle_automod_keywords(message, settings):
-                pass #So we can continue processing other automod features
-
-            # Link blocking
+                pass
+            
             if await self._handle_automod_links(message, settings):
-                pass #So we can continue processing other automod features
+                pass
 
-            # Handle anti-ping module
             await self._handle_anti_ping(message, settings)
 
-            # Handle staff activity tracking
             await self._handle_staff_activity(message, settings)
 
         except Exception as e:

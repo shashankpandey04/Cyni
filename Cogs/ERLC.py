@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 from utils.constants import YELLOW_COLOR, BLANK_COLOR, RED_COLOR, GREEN_COLOR
 import utils.prc_api as prc_api
 from utils.prc_api import ServerPlayers, ServerStatus, ServerKillLogs, ServerJoinLogs, ResponseFailed, ServerLinkNotFound
-from cyni import is_management, is_staff, is_erlc_staff, is_erlc_management
+from cyni import is_erlc_staff, is_erlc_management, premium_check
 from utils.utils import get_discord_by_roblox, log_command_usage
 from utils.pagination import Pagination
 from UI.erlc import StaffRoles, LoggingChannels
@@ -26,7 +26,6 @@ class ERLC(commands.Cog):
         """Clean up when cog is unloaded."""
         self._roblox_cache.clear()
         
-        # Close roblox client session if it has one
         try:
             if hasattr(self.roblox_client, 'close'):
                 await self.roblox_client.close()
@@ -61,8 +60,7 @@ class ERLC(commands.Cog):
             user = await self.roblox_client.get_user(user_id)
             name = user.name
             link = f"[{name}](https://roblox.com/users/{user_id}/profile)"
-            
-            # Cache the result
+
             self._roblox_cache[user_id] = {'name': name, 'link': link}
             return name, link
         except roblox.UserNotFound:
@@ -149,6 +147,7 @@ class ERLC(commands.Cog):
     )
     @commands.guild_only()
     @is_erlc_management()
+    @premium_check()
     async def erlc_config(self, ctx):
         """
         Configure your ERLC server settings.
@@ -184,10 +183,10 @@ class ERLC(commands.Cog):
             embed1 = discord.Embed(
                 title="ERLC Staff Roles Configuration",
                 description=(
-                    "> Configure the roles that have access to ERLC commands.\n\n"
-                    "<:anglesmallright:1268850037861908571> **ERLC Staff Roles**\n"
+                    "**Configure the roles that have access to ERLC commands.**\n\n"
+                    "> **ERLC Staff Roles**\n"
                     "- Roles that can use basic ERLC commands like server info, players, kills, etc.\n\n"
-                    "<:anglesmallright:1268850037861908571> **ERLC Management Roles**\n"
+                    "> **ERLC Management Roles**\n"
                     "- Roles that can use management ERLC commands like linking servers and advanced configurations.\n\n"
                     "> Use the dropdowns below to select the appropriate roles for your server."
                 ),
@@ -197,10 +196,10 @@ class ERLC(commands.Cog):
             embed2 = discord.Embed(
                 title="ERLC Logging Channels Configuration",
                 description=(
-                    "> Configure where ERLC events will be logged.\n\n"
-                    "<:anglesmallright:1268850037861908571> **Kill Logs Channel**\n"
+                    "**Configure where ERLC events will be logged.**\n\n"
+                    "> **Kill Logs Channel**\n"
                     "- Channel where ERLC kill logs will be automatically posted.\n\n"
-                    "<:anglesmallright:1268850037861908571> **Join Logs Channel**\n"
+                    "> **Join Logs Channel**\n"
                     "- Channel where ERLC join/leave logs will be automatically posted.\n\n"
                     "> Use the dropdowns below to select the appropriate channels for logging."
                 ),
@@ -229,8 +228,10 @@ class ERLC(commands.Cog):
         name="link",
         description="Link your Discord server to the ERLC server."
     )
-    @is_erlc_management()
+    @commands.has_permissions(administrator=True)
     @app_commands.describe(key="The ERLC server key.")
+    @premium_check()
+    @commands.guild_only()
     async def server_link(self, ctx: commands.Context, key: str):
         """Link Discord server to ERLC server."""
         try:
@@ -282,6 +283,7 @@ class ERLC(commands.Cog):
     )
     @is_erlc_staff()
     @is_server_linked()
+    @premium_check()
     async def erlc_info(self, ctx: commands.Context):
         """Get information about the ERLC server."""
         await ctx.typing()
@@ -334,6 +336,7 @@ class ERLC(commands.Cog):
     )
     @is_erlc_staff()
     @is_server_linked()
+    @premium_check()
     async def erlc_staff(self, ctx: commands.Context):
         """Get information about the ERLC server staff."""
         await ctx.typing()
@@ -342,7 +345,6 @@ class ERLC(commands.Cog):
             players: List[ServerPlayers] = await self.bot.prc_api._fetch_server_players(ctx.guild.id)
             embed = self._create_base_embed("Server Staff", ctx)
 
-            # Categorize players by permission level
             staff_categories = {
                 "Server Owners": [],
                 "Server Administrator": [],
@@ -357,7 +359,6 @@ class ERLC(commands.Cog):
                 elif player.permission == "Server Moderator":
                     staff_categories["Server Moderator"].append(player)
 
-            # Add fields for each staff category
             for category, staff_list in staff_categories.items():
                 if staff_list:
                     staff_links = [
@@ -388,6 +389,7 @@ class ERLC(commands.Cog):
     )
     @is_erlc_staff()
     @is_server_linked()
+    @premium_check()
     async def kills(self, ctx: commands.Context):
         """Get server kill logs."""
         await ctx.typing()
@@ -400,15 +402,13 @@ class ERLC(commands.Cog):
                 embed.description = "> No kill logs found."
                 return await ctx.send(embed=embed)
 
-            # Sort logs by timestamp (newest first) and build description
             sorted_logs = sorted(kill_logs, key=lambda log: log.timestamp or 0, reverse=True)
             log_entries = []
             
             for log in sorted_logs:
                 if len('\n'.join(log_entries)) > 3800:  # Leave room for other embed content
                     break
-                
-                # Check if timestamp is valid
+
                 timestamp_str = f"<t:{int(log.timestamp)}:R>" if log.timestamp else "Unknown time"
                     
                 entry = (f"> [{log.killer_username}](https://roblox.com/users/{log.killer_user_id}/profile) "
@@ -432,6 +432,7 @@ class ERLC(commands.Cog):
     )
     @is_erlc_staff()
     @is_server_linked()
+    @premium_check()
     async def server_players(self, ctx: commands.Context):
         """Get current players in the server."""
         await ctx.typing()
@@ -515,6 +516,8 @@ class ERLC(commands.Cog):
     )
     @is_erlc_staff()
     @is_server_linked()
+    @premium_check()
+    @commands.guild_only()
     async def check(self, ctx: commands.Context):
         """Perform a Discord check on your server."""
         embed = discord.Embed(
@@ -593,6 +596,8 @@ class ERLC(commands.Cog):
     )
     @is_erlc_staff()
     @is_server_linked()
+    @premium_check()
+    @commands.guild_only()
     async def join_logs(self, ctx: commands.Context):
         """Get server join and leave logs."""
         embed = discord.Embed(

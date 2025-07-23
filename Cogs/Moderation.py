@@ -1,9 +1,10 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
 from Datamodels.Warning import Warnings
-from cyni import is_staff_or_management,is_management
+from cyni import is_staff_or_management,is_management, premium_check
 from utils.Schema import warning
 from utils.utils import log_command_usage
 from datetime import timedelta, datetime
@@ -22,6 +23,11 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to warn",
+        reason="Reason for the warning"
+    )
+    @premium_check()
     async def warn(self, ctx, member: discord.Member, *, reason: str):
         """
         Warn a user.
@@ -109,6 +115,10 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to view warnings for"
+    )
+    @premium_check()
     async def warnings(self, ctx, member: discord.Member):
         """
         Get the warnings for a user.
@@ -159,6 +169,10 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        case="Case ID of the warning to void"
+    )
+    @premium_check()
     async def delwarn(self, ctx, case: int):
         """
         Delete a warning for a user.
@@ -221,11 +235,15 @@ class Moderation(commands.Cog):
             )
 
     @commands.hybrid_command(
-    name='case',
-    extras={"category": "Moderation"}
+        name='case',
+        extras={"category": "Moderation"}
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        case="Case ID of the warning to view"
+    )
+    @premium_check()
     async def case(self, ctx, case: int):
         """
         Get the details of a case.
@@ -278,6 +296,11 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to kick",
+        reason="Reason for the kick"
+    )
+    @premium_check()
     async def kick(self, ctx, member: discord.Member, *, reason: str):
         """
         Kick a user.
@@ -357,6 +380,11 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to ban",
+        reason="Reason for the ban"
+    )
+    @premium_check()
     async def ban(self, ctx, member: discord.Member, *, reason: str):
         """
         Ban a user.
@@ -464,6 +492,11 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        userid="User ID to unban",
+        reason="Reason for the unban"
+    )
+    @premium_check()
     async def unban(self, ctx, userid:str, *, reason: str = "No reason provided."):
         """
         Unban a user.
@@ -548,6 +581,12 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to mute",
+        time="Duration to mute the user (e.g., 10m, 1h, 1d)",
+        reason="Reason for the mute"
+    )
+    @premium_check()
     async def mute(self, ctx, member: discord.Member, time:str, reason: str):
         """
         Mute a user.
@@ -656,6 +695,11 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to unmute",
+        reason="Reason for the unmute"
+    )
+    @premium_check()
     async def unmute(self, ctx, member: discord.Member, *, reason: str):
         """
         Unmute a user.
@@ -736,6 +780,10 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        channel="Channel to lock"
+    )
+    @premium_check()
     async def lock(self, ctx, channel: discord.TextChannel):
         """
         Lock a channel.
@@ -795,6 +843,10 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        channel="Channel to unlock"
+    )
+    @premium_check()
     async def unlock(self, ctx, channel: discord.TextChannel):
         """
         Unlock a channel.
@@ -853,6 +905,10 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        amount="Number of messages to purge (max 100)"
+    )
+    @premium_check()
     async def purge(self, ctx, amount: int):
         """
         Purge messages in a channel.
@@ -916,6 +972,10 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        seconds="Duration of the slowmode in seconds"
+    )
+    @premium_check()
     async def slowmode(self, ctx, seconds: int):
         """
         Set the slowmode for a channel.
@@ -975,6 +1035,11 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to change nickname",
+        nickname="New nickname"
+    )
+    @premium_check()
     async def nick(self, ctx, member: discord.Member, *, nickname: str):
         """
         Change a user's nickname.
@@ -1036,7 +1101,6 @@ class Moderation(commands.Cog):
         extras={"category": "Moderation"}
     )
     @commands.guild_only()
-    @is_staff_or_management()
     async def role(self, ctx):
         """
         Manage roles.
@@ -1046,6 +1110,13 @@ class Moderation(commands.Cog):
     @role.command(
         name="add",
         extras={"category": "Moderation"}
+    )
+    @premium_check()
+    @commands.guild_only()
+    @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to add role to",
+        role="Role to add"
     )
     async def role_add(self, ctx, member: discord.Member, role: discord.Role):
         """
@@ -1121,6 +1192,13 @@ class Moderation(commands.Cog):
     @role.command(
         name="remove",
         extras={"category": "Moderation"}
+    )
+    @premium_check()
+    @commands.guild_only()
+    @is_staff_or_management()
+    @app_commands.describe(
+        member="Member to remove role from",
+        role="Role to remove"
     )
     async def role_remove(self, ctx, member: discord.Member, role: discord.Role):
         """
@@ -1208,6 +1286,10 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_management()
+    @app_commands.describe(
+        role="Role to add"
+    )
+    @premium_check()
     async def role_all(self, ctx, role: discord.Role):
         '''
         Add a role to all members in the server.
@@ -1295,6 +1377,11 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_management()
+    @app_commands.describe(
+        member="Member to softban",
+        reason="Reason for softban"
+    )
+    @premium_check()
     async def softban(self, ctx, member: discord.Member, *, reason: str):
         """
         Softban a user.
@@ -1528,6 +1615,12 @@ class Moderation(commands.Cog):
     )
     @commands.guild_only()
     @is_management()
+    @app_commands.describe(
+        member="Member to assign role to",
+        role="Role to assign",
+        duration="Duration to assign role for"
+    )
+    @premium_check()
     async def temprole(self, ctx, member: discord.Member, role: discord.Role, duration: str):
         """
         Temporarily assign a role to a user.

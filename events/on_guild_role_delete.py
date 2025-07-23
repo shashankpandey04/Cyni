@@ -1,8 +1,10 @@
+import os
 import discord
 from discord.ext import commands
 from utils.constants import RED_COLOR
 from utils.utils import discord_time, generate_embed
 import datetime
+from cyni import premium_check_fun
 
 class OnGuildRoleDelete(commands.Cog):
     def __init__(self, bot):
@@ -33,7 +35,8 @@ class OnGuildRoleDelete(commands.Cog):
         """
         try:
             guild = role.guild
-            if not (await self.bot.premium.find_by_id(role.guild.id)) or not self.bot.is_premium:
+            premium_status = await premium_check_fun(self.bot, guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
                 return
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
@@ -59,12 +62,21 @@ class OnGuildRoleDelete(commands.Cog):
                 description=f"{user_mention} deleted **{role.name}** on {created_at}",
                 footer=f"Role ID: {role.id}",
                 fields=[
-                    {"name": "Role Information",
-                     "value": f"**Name:** {role.name}\n**Color:** {role.color}\n**Position:** {role.position}\n**Members:** {len(role.members)}",
-                     "inline": False
-                    },
+                    {"name": "Role Color", "value": str(role.color), "inline": True},
+                    {"name": "Role Position", "value": str(role.position), "inline": True},
+                    {"name": "Members", "value": len(role.members), "inline": True}
                 ]
             )
+            if role.members and (await self.bot.premium.find_by_id(guild.id)) and self.bot.is_premium:
+                members_list = "\n".join([member.mention for member in role.members])
+                with open(f"{role.name}_deleted_members.txt", "w") as file:
+                    file.write(members_list)
+                with open(f"{role.name}_deleted_members.txt", "rb") as file:
+                    await guild_log_channel.send(
+                        content=f"The following members were affected by the deletion of {role.name}:",
+                        file=discord.File(file, filename=f"{role.name}_deleted_members.txt")
+                    )
+                    os.remove(f"{role.name}_deleted_members.txt")
 
             await self._send_log_embed(guild_log_channel, embed)
             

@@ -3,6 +3,7 @@ from discord.ext import commands
 from utils.constants import YELLOW_COLOR
 from utils.utils import discord_time, generate_embed
 import datetime
+from cyni import premium_check_fun
 
 class OnGuildRoleUpdate(commands.Cog):
     def __init__(self, bot):
@@ -42,7 +43,8 @@ class OnGuildRoleUpdate(commands.Cog):
         """
         try:
             guild = after.guild
-            if not (await self.bot.premium.find_by_id(guild.id)) or not self.bot.is_premium:
+            premium_status = await premium_check_fun(self.bot, guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
                 return
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
@@ -64,8 +66,12 @@ class OnGuildRoleUpdate(commands.Cog):
                     guild.id,
                     title="Role Name Updated",
                     category="logging",
-                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role name from **{before.name}** to **{after.name}** on {created_at}",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role name {created_at}",
                     footer=f"Role ID: {after.id}",
+                    fields=[
+                        {"name": "Before", "value": str(before.name), "inline": True},
+                        {"name": "After", "value": str(after.name), "inline": True}
+                    ]
                 )
                 await self._send_log_embed(guild_log_channel, embed)
 
@@ -74,7 +80,7 @@ class OnGuildRoleUpdate(commands.Cog):
                     guild.id,
                     title="Role Color Updated",
                     category="logging",
-                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role color from **{before.color}** to **{after.color}** on {created_at}",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role color {created_at}",
                     footer=f"Role ID: {after.id}",
                     fields=[
                         {"name": "Before", "value": str(before.color), "inline": True},
@@ -92,7 +98,7 @@ class OnGuildRoleUpdate(commands.Cog):
                     guild.id,
                     title="Role Permissions Updated",
                     category="logging",
-                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role permissions on {created_at}",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role permissions {created_at}",
                     footer=f"Role ID: {after.id}",
                     fields=[
                         {"name": "Added Permissions", "value": ", ".join(added_perms) if added_perms else "None", "inline": False},
@@ -106,10 +112,10 @@ class OnGuildRoleUpdate(commands.Cog):
                     guild.id,
                     title="Role Hoist Updated",
                     category="logging",
-                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role hoist on {created_at}",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role hoist {created_at}",
                     footer=f"Role ID: {after.id}",
                     fields=[
-                        {"name": "Display Separately", "value": f"{'Enabled' if before.hoist else 'Disabled'} → {'Enabled' if after.hoist else 'Disabled'}", "inline": False}
+                        {"name": "Hoist", "value": f"{'Enabled' if before.hoist else 'Disabled'} → {'Enabled' if after.hoist else 'Disabled'}", "inline": False}
                     ]
                 )
                 await self._send_log_embed(guild_log_channel, embed)
@@ -119,7 +125,7 @@ class OnGuildRoleUpdate(commands.Cog):
                     guild.id,
                     title="Role Mentionable Updated",
                     category="logging",
-                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role mentionable on {created_at}",
+                    description=f"{audit_entry.user.mention if audit_entry else 'Unknown User'} updated the role mentionables {created_at}",
                     footer=f"Role ID: {after.id}",
                     fields=[
                         {"name": "Mentionable", "value": f"{'Enabled' if before.mentionable else 'Disabled'} → {'Enabled' if after.mentionable else 'Disabled'}", "inline": False}

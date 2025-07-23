@@ -1,10 +1,10 @@
 import discord
-import time
 from discord.ext import commands
 
 from utils.constants import RED_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
+from cyni import premium_check_fun
 
 class OnMemberRemove(commands.Cog):
     def __init__(self, bot):
@@ -16,9 +16,11 @@ class OnMemberRemove(commands.Cog):
         This event is triggered when a member leaves a guild.
         :param member (discord.Member): The member that left the guild.
         """
-        
         sett = await self.bot.settings.find_by_id(member.guild.id)
         guild = member.guild
+        premium_status = await premium_check_fun(self.bot, guild)
+        if premium_status in ["use_premium_bot", "use_regular_bot"]:
+            return
         if not sett:
             return
         if sett.get("moderation_module", {}).get("enabled", False) is False:
@@ -29,39 +31,19 @@ class OnMemberRemove(commands.Cog):
         if not guild_log_channel:
             return
 
-        #webhooks = await guild_log_channel.webhooks()
-        #cyni_webhook = None
-        #for webhook in webhooks:
-        #    if webhook.name == "Cyni":
-        #        cyni_webhook = webhook
-        #        break
-        
-        #if not cyni_webhook:
-        #    bot_avatar = await self.bot.user.avatar.read()
-        #    try:
-        #        cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
-        #    except discord.HTTPException:
-        #        cyni_webhook = None
-
         left_at = discord_time(datetime.datetime.now())
-        embed = discord.Embed(
-                title= " ",
-                description=f"{member.mention} left the server on {left_at}",
-                color=RED_COLOR
-            ).add_field(
-                name="Member Count",
-                value=f"{guild.member_count}",
-            ).set_author(
-                name=member,
-                icon_url=member.avatar
-            ).set_footer(
-                text=f"User ID: {member.id}"
-            ).set_thumbnail(
-                url=member.avatar.url
-            )
-        #if cyni_webhook:
-        #    await cyni_webhook.send(embed=embed)
-        #else:
+
+        embed = await generate_embed(
+            guild.id,
+            title="Member Left",
+            category="logging",
+            description=f"{member.mention} left the server on {left_at}",
+            footer=f"User ID: {member.id}",
+            fields=[
+                {"name": "Member Count", "value": f"{guild.member_count}", "inline": True},
+                {"name": "Username", "value": f"{member.name}#{member.discriminator}", "inline": True}
+            ]
+        )
         await guild_log_channel.send(embed=embed)
 
 async def setup(bot):

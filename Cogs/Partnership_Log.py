@@ -4,7 +4,7 @@ import time
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from discord import app_commands
-from cyni import is_management, is_staff
+from cyni import is_management, is_staff, premium_check
 from utils.utils import log_command_usage
 import re
 from utils.pagination import Pagination
@@ -29,11 +29,16 @@ class Partnership_Log(commands.Cog):
         }
     )
     @is_management()
-    @app_commands.describe(title = "Partnership Log Title",)
-    @app_commands.describe(description = "Write the description & for new line use \\n\\n")
-    @app_commands.describe(representative = "Representative of the partnership")
-    @app_commands.describe(image = "Image of the partnership")
-    async def log(self, ctx, title: str, *, description: str,invite:str, representative: discord.Member, image: str = None):
+    @app_commands.describe(
+        title="Partnership Log Title",
+        description="Write the description & for new line use \\n\\n",
+        representative="Representative of the partnership",
+        image="Image of the partnership"
+    )
+    @app_commands.describe(invite="Discord Invite Link")
+    @commands.guild_only()
+    @premium_check()
+    async def log(self, ctx, title: str, *, description: str, invite: str, representative: discord.Member, image: str = None):
         """
         Log a partnership.
         """
@@ -137,6 +142,8 @@ class Partnership_Log(commands.Cog):
         }
     )
     @is_staff()
+    @commands.guild_only()
+    @premium_check()
     async def all(self, ctx):
         """
         View all partnerships of your server.
@@ -184,6 +191,8 @@ class Partnership_Log(commands.Cog):
         }
     )
     @is_management()
+    @premium_check()
+    @commands.guild_only()
     @app_commands.describe(partnership_id = "ID of the partnership")
     async def delete(self, ctx, partnership_id: int):
         """
@@ -227,6 +236,8 @@ class Partnership_Log(commands.Cog):
     )
     @is_staff()
     @app_commands.describe(partnership_id = "ID of the partnership")
+    @commands.guild_only()
+    @premium_check()
     async def view(self, ctx, partnership_id: int):
         """
         View a partnership.
@@ -268,6 +279,8 @@ class Partnership_Log(commands.Cog):
     )
     @is_staff()
     @app_commands.describe(user = "User to view partnerships of")
+    @commands.guild_only()
+    @premium_check()
     async def byuser(self, ctx, user: discord.Member):
         """
         View all partnerships of a representative.

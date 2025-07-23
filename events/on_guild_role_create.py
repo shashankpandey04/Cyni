@@ -1,5 +1,5 @@
 import discord
-import time
+from cyni import premium_check_fun
 from discord.ext import commands
 
 from utils.constants import RED_COLOR
@@ -17,6 +17,9 @@ class OnGuildRoleCreate(commands.Cog):
         :param role (discord.Role): The role that was created.
         """
         try:
+            premium_status = await premium_check_fun(self.bot, role.guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
+                return
             sett = await self.bot.settings.find_by_id(role.guild.id)
             if not (await self.bot.premium.find_by_id(role.guild.id)) or not self.bot.is_premium:
                 return
@@ -37,8 +40,13 @@ class OnGuildRoleCreate(commands.Cog):
                     guild.id,
                     title="Role Created",
                     category="logging",
-                    description=f"{entry.user.mention} created {role.mention} on {created_at}",
+                    description=f"{entry.user.mention} created {role.name} on {created_at}",
                     footer=f"Role ID: {role.id}",
+                    fields=[
+                        {"name": "Role Name", "value": role.name, "inline": True},
+                        {"name": "Role Color", "value": str(role.color), "inline": True},
+                        {"name": "Role Permissions", "value": ", ".join([perm for perm, value in role.permissions if value]), "inline": False}
+                    ]
                 )
                 await guild_log_channel.send(embed=embed)
         except discord.Forbidden:

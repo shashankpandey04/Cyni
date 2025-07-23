@@ -1,9 +1,9 @@
 import discord
-import time
 from discord.ext import commands
 
 from utils.constants import YELLOW_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
+from cyni import premium_check_fun
 import datetime
 
 class OnThreadCreate(commands.Cog):
@@ -19,6 +19,9 @@ class OnThreadCreate(commands.Cog):
         
         if thread.archived:
             return
+        premium_status = await premium_check_fun(self.bot, thread.guild)
+        if premium_status in ["use_premium_bot", "use_regular_bot"]:
+            return
         sett = await self.bot.settings.find_by_id(thread.guild.id)
         if not sett:
             return
@@ -29,31 +32,27 @@ class OnThreadCreate(commands.Cog):
         guild_log_channel = thread.guild.get_channel(sett["moderation_module"]["audit_log"])
         if not guild_log_channel:
             return
-        #webhooks = await guild_log_channel.webhooks()
-        #cyni_webhook = None
-        #for webhook in webhooks:
-        #    if webhook.name == "Cyni":
-        #        cyni_webhook = webhook
-        #        break
-        
-        #if not cyni_webhook:
-        #    bot_avatar = await self.bot.user.avatar.read()
-        #    try:
-        #        cyni_webhook = await guild_log_channel.create_webhook(name="Cyni", avatar=bot_avatar)
-        #    except discord.HTTPException:
-        #        cyni_webhook = None
 
         created_at = discord_time(datetime.datetime.now())
         async for entry in thread.guild.audit_logs(limit=1, action=discord.AuditLogAction.thread_create):
-            embed = discord.Embed(
-                    description=f"{entry.user.mention} created {thread.mention} \n **Channel:** {thread.parent.mention} \n {created_at}",
-                    color=YELLOW_COLOR
-                ).set_footer(
-                    text=f"Thread ID: {thread.id}"
-                )
-            #if cyni_webhook:
-            #    await cyni_webhook.send(embed=embed)
-            #else:
+            # embed = discord.Embed(
+            #         description=f"{entry.user.mention} created {thread.mention} \n **Channel:** {thread.parent.mention} \n {created_at}",
+            #         color=YELLOW_COLOR
+            #     ).set_footer(
+            #         text=f"Thread ID: {thread.id}"
+            #     )
+            embed = await generate_embed(
+                title="Thread Created",
+                description=f"{entry.user.mention} created {thread.mention}",
+                category="logging",
+                footer=f"Thread ID: {thread.id}",
+                fields=[
+                    {"name": "Thread Name", "value": thread.name, "inline": True},
+                    {"name": "Created By", "value": f"{entry.user.name}#{entry.user.discriminator} (`{entry.user.id}`)", "inline": True},
+                    {"name": "Channel", "value": thread.parent.mention, "inline": True},
+                    {"name": "Created At", "value": created_at, "inline": True}
+                ]
+            )
             await guild_log_channel.send(embed=embed)
         
 async def setup(bot):

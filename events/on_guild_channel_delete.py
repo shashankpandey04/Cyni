@@ -3,6 +3,7 @@ from discord.ext import commands
 from utils.constants import RED_COLOR
 from utils.utils import discord_time, generate_embed
 import datetime
+from cyni import premium_check_fun
 
 class OnGuildChannelDelete(commands.Cog):
     def __init__(self, bot):
@@ -47,7 +48,8 @@ class OnGuildChannelDelete(commands.Cog):
         This event is triggered when a channel is deleted in a guild.
         """
         try:
-            if not (await self.bot.premium.find_by_id(channel.guild.id)) or not self.bot.is_premium:
+            premium_status = await premium_check_fun(self.bot, channel.guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
                 return
             guild = channel.guild
             sett = await self.bot.settings.find_by_id(guild.id)
@@ -78,16 +80,14 @@ class OnGuildChannelDelete(commands.Cog):
                 title="Channel Deleted",
                 category="logging",
                 description=f"{user_mention} deleted **{channel_icon} {channel.name}** on {created_at}",
-                fields=[
-                    {
-                        "name": "Channel Information",
-                        "value": f"**Name:** {channel.name}\n**Type:** {channel_type_name}\n**Category:** {channel.category.name if channel.category else 'None'}",
-                        "inline": False
-                    }
-                ],
                 footer=f"Channel ID: {channel.id}",
                 premium=premium_status,
-                custom_colors=custom_colors
+                custom_colors=custom_colors,
+                fields=[
+                    {"name": "Channel Type", "value": channel_type_name, "inline": True},
+                    {"name": "Channel ID", "value": str(channel.id), "inline": True},
+                    {"name": "Category", "value": str(channel.category) if channel.category else "None", "inline": False}
+                ]
             )
 
             if hasattr(channel, 'topic') and channel.topic:

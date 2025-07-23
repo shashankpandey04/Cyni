@@ -4,6 +4,7 @@ from utils.constants import RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
 import datetime
 import asyncio
+from cyni import premium_check_fun
 
 class OnGuildUpdate(commands.Cog):
     def __init__(self, bot):
@@ -38,10 +39,8 @@ class OnGuildUpdate(commands.Cog):
     async def _revert_vanity_url(self, guild, original_vanity, current_vanity, audit_entry):
         """Revert vanity URL change and log the action."""
         try:
-            # Attempt to revert the vanity URL
-            await guild.edit(vanity_code=original_vanity, reason="AutoMod: Unauthorized vanity URL change detected")
-            
-            # Get settings for logging
+            await guild.edit(vanity_code=original_vanity, reason="CYNI AutoMod: Unauthorized vanity URL change detected")
+
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
                 return
@@ -54,7 +53,6 @@ class OnGuildUpdate(commands.Cog):
             if not guild_log_channel:
                 return
 
-            # Create protection log embed
             created_at = discord_time(datetime.datetime.now())
             embed = self._create_base_embed(
                 "🛡️ Vanity URL Protection Triggered", 
@@ -82,7 +80,6 @@ class OnGuildUpdate(commands.Cog):
                 inline=True
             )
             
-            # Alert about unauthorized access
             if audit_entry and audit_entry.user != guild.owner:
                 embed.add_field(
                     name="⚠️ Security Alert",
@@ -92,7 +89,6 @@ class OnGuildUpdate(commands.Cog):
 
             await self._send_log_embed(guild_log_channel, embed)
             
-            # Try to DM the guild owner about the attempted change
             try:
                 owner_embed = discord.Embed(
                     title="🚨 Vanity URL Protection Alert",
@@ -111,11 +107,9 @@ class OnGuildUpdate(commands.Cog):
                 )
                 await guild.owner.send(embed=owner_embed)
             except (discord.Forbidden, discord.HTTPException, AttributeError):
-                # Owner might have DMs disabled or other issues
                 pass
                 
         except discord.Forbidden:
-            # Bot doesn't have permission to change vanity URL
             sett = await self.bot.settings.find_by_id(guild.id)
             if sett:
                 moderation_module = sett.get("moderation_module", {})
@@ -144,13 +138,13 @@ class OnGuildUpdate(commands.Cog):
         """
         try:
             guild = after
-            
-            # Get guild settings
+
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
                 return
-            
-            # Check if AutoMod vanity protection is enabled
+            premium_status = await premium_check_fun(self.bot, guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
+                return
             automod_module = sett.get("automod_module", {})
             vanity_protection = automod_module.get("vanity_protection", {})
             

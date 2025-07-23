@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from utils.constants import BLANK_COLOR
 import aiohttp
+from cyni import premium_check
 
 class Fun(commands.Cog):
     def __init__(self, bot):
@@ -13,6 +14,8 @@ class Fun(commands.Cog):
             "category": "Fun"
         }
     )
+    @premium_check()
+    @commands.guild_only()
     async def joke(self, ctx):
         """
         Get a random joke.
@@ -28,6 +31,8 @@ class Fun(commands.Cog):
             "category": "Fun"
         }
     )
+    @premium_check()
+    @commands.guild_only()
     async def dog(self, ctx):
         """
         Get a random dog image.
@@ -50,6 +55,8 @@ class Fun(commands.Cog):
             "category": "Fun"
         }
     )
+    @premium_check()
+    @commands.guild_only()
     async def cat(self, ctx):
         """
         Get a random cat image.
@@ -72,6 +79,8 @@ class Fun(commands.Cog):
             "category": "Fun"
         }
     )
+    @premium_check()
+    @commands.guild_only()
     async def meow(self, ctx):
         """
         Get a random Cat Fact.

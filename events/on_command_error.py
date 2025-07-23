@@ -3,15 +3,14 @@ import os
 import traceback
 import logging
 from utils.utils import generate_embed
-from cyni import PremiumRequired
 
-import discord
 from discord.ext import commands
 
 from dotenv import load_dotenv
 
 from utils.prc_api import ResponseFailed, ServerLinkNotFound
 from utils.constants import BLANK_COLOR, RED_COLOR
+from cyni import UsePremiumBotError, UseRegularBotError, NotPremiumError
 
 load_dotenv()
 
@@ -52,12 +51,8 @@ class CommandErrorHandler(commands.Cog):
         )
 
         try:
-            if isinstance(error, PremiumRequired):
-                embed.title = "Premium Required"
-                embed.description = "This command requires Cyni Premium. Please upgrade your server to use this command."
-                return await ctx.send(embed=embed)
-                
-            elif isinstance(error, commands.MissingRequiredArgument):
+
+            if isinstance(error, commands.MissingRequiredArgument):
                 embed.description = f"Missing required argument: `{error.param.name}`"
                 
             elif isinstance(error, commands.MissingPermissions):
@@ -75,6 +70,18 @@ class CommandErrorHandler(commands.Cog):
                 embed.title = "ERLC Server Not Linked"
                 embed.description = "This Discord server is not linked to an ERLC server. Use `/erlc link` to link your server first."
                 embed.color = BLANK_COLOR
+                
+            elif isinstance(error, UsePremiumBotError):
+                embed.description = str(error)
+                embed.color = RED_COLOR
+                
+            elif isinstance(error, UseRegularBotError):
+                embed.description = str(error)
+                embed.color = RED_COLOR
+                
+            elif isinstance(error, NotPremiumError):
+                embed.description = str(error)
+                embed.color = RED_COLOR
                 
             elif isinstance(error, commands.CheckFailure):
                 embed.description = "You do not have permission to run this command."

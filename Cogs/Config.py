@@ -6,7 +6,7 @@ from menu import (
     LOAConfig
 )
 from utils.pagination import Pagination
-from cyni import is_management
+from cyni import is_management, premium_check
 from utils.constants import BLANK_COLOR, RED_COLOR
 from utils.utils import log_command_usage
 class Config(commands.Cog):
@@ -22,6 +22,7 @@ class Config(commands.Cog):
     )
     @commands.guild_only()
     @is_management()
+    @premium_check()
     async def config(self, ctx):
         """
         Configure your server settings.

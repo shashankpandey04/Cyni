@@ -2,8 +2,10 @@ import discord
 import datetime
 from discord.ext import commands
 
+from dashboard import guild
 from utils.constants import YELLOW_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
+from cyni import premium_check_fun
 
 
 class OnMessageEdit(commands.Cog):
@@ -22,16 +24,17 @@ class OnMessageEdit(commands.Cog):
         after: discord.Message
             The message after it was edited.
         """
-        # Skip if conditions are not met for logging
         if (before.author.bot or 
             before.content == after.content or 
-            not before.guild):  # Added check for DM messages
+            not before.guild):
             return
-            
-        # Get settings
+
         try:
             sett = await self.bot.settings.find_by_id(before.guild.id)
             if not sett:
+                return
+            premium_status = await premium_check_fun(self.bot, before.guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
                 return
                 
             moderation_module = sett.get("moderation_module", {})
@@ -41,34 +44,40 @@ class OnMessageEdit(commands.Cog):
             audit_log_id = moderation_module.get("audit_log")
             if not audit_log_id:
                 return
-                
-            # Get channel and verify permissions
+            
             guild_log_channel = before.guild.get_channel(audit_log_id)
             if not guild_log_channel or not guild_log_channel.permissions_for(before.guild.me).send_messages:
                 return
                 
-            # Format content for embedding
             before_content = before.content[:1021] + "..." if len(before.content) > 1024 else before.content
             after_content = after.content[:1021] + "..." if len(after.content) > 1024 else after.content
             
-            # Create timestamp
             created_at = discord_time(datetime.datetime.now())
             
-            # Build embed
-            embed = discord.Embed(
+            # embed = discord.Embed(
+            #     title="Message Edited",
+            #     description=f"Message by {before.author.mention} edited {created_at} in {before.channel.mention}",
+            #     color=YELLOW_COLOR
+            # )
+            
+            # embed.add_field(name="Before", value=before_content or "(empty)", inline=False)
+            # embed.add_field(name="After", value=after_content or "(empty)", inline=False)
+            # embed.set_footer(text=f"Message ID: {before.id} | User ID: {before.author.id}")
+            # embed.add_field(name="Jump to Message", value=f"[Click Here]({after.jump_url})", inline=False)
+            embed = await generate_embed(
+                before.guild.id,
                 title="Message Edited",
-                description=f"Message by {before.author.mention} edited {created_at} in {before.channel.mention}",
-                color=YELLOW_COLOR
+                category="logging",
+                description=f"Message by {before.author.mention} edited {created_at}",
+                footer=f"Message ID: {before.id} | User ID: {before.author.id}",
+                fields=[
+                    {"name": "Before", "value": before_content or "(empty)", "inline": False},
+                    {"name": "After", "value": after_content or "(empty)", "inline": False},
+                    {"name": "Jump to Message", "value": f"[Click Here]({after.jump_url})", "inline": False},
+                    {"name": "Channel", "value": before.channel.mention, "inline": True}
+                ]
             )
-            
-            embed.add_field(name="Before", value=before_content or "(empty)", inline=False)
-            embed.add_field(name="After", value=after_content or "(empty)", inline=False)
-            embed.set_footer(text=f"Message ID: {before.id} | User ID: {before.author.id}")
-            
-            # Add jump URL
-            embed.add_field(name="Jump to Message", value=f"[Click Here]({after.jump_url})", inline=False)
-            
-            # Send log
+
             await guild_log_channel.send(embed=embed)
             
         except Exception as e:

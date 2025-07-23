@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
 from utils.autocompletes import infraction_autocomplete, dm_autocomplete
-from cyni import is_management
+from cyni import is_management, premium_check
 from discord import app_commands
 from utils.utils import log_command_usage
 from utils.pagination import Pagination
@@ -30,6 +30,8 @@ class Infraction(commands.Cog):
         }
     )
     @is_management()
+    @premium_check()
+    @commands.guild_only()
     @app_commands.autocomplete(
         type=infraction_autocomplete
     )
@@ -243,6 +245,12 @@ class Infraction(commands.Cog):
         }
     )
     @is_management()
+    @app_commands.describe(
+        member="Member to view infractions for",
+        case="Case number to view specific infraction"
+    )
+    @premium_check()
+    @commands.guild_only()
     async def view_infraction(self, ctx, member: discord.Member = None, case: int = None):
         '''
         View the infractions of a staff member.
@@ -353,6 +361,9 @@ class Infraction(commands.Cog):
         aliases=["del"]
     )
     @is_management()
+    @app_commands.describe(case="Case number of the infraction to delete")
+    @premium_check()
+    @commands.guild_only()
     async def delete_infraction(self, ctx, case: int):
         '''
         Delete an infraction.
@@ -385,6 +396,9 @@ class Infraction(commands.Cog):
         }
     )
     @is_management()
+    @app_commands.describe(member="Member to clear infractions for")
+    @premium_check()
+    @commands.guild_only()
     async def clear_infractions(self, ctx, member: discord.Member):
         '''
         Clear all infractions of a staff member.

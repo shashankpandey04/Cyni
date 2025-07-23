@@ -2,16 +2,14 @@ import discord
 import time
 from discord.ext import commands
 from utils.constants import GREEN_COLOR
-from utils.utils import discord_time
+from utils.utils import discord_time, generate_embed
 import datetime
-import asyncio
-import logging
+from cyni import premium_check_fun
 
 class OnMemberJoin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Raid detection tracking
-        self.join_timestamps = {}  # guild_id: [timestamps]
+        self.join_timestamps = {} 
 
     async def _handle_automod_raid_detection(self, member, settings):
         """Handle raid detection AutoMod."""
@@ -24,27 +22,22 @@ class OnMemberJoin(commands.Cog):
         guild_id = member.guild.id
         current_time = time.time()
         
-        # Initialize guild tracking if not exists
         if guild_id not in self.join_timestamps:
             self.join_timestamps[guild_id] = []
             
-        # Add current join timestamp
         self.join_timestamps[guild_id].append(current_time)
         
-        # Clean old timestamps outside time window
         time_window = raid_settings.get("time_window", 10)
         self.join_timestamps[guild_id] = [
             timestamp for timestamp in self.join_timestamps[guild_id]
             if current_time - timestamp <= time_window
         ]
         
-        # Check if threshold exceeded
         join_threshold = raid_settings.get("join_threshold", 5)
         if len(self.join_timestamps[guild_id]) >= join_threshold:
             action = raid_settings.get("action", "kick")
             
             try:
-                # Take action on the member
                 if action == "kick":
                     await member.kick(reason="AutoMod: Raid detection")
                     action_text = "kicked"
@@ -54,26 +47,30 @@ class OnMemberJoin(commands.Cog):
                 else:
                     action_text = "detected"
                 
-                # Send alert
-                embed = discord.Embed(
+                embed = await generate_embed(
+                    guild_id,
                     title="🚨 AutoMod: Raid Detected",
-                    description=f"**Member:** {member.mention}\n**Action:** {action_text}\n**Joins in window:** {len(self.join_timestamps[guild_id])}/{join_threshold}",
-                    color=0xff0000,
-                    timestamp=datetime.datetime.utcnow()
-                )
-                embed.add_field(name="Time Window", value=f"{time_window} seconds", inline=True)
-                embed.add_field(name="Account Created", value=f"<t:{int(member.created_at.timestamp())}:R>", inline=True)
-                embed.set_thumbnail(url=member.display_avatar.url)
+                    category="automod",
+                    description="",
+                    fields=[
+                        {"name": "Member", "value": member.mention, "inline": True},
+                        {"name": "Action", "value": action_text, "inline": True},
+                        {"name": "Joins in Window", "value": f"{len(self.join_timestamps[guild_id])}/{join_threshold}", "inline": True},
+                        {"name": "Time Window", "value": f"{time_window} seconds", "inline": True},
+                        {"name": "Account Created", "value": f"<t:{int(member.created_at.timestamp())}:R>", "inline": True}
+                    ],
+                    footer=f"User ID: {member.id}",
+                ).set_thumbnail(url=member.display_avatar)
                 
                 await self._send_automod_alert(member.guild, raid_settings.get("alert_channel"), embed)
                 
                 return True
                 
             except discord.Forbidden:
-                logging.warning(f"AutoMod: Insufficient permissions to handle raid member {member.id}")
+                print(f"AutoMod: Insufficient permissions to handle raid member {member.id}")
             except Exception as e:
-                logging.error(f"AutoMod raid detection error: {e}")
-        
+                print(f"AutoMod raid detection error: {e}")
+
         return False
 
     async def _send_automod_alert(self, guild, alert_channel_id, embed):
@@ -86,7 +83,7 @@ class OnMemberJoin(commands.Cog):
             if alert_channel:
                 await alert_channel.send(embed=embed)
         except Exception as e:
-            logging.error(f"Error sending AutoMod alert: {e}")
+            print(f"Error sending AutoMod alert: {e}")
 
     async def _send_log_embed(self, channel, embed):
         """Send an embed to the log channel with error handling."""
@@ -149,10 +146,10 @@ class OnMemberJoin(commands.Cog):
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:
                 return
-
-            # Handle AutoMod raid detection first (may result in immediate action)
+            premium_status = await premium_check_fun(self.bot, guild)
+            if premium_status in ["use_premium_bot", "use_regular_bot"]:
+                return
             if await self._handle_automod_raid_detection(member, sett):
-                # If raid action was taken, still log the join but don't process welcome
                 await self._handle_audit_log(member, guild, sett)
                 return
 
@@ -164,7 +161,6 @@ class OnMemberJoin(commands.Cog):
             
         except Exception as e:
             print(f"Error in on_member_join: {e}")
-            logging.error(f"Error in on_member_join: {e}")
 
     async def _handle_audit_log(self, member, guild, sett):
         """Handle audit logging for member join."""
@@ -184,25 +180,35 @@ class OnMemberJoin(commands.Cog):
         else:
             description = f"{member.mention} joined the server on {joined_at}"
         
-        embed = discord.Embed(
+        # embed = discord.Embed(
+        #     title="Member Joined",
+        #     description=description,
+        #     color=GREEN_COLOR
+        # ).add_field(
+        #     name="Account Created",
+        #     value=discord_time(member.created_at),
+        #     inline=True
+        # ).add_field(
+        #     name="Member Count",
+        #     value=str(guild.member_count),
+        #     inline=True
+        # ).set_footer(
+        #     text=f"User ID: {member.id}"
+        # )
+        embed = await generate_embed(
+            guild.id,
             title="Member Joined",
+            category="logging",
             description=description,
-            color=GREEN_COLOR
-        ).add_field(
-            name="Account Created",
-            value=discord_time(member.created_at),
-            inline=True
-        ).add_field(
-            name="Member Count",
-            value=str(guild.member_count),
-            inline=True
-        ).set_footer(
-            text=f"User ID: {member.id}"
+            footer=f"User ID: {member.id}",
+            fields=[
+                {"name": "Account Created", "value": discord_time(member.created_at), "inline": True},
+                {"name": "Member Count", "value": str(guild.member_count), "inline": True}
+            ]
         )
         
-        # Add avatar if available
         if member.avatar:
-            embed.set_thumbnail(url=member.avatar.url)
+            embed.set_thumbnail(url=member.avatar)
         
         await self._send_log_embed(guild_log_channel, embed)
 
@@ -228,13 +234,20 @@ class OnMemberJoin(commands.Cog):
         # Send welcome message
         if use_embed:
             try:
-                embed = discord.Embed(
+                # embed = discord.Embed(
+                #     title=embed_title,
+                #     description=formatted_message,
+                #     color=int(embed_color, 16)
+                # )
+                # if member.avatar:
+                #     embed.set_thumbnail(url=member.avatar)
+                embed = await generate_embed(
+                    guild.id,
                     title=embed_title,
+                    category="customization",
                     description=formatted_message,
-                    color=int(embed_color, 16)
+                    color=int(embed_color, 16) if embed_color else GREEN_COLOR
                 )
-                if member.avatar:
-                    embed.set_thumbnail(url=member.avatar)
                 await self._send_welcome_message(welcome_channel, embed=embed)
             except ValueError:
                 # Invalid color format, fallback to default

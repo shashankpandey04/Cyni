@@ -26,7 +26,7 @@ def automod_settings(guild_id):
         return redirect(url_for('dashboard'))
 
     settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
-    is_premium = settings.get("premium", False)
+    is_premium = mongo_db['premium'].find_one({"_id": guild_id}) is not None
     
     automod_settings = settings.get("automod_module", {})
     

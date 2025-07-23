@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
-from cyni import is_management, is_staff
+from cyni import is_management, is_staff, premium_check
 from discord import app_commands
 from utils.utils import time_converter
 from utils.pagination import Pagination
@@ -44,6 +44,8 @@ class LeaveManager(commands.Cog):
     @is_staff()
     @app_commands.describe(time="The duration of the leave of absence 1d/1w/1m")
     @app_commands.describe(reason="The reason for the leave of absence")
+    @premium_check()
+    @commands.guild_only()
     async def request(self, ctx, time: str, reason: str):
         """
         Apply for a leave of absence.
@@ -155,6 +157,8 @@ class LeaveManager(commands.Cog):
         }
     )
     @is_staff()
+    @premium_check()
+    @commands.guild_only()
     async def view(self, ctx):
         """
         View the all leave of absence applications.
@@ -218,6 +222,8 @@ class LeaveManager(commands.Cog):
         }
     )
     @is_management()
+    @premium_check()
+    @commands.guild_only()
     async def active(self, ctx):
         """
         View the active leave of absence applications.
