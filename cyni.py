@@ -362,9 +362,13 @@ async def erlc_staff_or_management_check(bot, guild, member):
 
 async def premium_check_fun(bot, guild):
     premium = await bot.premium.find_by_id(guild.id)
-    if bot.is_premium and not premium:
-        return "not_premium_server"
-    return True
+    print(f"Checking premium status for {guild.name}: {premium}")
+    if premium is not None:
+        print("Server is premium.")
+        return True
+    else:
+        print("Server is not premium.")
+        return False
 
 def is_staff():
     async def predicate(ctx):

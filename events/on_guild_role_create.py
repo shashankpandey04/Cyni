@@ -18,7 +18,7 @@ class OnGuildRoleCreate(commands.Cog):
         """
         try:
             premium_status = await premium_check_fun(self.bot, role.guild)
-            if premium_status in ["not_premium_server"]:
+            if premium_status in [True] and self.bot.is_premium == False:
                 return
             sett = await self.bot.settings.find_by_id(role.guild.id)
             if not (await self.bot.premium.find_by_id(role.guild.id)) or not self.bot.is_premium:

@@ -35,7 +35,7 @@ class OnMemberUpdate(commands.Cog):
         try:
             guild = before.guild
             premium_status = await premium_check_fun(self.bot, guild)
-            if premium_status in ["not_premium_server"]:
+            if premium_status in [True] and self.bot.is_premium == False:
                 return
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:

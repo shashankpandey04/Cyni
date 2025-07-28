@@ -147,7 +147,7 @@ class OnMemberJoin(commands.Cog):
             if not sett:
                 return
             premium_status = await premium_check_fun(self.bot, guild)
-            if premium_status in ["not_premium_server"]:
+            if premium_status in [True] and self.bot.is_premium == False:
                 return
             if await self._handle_automod_raid_detection(member, sett):
                 await self._handle_audit_log(member, guild, sett)
