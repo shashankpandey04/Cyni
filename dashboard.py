@@ -35,7 +35,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_secret_key')
 # Configure Flask-Session
 mongo_client = MongoClient(os.getenv("MONGO_URI"))
-mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") else mongo_client["dev"]
+mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else mongo_client["dev"]
 sessions_collection = mongo_db["sessions"]
 app.config['SESSION_TYPE'] = 'mongodb'
 app.config['SESSION_MONGODB'] = mongo_client
@@ -225,7 +225,7 @@ def guild(guild_id):
     guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
 
     app_count = mongo_db["applications"].count_documents({"guild_id": guild.id})
-    
+
     return render_template("guild.html", guild=guild, guild_data=guild_data, app_count=app_count)
 
 @app.route('/dashboard/<guild_id>/settings/basics', methods=["GET", "POST"])
@@ -270,8 +270,19 @@ def guild_settings_basics(guild_id):
             upsert=True
         )
         return redirect(url_for("guild_settings_basics", guild_id=guild_id))
+    
+    premium_status = False
+    try:
+        sett = mongo_db["premium"].find_one({"_id": Int64(guild.id)})
+        if sett:
+            premium_status = True
+            flash("Premium status enabled.", "success")
+        else:
+            flash("Premium status not enabled for this guild.", "info")
+    except Exception as e:
+        print(f"Error checking premium status for guild {guild.id}: {e}")
 
-    return render_template("guild_settings_basics.html", guild=guild, guild_data=guild_data, roles=roles)
+    return render_template("guild_settings_basics.html", guild=guild, guild_data=guild_data, roles=roles, premium_status=premium_status)
 
 @app.route('/dashboard/<guild_id>/settings/anti-ping', methods=["GET", "POST"])
 @login_required

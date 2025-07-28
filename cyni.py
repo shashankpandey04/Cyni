@@ -38,6 +38,8 @@ from Datamodels.LOA import LOA
 from Datamodels.voteTracker import voteTracker
 from Datamodels.Premium import Premium
 
+# from Models.modai import ModerationModel
+
 # Custom exceptions for premium checks
 class PremiumCheckError(commands.CheckFailure):
     """Base exception for premium check failures"""
@@ -89,6 +91,8 @@ class Bot(commands.AutoShardedBot):
             self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else self.mongo["dev"]
             self.bot_version = _version
             self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
+            # if self.is_premium:
+            #     self.modai = ModerationModel()
             self.premium_document = Document(self.db, 'premium')
             self.settings_document = Document(self.db, 'settings')
             self.analytics_document = Document(self.db, 'analytics')

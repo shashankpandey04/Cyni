@@ -22,12 +22,17 @@ async def get_prefix(bot, message):
     if settings is None:
         return commands.when_mentioned_or("?")(bot,message)
     try:
+        prefix = None
         customization = settings.get("customization")
         if customization is None:
             return commands.when_mentioned_or("?")(bot,message)
-        prefix = customization.get("prefix")
-        if prefix is None:
-            return commands.when_mentioned_or("?")(bot,message)
+        if bot.is_premium:
+            if customization.get("premium_prefix"):
+                prefix = customization.get("premium_prefix")
+        else:
+            prefix = customization.get("prefix")
+            if prefix is None:
+                return commands.when_mentioned_or("?")(bot,message)
         return prefix
     except KeyError:
         return commands.when_mentioned_or("?")(bot,message)

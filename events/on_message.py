@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 import logging
+
+from numpy import block
 from cyni import afk_users
 import re
 from datetime import timedelta, datetime
@@ -22,6 +24,18 @@ class OnMessage(commands.Cog):
             re.compile(r'(?:[-\w.])+\.(?:com|net|org|edu|gov|mil|int|eu|co\.uk|de|fr|it|es|nl|ca|au|jp|cn|in|br|mx|ru|za|se|no|dk|fi|pl|cz|hu|bg|ro|hr|gr|pt|ie|lu|mt|cy|lv|lt|ee|sk|si)', re.IGNORECASE)
         ]
         self.discord_invite_pattern = re.compile(r'discord\.gg/\w+|discord\.com/invite/\w+|discordapp\.com/invite/\w+', re.IGNORECASE)
+        
+        # AI Moderation Emoji Placeholders - Replace these with actual emojis later
+        self.EMOJI_PLACEHOLDER_USER = "[👤]"
+        self.EMOJI_PLACEHOLDER_CHANNEL = "[📺]"
+        self.EMOJI_PLACEHOLDER_TIME = "[⏰]"
+        self.EMOJI_PLACEHOLDER_MESSAGE = "[💬]"
+        self.EMOJI_PLACEHOLDER_SEVERITY = "[⚠️]"
+        self.EMOJI_PLACEHOLDER_CONFIDENCE = "[📊]"
+        self.EMOJI_PLACEHOLDER_ACTION = "[🎯]"
+        self.EMOJI_PLACEHOLDER_CATEGORIES = "[🏷️]"
+        self.EMOJI_PLACEHOLDER_SCORE = "[📈]"
+        self.EMOJI_PLACEHOLDER_AI = "[🤖]"
 
     def _is_exempt_from_automod(self, member, automod_settings):
         """Check if a member is exempt from AutoMod."""
@@ -478,6 +492,89 @@ class OnMessage(commands.Cog):
         except Exception as e:
             logging.error(f"Error updating staff activity: {e}")
 
+    async def _handle_ai_moderation(self, message, settings):
+        """Handle AI moderation tasks."""
+        if not settings.get("moderation_module", {}).get("ai_moderation", {}).get("enabled", False):
+            return
+
+        try:
+            response = await self.bot.modai.moderate(message.content)
+            if response:
+                if response.get("confidence", 0.0) < 0.5:
+                    return
+                if response.get("severity_level") == "clean":
+                    return
+
+                severity = response.get("severity_level", "clean")
+                color_map = {
+                    "clean": 0x00ff00,      # Green
+                    "mild": 0xffff00,       # Yellow
+                    "moderate": 0xff8800,   # Orange
+                    "severe": 0xff0000      # Red
+                }
+                embed_color = color_map.get(severity, 0xff4444)
+                
+                embed = discord.Embed(
+                    title="🤖 AI Moderation Detection",
+                    description=f"**{self.EMOJI_PLACEHOLDER_USER}** User: {message.author.mention} ({message.author.id})\n**{self.EMOJI_PLACEHOLDER_CHANNEL}** Channel: {message.channel.mention}\n**{self.EMOJI_PLACEHOLDER_TIME}** Time: <t:{int(message.created_at.timestamp())}:R>",
+                    color=embed_color,
+                    timestamp=datetime.utcnow()
+                )
+                
+                # Message content field with truncation
+                message_content = message.content
+                if len(message_content) > 800:
+                    message_content = message_content[:800] + "..."
+                
+                embed.add_field(
+                    name=f"{self.EMOJI_PLACEHOLDER_MESSAGE} **Message Content**",
+                    value=f"```{message_content}```",
+                    inline=False
+                )
+                
+                # Severity and confidence row
+                confidence_percentage = f"{response.get('confidence', 0.0) * 100:.1f}%"
+                embed.add_field(
+                    name=f"{self.EMOJI_PLACEHOLDER_SEVERITY} **Severity**",
+                    value=f"`{severity.title()}`",
+                    inline=True
+                ).add_field(
+                    name=f"{self.EMOJI_PLACEHOLDER_CONFIDENCE} **Confidence**",
+                    value=f"`{confidence_percentage}`",
+                    inline=True
+                ).add_field(
+                    name=f"{self.EMOJI_PLACEHOLDER_ACTION} **Recommended Action**",
+                    value=f"`{response.get('recommended_action', 'unknown').replace('_', ' ').title()}`",
+                    inline=True
+                )
+                
+                # Categories if any detected
+                categories = response.get("categories", [])
+                if categories:
+                    embed.add_field(
+                        name=f"{self.EMOJI_PLACEHOLDER_CATEGORIES} **Detected Categories**",
+                        value=f"`{', '.join(cat.replace('_', ' ').title() for cat in categories)}`",
+                        inline=False
+                    )
+                
+                # Toxicity score breakdown
+                toxicity_score = response.get("toxicity_score", 0.0)
+                score_bar = "█" * int(toxicity_score * 10) + "░" * (10 - int(toxicity_score * 10))
+                embed.add_field(
+                    name=f"{self.EMOJI_PLACEHOLDER_SCORE} **Toxicity Score**",
+                    value=f"`{toxicity_score:.2f}` {score_bar} `({toxicity_score * 100:.1f}%)`",
+                    inline=False
+                )
+                
+                embed.set_footer(
+                    text=f"CYNI AI Moderation System • Powered by Machine Learning {self.EMOJI_PLACEHOLDER_AI}",
+                    icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None
+                )
+                await message.channel.send(embed=embed)
+
+        except Exception as e:
+            logging.error(f"Error in AI moderation: {e}")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """
@@ -488,10 +585,6 @@ class OnMessage(commands.Cog):
                 return
                 
             if not message.guild:
-                return
-            
-            premium = await self.bot.premium.find_by_id(message.guild.id)
-            if premium and not self.bot.is_premium:
                 return
 
             if await self._handle_ping_command(message):
@@ -508,6 +601,9 @@ class OnMessage(commands.Cog):
             settings = await self.bot.settings.get(message.guild.id)
             if not settings:
                 return
+            
+            # if premium and self.bot.is_premium:
+            #     await self._handle_ai_moderation(message, settings)
             
             if await self._handle_automod_spam_detection(message, settings):
                 pass

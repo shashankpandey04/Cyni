@@ -18,35 +18,38 @@ class BasicConfig(discord.ui.View):
         except KeyError:
             staff_roles = []
             management_roles = []
+        prefix = None
         try:
-            prefix = self.sett['customization']['prefix']
+            if self.sett.get('customization', {}).get('premium_prefix'):
+                prefix = self.sett['customization']['premium_prefix']
+            else:
+                prefix = self.sett.get('customization', {}).get('prefix', "?")
         except KeyError:
             prefix = "?"
 
+        prefix_options = ["?", "!", ">", ":"]
+        options = []
+        for opt in prefix_options:
+            options.append(
+            discord.SelectOption(
+                label=opt,
+                value=opt,
+                default=prefix == opt
+            )
+            )
+        if getattr(self.bot, "is_premium", False):
+            premium_prefix = self.sett.get('customization', {}).get('premium_prefix', None)
+            if premium_prefix and premium_prefix not in prefix_options:
+                options.append(
+                    discord.SelectOption(
+                    label=premium_prefix,
+                    value=premium_prefix,
+                    default=prefix == premium_prefix
+                    )
+                )
         self.prefix_button = discord.ui.Select(
             placeholder="Select Prefix",
-            options=[
-                discord.SelectOption(
-                    label="?",
-                    value="?",
-                    default=prefix == "?" or False
-                ),
-                discord.SelectOption(
-                    label="!",
-                    value="!",
-                    default=prefix == "!" or False
-                ),
-                discord.SelectOption(
-                    label=">",
-                    value=">",
-                    default=prefix == ">" or False
-                ),
-                discord.SelectOption(
-                    label=":",
-                    value=":",
-                    default=prefix == ":" or False
-                )
-            ],
+            options=options,
             row=0
         )
         self.prefix_button.callback = self.prefix_callback
@@ -87,7 +90,12 @@ class BasicConfig(discord.ui.View):
         if not isinstance(settings, dict):
             settings = {"_id": interaction.guild.id, "customization": {}}
         try:
-            settings["customization"]["prefix"] = self.prefix_button.values[0]
+            if self.bot.is_premium:
+                premium_server = await self.bot.premium.find_by_id(interaction.guild.id)
+                if premium_server:
+                    settings["customization"]["premium_prefix"] = self.prefix_button.values[0]
+            else:
+                settings["customization"]["prefix"] = self.prefix_button.values[0]
         except KeyError:
             settings = {"_id": interaction.guild.id, "customization": {"prefix": self.prefix_button.values[0]}}
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
