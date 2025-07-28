@@ -103,7 +103,6 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
-    @is_staff()
     @app_commands.describe(reason="Reason for being AFK")
     @premium_check()
     async def afk(self, ctx, *, reason: str = "No reason provided."):

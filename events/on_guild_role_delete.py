@@ -36,7 +36,7 @@ class OnGuildRoleDelete(commands.Cog):
         try:
             guild = role.guild
             premium_status = await premium_check_fun(self.bot, guild)
-            if premium_status in ["use_premium_bot", "use_regular_bot"]:
+            if premium_status in ["not_premium_server"]:
                 return
             sett = await self.bot.settings.find_by_id(guild.id)
             if not sett:

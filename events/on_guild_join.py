@@ -57,7 +57,7 @@ class OnGuildJoin(commands.Cog):
             > **User Count:** {len([member for member in guild.members if not member.bot])}
             > **Guild Count:** {len(self.bot.guilds)}
             """,
-            footer=f"Created at: {created_at}"
+            footer=f"Guild ID: {guild.id}",
         )
         try:
             embed.set_thumbnail(url=guild.icon_url)

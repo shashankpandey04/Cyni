@@ -70,14 +70,6 @@ class CommandErrorHandler(commands.Cog):
                 embed.title = "ERLC Server Not Linked"
                 embed.description = "This Discord server is not linked to an ERLC server. Use `/erlc link` to link your server first."
                 embed.color = BLANK_COLOR
-
-            elif isinstance(error, UseRegularBotError):
-                embed.description = str(error)
-                embed.color = RED_COLOR
-                
-            elif isinstance(error, NotPremiumError):
-                embed.description = str(error)
-                embed.color = RED_COLOR
                 
             elif isinstance(error, commands.CheckFailure):
                 embed.description = "You do not have permission to run this command."

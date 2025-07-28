@@ -360,17 +360,10 @@ async def erlc_staff_or_management_check(bot, guild, member):
         return True
     return False
 
-async def should_block_event(bot, guild):
-    """Check if an event should be blocked due to bot/server premium mismatch."""
-    premium_status = await premium_check_fun(bot, guild)
-    return premium_status in ["use_premium_bot", "use_regular_bot"]
-
 async def premium_check_fun(bot, guild):
     premium = await bot.premium.find_by_id(guild.id)
-    if not premium and bot.is_premium:
-        return "use_regular_bot"
-    if premium and not bot.is_premium:
-        return "use_premium_bot"
+    if bot.is_premium and not premium:
+        return "not_premium_server"
     return True
 
 def is_staff():
@@ -419,10 +412,8 @@ def premium_check():
     """Decorator that only blocks premium servers using non-premium bots"""
     async def predicate(ctx):
         premium_status = await premium_check_fun(ctx.bot, ctx.guild)
-        if premium_status == "use_premium_bot":
-            raise UsePremiumBotError()
-        elif premium_status == "use_regular_bot":
-            raise UseRegularBotError()
+        if premium_status == "not_premium_server":
+            raise NotPremiumError()
         return True
     return commands.check(predicate)
 

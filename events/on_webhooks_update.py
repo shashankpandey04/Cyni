@@ -127,7 +127,7 @@ class OnWebhookUpdate(commands.Cog):
             if not sett:
                 return
             premium_status = await premium_check_fun(self.bot, guild)
-            if premium_status in ["use_premium_bot", "use_regular_bot"]:
+            if premium_status in ["not_premium_server"]:
                 return
             
             moderation_module = sett.get("moderation_module", {})
