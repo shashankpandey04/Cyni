@@ -40,7 +40,7 @@ from Datamodels.LOA import LOA
 from Datamodels.voteTracker import voteTracker
 from Datamodels.Premium import Premium
 
-from Models.modai import ModerationModel
+# from Models.modai import ModerationModel
 
 # Custom exceptions for premium checks
 class PremiumCheckError(commands.CheckFailure):
