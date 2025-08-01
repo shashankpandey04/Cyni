@@ -49,39 +49,17 @@
           <div class="p-6">
             <form method="POST" action="{{ url_for('guild_settings_basics', guild_id=guild.id) }}" id="settingsForm" class="space-y-8">
               <!-- Bot Prefix -->
-               {% if premium_status == True %}
-                <!-- Custom Prefix: User input text -->
-                <div class="space-y-3">
-                  <label for="prefix" class="block text-sm font-medium text-slate-900 dark:text-white">Custom Prefix</label>
-                  <input 
-                    type="text" 
-                    id="prefix" 
-                    name="prefix" 
-                    value="{{ guild_data.get('customization', {}).get('premium_prefix', '') }}" 
-                    class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
-                    placeholder="Enter custom prefix">
-                  <p class="text-xs text-slate-500 dark:text-slate-400">Set a custom prefix for Premium bot.</p>
-                </div>
-              {% else %}
-                <!-- Default Prefix: Dropdown selection -->
-                <div class="space-y-3">
-                  <label for="prefix" class="block text-sm font-medium text-slate-900 dark:text-white">Bot Prefix</label>
-                  <select 
-                    class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
-                    id="prefix" 
-                    name="prefix">
-                    {% for option in ['?', '!', '>', ':'] %}
-                      <option 
-                        value="{{ option }}" 
-                        {% if option == guild_data.get('customization', {}).get('prefix', '?') %}selected{% endif %}
-                        class="py-2 px-2">
-                        {{ option }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">Choose the prefix that users will type before bot commands</p>
-                </div>
-              {% endif %}
+              <div class="space-y-3">
+                <label for="prefix" class="block text-sm font-medium text-slate-900 dark:text-white">Custom Prefix</label>
+                <input 
+                  type="text" 
+                  id="prefix" 
+                  name="prefix" 
+                  value="{{ guild_data.get('customization', {}).get('premium_prefix', '') }}" 
+                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
+                  placeholder="Enter custom prefix">
+                <p class="text-xs text-slate-500 dark:text-slate-400">Set a custom prefix for Premium bot.</p>
+              </div>
 
               <!-- Staff Roles -->
               <div class="space-y-3">
