@@ -46,14 +46,14 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
+                    description = f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
                     color = RED_COLOR
                 )
             )
         if member == ctx.author:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "<:moderation:1268850116798844969> You cannot warn yourself.",
+                    description = f"{self.bot.emoji.get('moderation')} You cannot warn yourself.",
                     color = RED_COLOR
                 )
             )
@@ -80,7 +80,7 @@ class Moderation(commands.Cog):
         await self.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
-                description = f"<:moderation:1268850116798844969> {member.mention} has been warned for `{reason}`.\nCase ID: {total_warnings + 1}",
+                description = f"{self.bot.emoji.get('moderation')}{member.mention} has been warned for `{reason}`.\nCase ID: {total_warnings + 1}",
                 color = GREEN_COLOR
             )
         )
@@ -101,7 +101,7 @@ class Moderation(commands.Cog):
             )
         else:
             embed = discord.Embed(
-                description = "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command.",
+                description = f"{self.bot.emoji.get('moderation')} Moderation log channel not found. Please set up the bot using the `config` command.",
                 color = RED_COLOR
             )
             await ctx.channel.send(
@@ -135,7 +135,7 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
+                    description = f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
                     color = RED_COLOR
                 )
             )
@@ -148,7 +148,7 @@ class Moderation(commands.Cog):
         if not user_warnings:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = f"<:moderation:1268850116798844969> {member.mention} has no warnings.",
+                    description = f"{self.bot.emoji.get('moderation')} {member.mention} has no warnings.",
                     color = GREEN_COLOR
                 )
             )
@@ -191,7 +191,7 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = "<:moderation:1268850116798844969> Moderation module is not enabled.",
+                    description = f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
                     color = RED_COLOR
                 )
             )
@@ -204,7 +204,7 @@ class Moderation(commands.Cog):
         if not user_warning:
             return await ctx.send(
                 embed = discord.Embed(
-                    description = f"<:moderation:1268850116798844969> Warning with case ID {case} not found.",
+                    description = f"{self.bot.emoji.get('moderation')} Warning with case ID {case} not found.",
                     color = GREEN_COLOR
                 )
             )
@@ -213,7 +213,7 @@ class Moderation(commands.Cog):
         await self.warnings.update_by_id(user_warning)
         await ctx.send(
             embed = discord.Embed(
-                description = f"<:moderation:1268850116798844969> Warning with case ID {case} has been voided.",
+                description = f"{self.bot.emoji.get('moderation')} Warning with case ID {case} has been voided.",
                 color = GREEN_COLOR
             )
         )
@@ -229,7 +229,7 @@ class Moderation(commands.Cog):
         else:
             await ctx.channel.send(
                 embed=discord.Embed(
-                    description = "<:moderation:1268850116798844969> Moderation log channel not found. Please set up the bot using the `config` command.",
+                    description = f"{self.bot.emoji.get('moderation')} Moderation log channel not found. Please set up the bot using the `config` command.",
                     color = RED_COLOR
                 )
             )
@@ -261,7 +261,7 @@ class Moderation(commands.Cog):
         if not module_enabled:
             return await ctx.send(
                 embed=discord.Embed(
-                    description="<:moderation:1268850116798844969> Moderation module is not enabled.",
+                    description= f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
                     color=RED_COLOR
                 )
             )
@@ -276,13 +276,13 @@ class Moderation(commands.Cog):
         if not user_warning:
             return await ctx.send(
                 embed=discord.Embed(
-                    description=f"<:moderation:1268850116798844969> Warning with case ID {case} not found.",
+                    description= f"{self.bot.emoji.get('moderation')} Warning with case ID {case} not found.",
                     color=GREEN_COLOR
                 )
             )
         
         embed = discord.Embed(
-            title=f"Case ID: {case}",
+            title= f"{self.bot.emoji.get('moderation')} | Case ID: {case}",
             description=f"**User:** <@{user_warning['user_id']}>\n> **Reason:** {user_warning['reason']}\n> **Moderator:** <@{user_warning['moderator_id']}>\n> **Type:** {user_warning['type']}\n> **Timestamp:** <t:{int(user_warning['timestamp'])}:R>\n> **Status:** {'Active' if user_warning['active'] else 'Void'}",
             color=YELLOW_COLOR
         )
@@ -684,7 +684,7 @@ class Moderation(commands.Cog):
         return await member.send(
             embed = discord.Embed(
                 title = f"You have been muted in {ctx.guild.name}",
-                description = f"**Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                description = f"**Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>\n> **Duration:** {time}\n\nIf you believe this is a mistake, please contact the moderation team.",
                 color = RED_COLOR
             )
         )
@@ -1172,10 +1172,10 @@ class Moderation(commands.Cog):
             if mod_log_channel:
                 await mod_log_channel.send(
                     embed = discord.Embed(
-                        title = "Role Added",
+                        title = f"{self.bot.emoji.get('moderation')} | Role Added",
                         description = f"**User ID:** {member.mention}\n**Role:** {role.mention}\n**Moderator:** {ctx.author.mention}",
                         color = discord.Color.red()
-                    )
+                    ).set_footer(text=f"CYNI Moderation Log | Guild: {ctx.guild.name}", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
                 )
             else:
                 await ctx.channel.send(

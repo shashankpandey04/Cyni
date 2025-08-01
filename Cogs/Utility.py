@@ -85,7 +85,7 @@ class Utility(commands.Cog):
         latency = round(self.bot.latency * 1000)
         embed = discord.Embed(
             title="Cyni",
-            description=f"A multipurpose Discord bot.\n**<:serveronline:1268850002768171098> Uptime:** <t:{int(up_time)}:R>\n**Latency:** {latency}ms\n**Servers:** {len(self.bot.guilds)}\n**Users:** {len(self.bot.users)}\n**Library:** discord.py\n**Creator:** <@{OWNER}>,\n**Version:** `v{_version}`",
+            description=f"A multipurpose Discord bot.\n**{self.bot.emoji.get('latency')}  Uptime:** <t:{int(up_time)}:R>\n**Version:** `v{_version}`",
             color=BLANK_COLOR
         )
         embed.set_author(
@@ -150,11 +150,11 @@ class Utility(commands.Cog):
 
             server_permissions = []
             if user == user.guild.owner:
-                server_permissions.append("<:moderation:1268850116798844969> Server Owner\n")
+                server_permissions.append(f"{self.bot.emoji.get('moderation')} | Server Owner\n")
             elif user.guild_permissions.administrator:
-                server_permissions.append("<:moderation:1268850116798844969> Administrator\n")
+                server_permissions.append(f"{self.bot.emoji.get('moderation')} | Administrator\n")
             elif user.guild_permissions.manage_messages:
-                server_permissions.append("<:moderation:1268850116798844969> Moderator\n")
+                server_permissions.append(f"{self.bot.emoji.get('moderation')} | Moderator\n")
 
             public_flags = [flag[0] for flag in user.public_flags.all()]
             user_flags = []
