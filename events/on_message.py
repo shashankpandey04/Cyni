@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 
-from numpy import block
+# from numpy import block
 from cyni import afk_users
 import re
 from datetime import timedelta, datetime
