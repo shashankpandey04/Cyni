@@ -1,38 +1,37 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Edit Ticket Category | Cyni{% endblock %}
 
 {% block content %}
-<div class="flex h-screen overflow-y-auto bg-gray-900">
-  <!-- Include the sidebar -->
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<!-- Main Layout Container - Unified scroll system -->
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16">
+  <!-- Include Sidebar -->
   {% include 'sidebar.html' %}
-  
-  <!-- Main Content Area -->
-  <div class="flex-1 overflow-y-auto bg-gradient-to-br from-zinc-950 to-zinc-900 p-3 sm:p-6 ml-0 md:ml-64">
-    <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      
+  <!-- Main Content Area with Unified Scroll -->
+  <div class="md:ml-64">
+    <main class="p-6 lg:p-8 max-w-4xl mx-auto">
       <!-- Page Header -->
       <div class="mb-8 flex justify-between items-center">
         <div>
-          <h1 class="text-3xl font-extrabold text-white mb-2">Edit Ticket Category</h1>
-          <p class="text-gray-400">Update settings for "{{ category.name }}"</p>
+          <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Edit Ticket Category</h1>
+          <p class="text-slate-600 dark:text-slate-400">Update settings for "{{ category.name }}"</p>
         </div>
-        <a href="{{ url_for('ticket_module.ticket_settings', guild_id=guild.id) }}" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+        <a href="{{ url_for('ticket_module.ticket_settings', guild_id=guild.id) }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900">
           <i class="fas fa-arrow-left mr-2"></i> Back
         </a>
       </div>
-      
+
       <!-- Form Card -->
-      <div class="bg-gray-800/40 backdrop-blur-lg rounded-xl shadow-lg border border-gray-700/30 overflow-hidden">
-        <div class="border-b border-gray-700/50 p-6">
-          <h3 class="text-xl font-semibold text-white">Category Details</h3>
-          <p class="text-sm text-gray-400 mt-1">Modify this ticket category's settings</p>
+      <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
+        <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
+          <h3 class="text-xl font-semibold text-slate-900 dark:text-white">Category Details</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Modify this ticket category's settings</p>
         </div>
-        
         <div class="p-6">
           <form method="POST" action="{{ url_for('ticket_module.edit_ticket_category', guild_id=guild.id, category_id=category._id) }}">
             <!-- Basic Settings -->
             <div class="mb-6">
-              <label for="category_name" class="block text-sm font-medium text-gray-300 mb-2">Category Name</label>
+              <label for="category_name" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Category Name</label>
               <input 
                 type="text" 
                 class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 

@@ -68,7 +68,6 @@ class PRCLogsProcessor:
             return self.guilds_cache
         
         try:
-            # Find all guilds that have ERLC logging channels configured
             guilds = await self.bot.settings.find({
                 "$or": [
                     {"erlc.kill_logs_channel": {"$exists": True, "$ne": None}},
@@ -76,15 +75,12 @@ class PRCLogsProcessor:
                 ]
             })
             
-            # Update cache
             self.guilds_cache = guilds
             self.last_cache_update = current_time
-            self.logger.info(f"Updated guilds cache with {len(guilds)} guilds")
             
             return guilds
         except Exception as e:
             self.logger.error(f"Error fetching guilds with ERLC config: {e}")
-            # Return cached data if available, otherwise empty list
             return self.guilds_cache if self.guilds_cache else []
 
     async def get_cached_channel(self, channel_id: int):
@@ -94,36 +90,30 @@ class PRCLogsProcessor:
             if channel:
                 self.channels_cache[channel_id] = channel
             else:
-                # Cache None to avoid repeated lookups for invalid channels
                 self.channels_cache[channel_id] = None
         return self.channels_cache[channel_id]
 
     async def process_kill_logs(self, guild_id: int, kill_logs_channel_id: int):
         """Process and send kill logs for a guild."""
         try:
-            # Fetch kill logs from PRC API
             kill_logs: List[ServerKillLogs] = await self.bot.prc_api._fetch_server_killlogs(guild_id)
 
             if not kill_logs:
                 return
 
-            # Get last processed timestamp for this guild
             last_timestamp = self.last_kill_log_timestamp.get(guild_id, 0)
             new_logs = [log for log in kill_logs if log.Timestamp and log.Timestamp > last_timestamp]
 
             if not new_logs:
                 return
 
-            # Sort by timestamp (oldest first for chronological posting)
             new_logs.sort(key=lambda x: x.Timestamp or 0)
 
-            # Get the channel (with caching)
             channel = await self.get_cached_channel(kill_logs_channel_id)
             if not channel:
                 self.logger.warning(f"Kill logs channel {kill_logs_channel_id} not found for guild {guild_id}")
                 return
-
-            # Group logs into batches of 10 to send together
+            
             batch_size = 10
             for i in range(0, len(new_logs), batch_size):
                 batch = new_logs[i:i + batch_size]
@@ -131,11 +121,9 @@ class PRCLogsProcessor:
 
                 for log in batch:
                     try:
-                        # Parse killer and killed info asynchronously
                         killer_name, killer_link = await self._parse_player_info(log.Killer)
                         killed_name, killed_link = await self._parse_player_info(log.Killed)
 
-                        # Create embed for individual kill log
                         embed = discord.Embed(
                             title="🔫 ERLC Kill Log",
                             description=f"{killer_link} killed {killed_link} <t:{int(log.Timestamp)}:R>",

@@ -12,7 +12,7 @@ from Database.Mongo import mongo_db
 
 load_dotenv()
 
-bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
+bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
 ticket_module = Blueprint('ticket_module', __name__)
 
@@ -61,6 +61,12 @@ def new_ticket_category(guild_id):
     if not guild:
         flash('Guild not found', 'danger')
         return redirect(url_for('dashboard'))
+    
+    existing_categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
+    premium = mongo_db["premium"].find_one({"guild_id": guild_id})
+    if len(existing_categories) >= 1 and not premium:
+        flash("Upgrade to CYNI Premium to create more than one ticket category", "danger")
+        return redirect(url_for('ticket_module.ticket_settings', guild_id=guild_id))
         
     member = guild.get_member(int(session["user_id"]))
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
@@ -69,7 +75,6 @@ def new_ticket_category(guild_id):
     
     channels = {channel.id: channel.name for channel in guild.text_channels}
     roles = {role.id: role.name for role in guild.roles}
-    # Get Discord categories for the category selector
     categories = {category.id: category.name for category in guild.categories}
     
     if request.method == 'POST':
@@ -306,27 +311,46 @@ def view_tickets(guild_id):
         flash("You don't have permission to view tickets", "danger")
         return redirect(url_for('dashboard'))
     
-    # Get tickets for this guild
     tickets = list(mongo_db["tickets"].find({"guild_id": guild_id}).sort("created_at", -1))
     
     return render_template("tickets/view_tickets.html", guild=guild, tickets=tickets)
 
-@ticket_module.route('/transcripts/<transcript_id>', methods=['GET'])
-def view_transcript(transcript_id):
-    # Get the transcript
+@ticket_module.route('/transcripts/<guild_id>/<transcript_id>', methods=['GET'])
+def view_transcript(guild_id, transcript_id):
+    guild_id = int(guild_id)
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        flash('Guild not found', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    member = guild.get_member(int(session["user_id"]))
+    if not member:
+        flash("You are not a member of this guild", "danger")
+        return redirect(url_for('dashboard'))
+    
+    has_permission = False
+    if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
+        has_permission = True
+    else:
+        categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
+        for category in categories:
+            if any(role.id in category.get("support_roles", []) for role in member.roles):
+                has_permission = True
+                break
+    if not has_permission:
+        flash("You don't have permission to view transcripts", "danger")
+        return redirect(url_for('dashboard'))
+    
     transcript = mongo_db["ticket_transcripts"].find_one({"_id": transcript_id})
     if not transcript:
         flash("Transcript not found", "danger")
         return redirect(url_for('dashboard'))
     
-    # Get the ticket (if it still exists)
     ticket = mongo_db["tickets"].find_one({"_id": transcript.get("ticket_id")})
     
-    # Get the guild
     guild = bot.get_guild(transcript.get("guild_id"))
     guild_name = guild.name if guild else "Unknown Server"
     
-    # Get messages
     messages = transcript.get("messages", [])
     
     return render_template(
@@ -334,7 +358,8 @@ def view_transcript(transcript_id):
         transcript=transcript, 
         ticket=ticket, 
         messages=messages, 
-        guild_name=guild_name
+        guild_name=guild_name,
+        guild=guild
     )
 
 @ticket_module.route('/transcripts/<guild_id>', methods=['GET'])

@@ -19,6 +19,8 @@ from Tasks.Vote_Tracker import vote_track
 from Tasks.itterate_prc_logs import setup_prc_logs_processor
 
 from utils.prc_api import PRC_API_Client
+from utils.emoji_controller import EmojiController
+
 from decouple import config
 
 from Datamodels.Settings import Settings
@@ -38,7 +40,7 @@ from Datamodels.LOA import LOA
 from Datamodels.voteTracker import voteTracker
 from Datamodels.Premium import Premium
 
-# from Models.modai import ModerationModel
+from Models.modai import ModerationModel
 
 # Custom exceptions for premium checks
 class PremiumCheckError(commands.CheckFailure):
@@ -75,7 +77,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-_version = "8.0.0"
+_version = "8.1.0"
 class Bot(commands.AutoShardedBot):
 
     async def is_owner(self, user: User) -> bool:
@@ -111,6 +113,7 @@ class Bot(commands.AutoShardedBot):
             self.loa_document = Document(self.db, 'loa')
             self.erlc_document = Document(self.db, 'erlc')
             self.vote_tracker_document = voteTracker(self.db, 'vote_tracker')
+            self.emoji = EmojiController(self)
 
     async def close(self):
         print('Closing...')
@@ -148,12 +151,13 @@ class Bot(commands.AutoShardedBot):
         self.erlc = Document(self.db, 'erlc')
         self.vote_tracker = voteTracker(self.db, 'vote_tracker')
         self.premium = Premium(self.db, 'premium')
+        await self.emoji.prefetch_emojis()
 
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
         UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications"]
-        DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube"]
+        DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube", "Cogs.Verify"]
 
 
         for extension in EXT_EXTENSIONS:
@@ -362,12 +366,9 @@ async def erlc_staff_or_management_check(bot, guild, member):
 
 async def premium_check_fun(bot, guild):
     premium = await bot.premium.find_by_id(guild.id)
-    print(f"Checking premium status for {guild.name}: {premium}")
     if premium is not None:
-        print("Server is premium.")
         return True
     else:
-        print("Server is not premium.")
         return False
 
 def is_staff():

@@ -15,8 +15,10 @@ import json
 
 from DashboardModules.WelcomeModule import welcome_route
 from DashboardModules.AutoModModule import automod
+from DashboardModules.TicketModule import ticket_module
+from DashboardModules.loaModule import loa_route
 
-FILES_URL = "https://files.cyni.quprdigital.tk/upload"
+FILES_URL = "https://cyni-file-host.x6xkh0.easypanel.host/upload"
 
 load_dotenv()
 
@@ -29,6 +31,7 @@ DISCORD_API_BASE_URL = "https://discord.com/api"
 OAUTH_SCOPE = "identify guilds"
 MANAGE_MESSAGES_PERMISSION = 0x2000
 ADMINISTRATOR_PERMISSION = 0x8
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -43,9 +46,51 @@ app.config['SESSION_MONGODB_DB'] = mongo_db.name
 app.config['SESSION_USE_SIGNER'] = True
 Session(app)
 
+# --- Anti-scrape filter ---
+import time
+from flask import abort
+from collections import defaultdict
+
+# In-memory store for rate limiting (for production, use Redis or DB)
+_anti_scrape_store = defaultdict(lambda: {'count': 0, 'last': 0, 'ua': ''})
+ANTI_SCRAPE_WINDOW = 30  # seconds
+ANTI_SCRAPE_MAX = 30     # max requests per window
+ANTI_SCRAPE_BAN_TIME = 600  # seconds
+_banned_ips = defaultdict(lambda: 0)
+
+@app.before_request
+def anti_scrape_filter():
+    path = request.path
+    # Only protect API/dashboard routes
+    if path.startswith('/dashboard') or path.startswith('/api'):
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        ua = request.headers.get('User-Agent', '')
+        now = int(time.time())
+        # Block known scraping user-agents
+        bad_agents = ['python-requests', 'curl', 'httpx', 'wget', 'scrapy', 'aiohttp', 'libwww', 'Go-http-client']
+        if any(bad in ua.lower() for bad in bad_agents):
+            abort(429, description="Scraping detected: Bad user-agent.")
+        # Ban check
+        if _banned_ips[ip] and now < _banned_ips[ip]:
+            abort(429, description="Too many requests. Try again later.")
+        # Rate limit
+        store = _anti_scrape_store[ip]
+        if now - store['last'] > ANTI_SCRAPE_WINDOW:
+            store['count'] = 1
+            store['last'] = now
+            store['ua'] = ua
+        else:
+            store['count'] += 1
+            if store['count'] > ANTI_SCRAPE_MAX:
+                _banned_ips[ip] = now + ANTI_SCRAPE_BAN_TIME
+                abort(429, description="Too many requests. You are temporarily blocked.")
+        # Optional: fingerprinting, JS challenge, or CAPTCHA can be added here
+
 # Register Blueprint
 app.register_blueprint(welcome_route)
 app.register_blueprint(automod)
+app.register_blueprint(ticket_module)
+app.register_blueprint(loa_route)
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)
@@ -573,23 +618,29 @@ def manage_application(guild_id, application_id):
         banner_file = request.files.get("banner_image")
         remove_banner = request.form.get("remove_banner") == "true"
 
-        # Handle banner image
         banner_image_url = None
         if remove_banner:
-            banner_image_url = ""  # Empty string to clear the banner
+            banner_image_url = ""
         elif banner_file and banner_file.filename != "":
             try:
-                # Your existing code for banner upload
-                pass
+                if not banner_file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    flash("Invalid file type. Please upload a PNG, JPG, JPEG, or GIF image.", "error")
+                    return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
+                files_response = requests.post(
+                    FILES_URL,
+                    files={"file": (banner_file.filename, banner_file, banner_file.content_type)},
+                )
+                if files_response.status_code == 200:
+                    banner_image_url = files_response.json().get("url")
+                else:
+                    flash("Error uploading banner image.", "error")
             except Exception as e:
                 flash(f"Error uploading banner: {e}", "error")
             try:
-                # Your existing code for banner processing
                 pass
             except Exception as e:
                 flash(f"Error processing banner: {e}", "error")
 
-        # Process questions based on system type
         form_structure = request.form.get("form_structure")
         final_questions = []
         
@@ -637,12 +688,11 @@ def manage_application(guild_id, application_id):
         
         print(f"DEBUG: Final questions to save in manage_application: {final_questions}")
         
-        # If no questions from either method, this is a problem
         if not final_questions:
             print("DEBUG: No questions found - this is the issue!")
             flash("Error: No questions found in the application form. Please add at least one question.", "error")
             return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
-        # Create the base application data
+
         application_data = {
             "guild_id": int(guild_id),
             "name": application_name,
@@ -656,21 +706,17 @@ def manage_application(guild_id, application_id):
             "theme_color": theme_color
         }
         
-        # Update banner image only if we have a new one or are removing it
         if banner_image_url is not None:
             application_data["banner_image"] = banner_image_url
         
-        # Handle form structure (if editing an application with the new system)
         form_structure = request.form.get("form_structure")
         if form_structure:
             try:
                 form_data = json.loads(form_structure)
                 application_data["form_structure"] = form_data
             except:
-                # If JSON parsing fails, continue without form structure
                 pass
         elif "form_structure" in application:
-            # Keep existing form structure if it exists and no new one was provided
             application_data["form_structure"] = application["form_structure"]
 
         mongo_db["applications"].update_one(

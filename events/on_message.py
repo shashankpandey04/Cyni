@@ -515,13 +515,23 @@ class OnMessage(commands.Cog):
                 embed_color = color_map.get(severity, 0xff4444)
                 
                 embed = discord.Embed(
-                    title="🤖 AI Moderation Detection",
-                    description=f"**{self.EMOJI_PLACEHOLDER_USER}** User: {message.author.mention} ({message.author.id})\n**{self.EMOJI_PLACEHOLDER_CHANNEL}** Channel: {message.channel.mention}\n**{self.EMOJI_PLACEHOLDER_TIME}** Time: <t:{int(message.created_at.timestamp())}:R>",
+                    title=f"{self.bot.emoji.get('automod')} CYNI AI Moderation",
+                    #description=f"**{self.EMOJI_PLACEHOLDER_USER}** User: {message.author.mention} ({message.author.id})\n**{self.EMOJI_PLACEHOLDER_CHANNEL}** Channel: {message.channel.mention}\n**{self.EMOJI_PLACEHOLDER_TIME}** Time: <t:{int(message.created_at.timestamp())}:R>",
                     color=embed_color,
-                    timestamp=datetime.utcnow()
+                ).add_field(
+                    name=f"> **User**",
+                    value=f"{message.author.mention} ({message.author.id})",
+                    inline=True
+                ).add_field(
+                    name=f"> **Channel**",
+                    value=message.channel.mention,
+                    inline=True
+                ).add_field(
+                    name=f"> **Timestamp**",
+                    value=f"<t:{int(message.created_at.timestamp())}:R>",
+                    inline=True
                 )
                 
-                # Message content field with truncation
                 message_content = message.content
                 if len(message_content) > 800:
                     message_content = message_content[:800] + "..."
@@ -532,7 +542,6 @@ class OnMessage(commands.Cog):
                     inline=False
                 )
                 
-                # Severity and confidence row
                 confidence_percentage = f"{response.get('confidence', 0.0) * 100:.1f}%"
                 embed.add_field(
                     name=f"{self.EMOJI_PLACEHOLDER_SEVERITY} **Severity**",
@@ -548,7 +557,6 @@ class OnMessage(commands.Cog):
                     inline=True
                 )
                 
-                # Categories if any detected
                 categories = response.get("categories", [])
                 if categories:
                     embed.add_field(
@@ -557,7 +565,6 @@ class OnMessage(commands.Cog):
                         inline=False
                     )
                 
-                # Toxicity score breakdown
                 toxicity_score = response.get("toxicity_score", 0.0)
                 score_bar = "█" * int(toxicity_score * 10) + "░" * (10 - int(toxicity_score * 10))
                 embed.add_field(
@@ -567,7 +574,7 @@ class OnMessage(commands.Cog):
                 )
                 
                 embed.set_footer(
-                    text=f"CYNI AI Moderation System • Powered by Machine Learning {self.EMOJI_PLACEHOLDER_AI}",
+                    text=f"CYNI AI Moderation System",
                     icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None
                 )
                 await message.channel.send(embed=embed)
@@ -602,6 +609,7 @@ class OnMessage(commands.Cog):
             if not settings:
                 return
             
+            # premium = self.bot.premium.find_by_id(message.guild.id)
             # if premium and self.bot.is_premium:
             #     await self._handle_ai_moderation(message, settings)
             

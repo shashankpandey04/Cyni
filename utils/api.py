@@ -1,3 +1,4 @@
+from bson import ObjectId
 from fastapi import FastAPI, APIRouter, Header, HTTPException, Request
 from discord.ext import commands
 from pydantic import BaseModel
@@ -20,10 +21,10 @@ logger = logging.getLogger(__name__)
 # Define the FastAPI app
 api = FastAPI()
 
-bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
+bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
 mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
-db = mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") else mongo["dev"]
+db = mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else mongo["dev"]
 
 import logging
 
@@ -423,40 +424,71 @@ class APIRoutes:
         json_data = await request.json()
         user_id = json_data.get("user_id")
         guild_id = json_data.get("guild_id")
-        loa_id = json_data.get("loa_id")
+        loa_id = json_data.get("id")
         status = json_data.get("status")
+        type = json_data.get("type", "LOA").upper()
+        if type not in ["LOA", "QA"]:
+            return {"message": "Invalid type provided. Must be 'LOA' or 'QA'."}, 400
+        expiry_time = json_data.get("expiry", None)
+
+        if not user_id or not guild_id or not loa_id or not status:
+            logger.error("Missing required parameters in request.")
+            return {"message": "Missing required parameters"}, 400
 
         guild = self.bot.get_guild(guild_id)
         if not guild:
             logger.error(f"Guild not found for ID: {guild_id}")
-            raise HTTPException(status_code=404, detail="Guild not found")
+            return {"message": "Guild not found"}, 404
 
         member = guild.get_member(user_id)
         if not member:
-            logger.error(f"User  not found for ID: {user_id} in guild: {guild.name}")
-            raise HTTPException(status_code=404, detail="User  not found")
+            member = await self.bot.fetch_user(user_id)
+            if not member:
+                logger.error(f"User not found for ID: {user_id} in guild: {guild.name}")
+                return {"message": "User not found"}, 404
 
-        loa_doc = await db.loa.find_one({"_id": loa_id})
+        loa_doc = await db.loa.find_one({"_id": ObjectId(loa_id), "user_id": user_id, "guild_id": guild_id})
         if not loa_doc:
             logger.error(f"LOA request not found for user: {member.name}")
-            raise HTTPException(status_code=404, detail="LOA request not found")
+            return {"message": "LOA request not found"}, 404
         if status == "accepted":
-            await db.loa.update_one({"_id": loa_id}, {"$set": {"accepted": True}})
             embed = discord.Embed(
-                title=f"LOA Approved in {guild.name}",
-                description=f"Your leave of absence request has been approved.",
+                title=f"{type} Notice | {guild.name}",
+                description=f"Your {type} request has been accepted by the management team.\n**Expiry Time:** <t:{int(expiry_time)}:R>" if expiry_time else "No expiry time set.",
                 color=discord.Color.green(),
             )
             await member.send(embed=embed)
 
         elif status == "denied":
-            await db.loa.update_one({"_id": loa_id}, {"$set": {"denied": True}})
             embed = discord.Embed(
-                title=f"LOA Rejected in {guild.name}",
-                description=f"Your leave of absence request has been rejected.",
+                title=f"{type} Notice | {guild.name}",
+                description=f"Your {type} request has been rejected.",
                 color=discord.Color.red(),
             )
             await member.send(embed=embed)
+        
+        elif status == "expired":
+            embed = discord.Embed(
+                title=f"{type} Notice | {guild.name}",
+                description=f"Your {type} request has expired.",
+                color=discord.Color.orange(),
+            )
+            await member.send(embed=embed)
+            await db.loa.update_one(
+                {"_id": ObjectId(loa_id)},
+                {"$set": {"expiry": int(datetime.datetime.now().timestamp())}}
+            )
+
+        elif status == "voided":
+            embed = discord.Embed(
+                title=f"{type} Notice | {guild.name}",
+                description=f"Your {type} request has been voided.",
+                color=discord.Color.grey(),
+            )
+            await member.send(embed=embed)
+        
+        else:
+            return {"message": "Invalid status provided. Must be 'accepted', 'denied', 'expired', or 'voided'."}, 400
 
         return {"message": "LOA status updated successfully"}
 
@@ -486,7 +518,6 @@ class APIRoutes:
         if not guild:
             raise HTTPException(status_code=404, detail="Guild not found")
         
-        # Get ticket category
         category = await db.ticket_categories.find_one({"_id": category_id, "guild_id": int(guild_id)})
         if not category:
             raise HTTPException(status_code=404, detail="Ticket category not found")
@@ -607,7 +638,6 @@ class APIRoutes:
                         self.add_item(close_button)
                     
                     async def close_callback(self, interaction: discord.Interaction):
-                        # Check if user is ticket creator or has support role
                         is_creator = interaction.user.id == ticket_data["user_id"]
                         has_support_role = False
                         
@@ -915,7 +945,61 @@ class APIRoutes:
         except Exception as e:
             logger.error(f"Failed to send vote notification: {e}")
             raise HTTPException(status_code=500, detail="Failed to send vote notification")
-   
+
+    async def POST_create_webhook(
+            self,
+            authorization: Annotated[str | None, Header()],
+            request: Request
+    ):
+        """Create a webhook for a specific channel."""
+        logger.debug("Received POST request to create a webhook.")
+
+        if not authorization:
+            logger.warning("Authorization header is missing.")
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if authorization != bot_token:
+            logger.warning("Invalid or expired authorization for user.")
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        json_data = await request.json()
+        guild_id = json_data.get("guild_id")
+        channel_id = json_data.get("channel_id")
+        purpose = json_data.get("purpose", "Webhook for CYNI Bot")
+
+        if not guild_id or not channel_id:
+            logger.error("Guild ID or Channel ID not provided in the request.")
+            raise HTTPException(status_code=400, detail="Guild ID or Channel ID not provided")
+        
+        guild = self.bot.get_guild(guild_id)
+        if not guild:
+            logger.error(f"Guild not found for ID: {guild_id}")
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        channel = guild.get_channel(channel_id)
+        if not channel:
+            logger.error(f"Channel not found for ID: {channel_id} in guild: {guild.name}")
+            raise HTTPException(status_code=404, detail="Channel not found")
+
+        try:
+            webhooks = await channel.webhooks()
+            for webhook in webhooks:
+                if webhook.user and webhook.user.id == self.bot.user.id:
+                    return {"message": "Webhook already exists", "url": webhook.url}
+                else:
+                    return {"message": "Webhook already exists but not owned by the bot", "url": webhook.url}
+
+            webhook = await channel.create_webhook(name=f"{guild.name} | {purpose}", reason=f"Webhook created by {self.bot.user.name} for {purpose}")
+        except discord.Forbidden:
+            logger.error(f"Bot does not have permission to create webhooks in channel: {channel.name}")
+            return {"message": "Failed to create webhook", "error": "Insufficient permissions"}
+        except Exception as e:
+            logger.error(f"Error creating webhook in channel: {channel.name} - {e}")
+            return {"message": "Failed to create webhook", "error": str(e)}
+
+        logger.debug(f"Created webhook in channel: {channel.name} with ID: {webhook.id}.")
+        return {"message": "Webhook created successfully", "url": webhook.url}
+
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):
     def __init__(self, bot: commands.Bot):

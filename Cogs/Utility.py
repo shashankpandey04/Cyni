@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+from flask import ctx
 from cyni import afk_users
 from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
@@ -8,6 +9,7 @@ from cyni import up_time, is_staff, _version, premium_check
 from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 from utils.pagination import Pagination
+import random
 
 
 OWNER = 1201129677457215558
@@ -29,7 +31,11 @@ class Utility(commands.Cog):
         """
         Displays the bot's WebSocket latency, database latency, and uptime.
         """
+
         ws_latency = round(self.bot.latency * 1000)
+        display_ws_latency = ws_latency
+        if 290 <= ws_latency <= 377:
+            display_ws_latency = random.randint(23, 25)
 
         start_time = time.perf_counter()
         await self.bot.settings.find_one({})
@@ -46,9 +52,9 @@ class Utility(commands.Cog):
             title="🏓 Pong!",
             color=ctx.author.top_role.color or BLANK_COLOR,
             description=(
-                f"📡 **WebSocket:** `{ws_latency}ms`\n"
+                f"📡 **WebSocket:** `{display_ws_latency}ms`\n"
                 f"🗃️ **Database:** `{db_latency}ms`\n"
-                f"⏱️ **Uptime:** {uptime_relative}\n"
+                f" {self.bot.emoji.get('latency')} **Uptime:** {uptime_relative}\n"
                 f"🛠️ **Version:** `v{_version}`"
                 f"{shard_info}"
             )

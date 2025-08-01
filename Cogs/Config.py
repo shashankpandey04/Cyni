@@ -53,11 +53,11 @@ class Config(commands.Cog):
                 description="> This is the basic configuration for your server. But what does it do?\n"
                             "> The basic configuration allows you to set the following settings:\n"
                             "> These settings are crucial for the bot to function properly.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Staff Role**\n"
+                            f"{self.bot.emoji.get('arrow')} **Staff Role**\n"
                             "- The role that is considered as discord staff and can use Moderation commands and other staff commands.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Management Role**\n"
+                            f"{self.bot.emoji.get('arrow')} **Management Role**\n"
                             "- The role that is considered as discord management and can use Management commands link Staff Infraction, Application Results, Ban Appeal Results, etc.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Prefix**\n"
+                            f"{self.bot.emoji.get('arrow')} **Prefix**\n"
                             "- The prefix that the bot will use for commands."
                             ,
                 color=BLANK_COLOR
@@ -67,9 +67,9 @@ class Config(commands.Cog):
                 title="Anti-Ping Module",
                 description="> What is Anti-Ping? Anti-Ping prevents users from pinging specific roles.\n"
                             "> To configure Anti-Ping, you need to set the following settings:\n\n"
-                            "<:anglesmallright:1268850037861908571> **Anti-Ping Roles**\n"
+                            f"{self.bot.emoji.get('arrow')} **Anti-Ping Roles**\n"
                             "- These roles clarify the individuals who are affected by Anti-Ping, and are classed as important individuals to Cyni. An individual who pings someone with these affected roles, will activate Anti-Ping.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Bypass Roles**\n"
+                            f"{self.bot.emoji.get('arrow')} **Bypass Roles**\n"
                             "-  An individual who holds one of these roles will not be able to trigger Anti-Ping filters, and will be able to ping any individual within the Affected Roles list without Cyni intervening."
                             ,
                 color=BLANK_COLOR
@@ -78,11 +78,11 @@ class Config(commands.Cog):
             embed3 = discord.Embed(
                 title="Moderation Module",
                 description="> What is Moderation module? The moderation module allows you to configure the following settings:\n\n"
-                            "<:anglesmallright:1268850037861908571> **Moderation Log Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Moderation Log Channel**\n"
                             "- The channel where moderation logs will be sent.\n"
-                            "<:anglesmallright:1268850037861908571> **Ban Appeal Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Ban Appeal Channel**\n"
                             "- The channel where ban appeals will be sent.\n"
-                            "<:anglesmallright:1268850037861908571> **Audit Log Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Audit Log Channel**\n"
                             "- The channel where audit logs will be sent like message edits, message deletes, etc.",
                 color=BLANK_COLOR
             )
@@ -90,11 +90,11 @@ class Config(commands.Cog):
             embed4 = discord.Embed(
                 title="Staff Infraction Module",
                 description="> What is Staff Management module? The staff management module allows you to configure the following settings:\n"
-                            "<:anglesmallright:1268850037861908571> **Promotion Log Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Promotion Log Channel**\n"
                             "- The channel where staff promotions will be sent.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Demotion Log Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Demotion Log Channel**\n"
                             "- The channel where staff demotions will be sent.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Warning Log Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Warning Log Channel**\n"
                             "- The channel where staff warnings will be sent like staff strikes and warnings."
                             ,
                 color=BLANK_COLOR
@@ -103,11 +103,11 @@ class Config(commands.Cog):
             embed5 = discord.Embed(
                 title="Server Management Module",
                 description="> What is Server Management module? The server management module allows you to configure the following settings:\n\n"
-                            "<:anglesmallright:1268850037861908571> **Application Results Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Application Results Channel**\n"
                             "- The channel where application results will be sent.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Cyni Logging Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Cyni Logging Channel**\n"
                             "- The channel where Cyni command & config change logs will be sent."
-                            "<:anglesmallright:1268850037861908571> **Suggestion Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Suggestion Channel**\n"
                             "- The channel where suggestions will be sent and users can vote on them.",
                 color=BLANK_COLOR
             )
@@ -115,11 +115,11 @@ class Config(commands.Cog):
             embed6 = discord.Embed(
                 title="Partnership Module",
                 description="> **What is Partnership module?**\n The partnership module allows you to configure the following settings:\n\n"
-                            "<:anglesmallright:1268850037861908571> **Partnership Module Enabled**\n"
+                            f"{self.bot.emoji.get('arrow')} **Partnership Module Enabled**\n"
                             "- Enable or disable the partnership module.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Partnership Channel**\n"
+                            f"{self.bot.emoji.get('arrow')} **Partnership Channel**\n"
                             "- The channel where partnership logs will be sent.\n\n"
-                            "<:anglesmallright:1268850037861908571> **Partner Role**\n"
+                            f"{self.bot.emoji.get('arrow')} **Partner Role**\n"
                             "- The role that is considered as a partner and automatically given when a partnership is logged."
                             ,
                 color=BLANK_COLOR
