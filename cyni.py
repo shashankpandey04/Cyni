@@ -156,7 +156,7 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.Tickets", "Cogs.Applications"]
+        UNLOAD_EXTENSIONS = ["Cogs.Applications"]
         DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube", "Cogs.Verify"]
 
 
@@ -191,6 +191,12 @@ class Bot(commands.AutoShardedBot):
                     logging.info(f'Unloaded extension {extension}.')
                 except Exception as e:
                     logging.error(f'Failed to unload extension {extension}.', exc_info=True)
+
+        try:
+            await bot.load_extension("utils.hot_reload")
+            logging.info('Loaded hot reload extension.')
+        except Exception as e:
+            logging.error('Failed to load hot reload extension.', exc_info=True)
 
         logging.info("Loaded all extensions.")
 

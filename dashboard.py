@@ -25,79 +25,80 @@ load_dotenv()
 users = {}
 
 FILE_AUTH_TOKEN = os.getenv("FILE_AUTH_TOKEN")
+CYNI_API_BASE_URL = os.getenv("CYNI_API_BASE_URL", "http://127.0.0.1:5000")
 
-# Constants
 DISCORD_API_BASE_URL = "https://discord.com/api"
 OAUTH_SCOPE = "identify guilds"
 MANAGE_MESSAGES_PERMISSION = 0x2000
 ADMINISTRATOR_PERMISSION = 0x8
 
-
-# Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_secret_key')
-# Configure Flask-Session
+
 mongo_client = MongoClient(os.getenv("MONGO_URI"))
 mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else mongo_client["dev"]
 sessions_collection = mongo_db["sessions"]
-app.config['SESSION_TYPE'] = 'mongodb'
-app.config['SESSION_MONGODB'] = mongo_client
-app.config['SESSION_MONGODB_DB'] = mongo_db.name
-app.config['SESSION_USE_SIGNER'] = True
-Session(app)
 
-# --- Anti-scrape filter ---
-import time
-from flask import abort
-from collections import defaultdict
+def get_bot_guilds():
+    headers = {"Authorization": os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")}
+    response = requests.post(f"{CYNI_API_BASE_URL}/fetch_bot_guilds", headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching bot guilds: {response.status_code} - {response.text}")
+        return []
+    
+def get_guild(guild_id):
+    headers = {"Authorization": os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")}
+    response = requests.post(f"{CYNI_API_BASE_URL}/fetch_guild", params={"guild_id": guild_id}, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching guild {guild_id}: {response.status_code} - {response.text}")
+        return None
+    
+def get_guild_member(guild_id, user_id):
+    headers = {"Authorization": os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")}
+    response = requests.post(
+        f"{CYNI_API_BASE_URL}/fetch_guild_member",
+        params={"guild_id": guild_id, "user_id": user_id},
+        headers=headers,
+    )
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching member {user_id} in guild {guild_id}: {response.status_code} - {response.text}")
+        return None
 
-# In-memory store for rate limiting (for production, use Redis or DB)
-_anti_scrape_store = defaultdict(lambda: {'count': 0, 'last': 0, 'ua': ''})
-ANTI_SCRAPE_WINDOW = 30  # seconds
-ANTI_SCRAPE_MAX = 30     # max requests per window
-ANTI_SCRAPE_BAN_TIME = 600  # seconds
-_banned_ips = defaultdict(lambda: 0)
+def check_permissions(guild_id, user_id):
+    guild = get_guild(guild_id)
+    member = get_guild_member(guild_id, user_id)
+    settings = mongo_db["settings"].find_one({"_id": int(guild_id)})
+    if not guild or not member or not settings:
+        return False
+    if (member.get("is_admin") or member.get("is_manage_guild")):
+        return True
+    if member.get("roles") and any(role in settings.get("basic_settings", {}).get("management_roles", []) for role in member.get("roles", [])):
+        return True
+    return False
 
-@app.before_request
-def anti_scrape_filter():
-    path = request.path
-    # Only protect API/dashboard routes
-    if path.startswith('/dashboard') or path.startswith('/api'):
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        ua = request.headers.get('User-Agent', '')
-        now = int(time.time())
-        # Block known scraping user-agents
-        bad_agents = ['python-requests', 'curl', 'httpx', 'wget', 'scrapy', 'aiohttp', 'libwww', 'Go-http-client']
-        if any(bad in ua.lower() for bad in bad_agents):
-            abort(429, description="Scraping detected: Bad user-agent.")
-        # Ban check
-        if _banned_ips[ip] and now < _banned_ips[ip]:
-            abort(429, description="Too many requests. Try again later.")
-        # Rate limit
-        store = _anti_scrape_store[ip]
-        if now - store['last'] > ANTI_SCRAPE_WINDOW:
-            store['count'] = 1
-            store['last'] = now
-            store['ua'] = ua
-        else:
-            store['count'] += 1
-            if store['count'] > ANTI_SCRAPE_MAX:
-                _banned_ips[ip] = now + ANTI_SCRAPE_BAN_TIME
-                abort(429, description="Too many requests. You are temporarily blocked.")
-        # Optional: fingerprinting, JS challenge, or CAPTCHA can be added here
-
-# Register Blueprint
 app.register_blueprint(welcome_route)
 app.register_blueprint(automod)
 app.register_blueprint(ticket_module)
 app.register_blueprint(loa_route)
 
-# Initialize Flask-Login
 login_manager = LoginManager(app)
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message = "Successfully logged in!"
 
-bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
+app.config["SESSION_TYPE"] = "mongodb"
+app.config["SESSION_MONGODB"] =  mongo_client
+app.config["SESSION_MONGODB_DB"] =  "cyni" if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else "dev"
+app.config["SESSION_MONGODB_COLLECT"] = "sessions"
+Session(app)
+
+bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
 class User(UserMixin):
     def __init__(self, id):
@@ -106,9 +107,26 @@ class User(UserMixin):
     def get_id(self):
         return self.id
 
+@app.before_request
+def ensure_logged_in_user():
+    if "user_id" in session and not current_user.is_authenticated:
+        user_id = session["user_id"]
+        user = load_user(user_id)
+        if user:
+            login_user(user)
+
 @login_manager.user_loader
 def load_user(user_id):
-    return users.get(user_id)
+    if user_id in users:
+        return users[user_id]
+    
+    user_session = mongo_db["sessions"].find_one({"user_id": user_id})
+    if user_session:
+        user_obj = User(user_id)
+        users[user_id] = user_obj
+        return user_obj
+
+    return None
 
 @app.template_filter('datetime')
 def format_datetime(timestamp):
@@ -134,7 +152,7 @@ def callback():
     code = request.args.get("code")
     if not code:
         return "Authorization code not found.", 400
-    
+
     token_response = requests.post(f"{DISCORD_API_BASE_URL}/oauth2/token", data={
         "client_id": os.getenv("DISCORD_CLIENT_ID"),
         "client_secret": os.getenv("DISCORD_CLIENT_SECRET"),
@@ -143,7 +161,7 @@ def callback():
         "redirect_uri": os.getenv("DISCORD_REDIRECT_URI"),
         "scope": OAUTH_SCOPE
     }, headers={"Content-Type": "application/x-www-form-urlencoded"})
-    
+
     if token_response.status_code != 200:
         return f"Failed to fetch token: {token_response.text}", 500
 
@@ -151,10 +169,9 @@ def callback():
     access_token = token_json.get("access_token")
     if not access_token:
         return "Access token not found.", 500
-    
+
     session["access_token"] = access_token
     session["refresh_token"] = token_json.get("refresh_token")
-
     user_response = requests.get(f"{DISCORD_API_BASE_URL}/users/@me", headers={
         "Authorization": f"Bearer {access_token}"
     })
@@ -172,6 +189,20 @@ def callback():
         users[user_json["id"]] = User(user_json["id"])
         login_user(users[user_json["id"]])
 
+    sid = request.cookies.get(app.config['SESSION_COOKIE_NAME'])
+
+    mongo_db["sessions"].update_one(
+        {"user_id": session["user_id"]},
+        {
+            "$set": {
+                "access_token": access_token,
+                "refresh_token": session["refresh_token"],
+                "sid": sid
+            }
+        },
+        upsert=True
+    )
+
     next_url = session.pop('next', '/dashboard')
     return redirect(next_url)
 
@@ -183,42 +214,88 @@ def logout():
     logout_user()
     return redirect(url_for("index"))
 
-@app.route("/docs")
-def docs():
-    return redirect(url_for("index"))
-
-@app.route("/premium")
-def premium():
-    return render_template("premium.html")
-
-@app.route('/giveaway/<message_id>', methods=["GET","POST"])
-def giveaway(message_id):
-    giveaway = mongo_db["giveaways"].find_one({"message_id": int(message_id)})
-    if not giveaway:
-        return redirect(url_for("dashboard"))
-
-    return render_template("active_giveaway.html", guild=guild, giveaway=giveaway)
-
 @app.route("/dashboard")
 def dashboard():
+    if "user_id" not in session or "access_token" not in session:
+        sid = request.cookies.get(app.session_cookie_name)
+        user_session = None
+
+        # Try restoring by user ID or session ID
+        if "user_id" in session:
+            user_session = mongo_db["sessions"].find_one({"user_id": session["user_id"]})
+        elif sid:
+            user_session = mongo_db["sessions"].find_one({"sid": sid})
+
+        # If found, rehydrate session
+        if user_session:
+            session["user_id"] = user_session["user_id"]
+            session["access_token"] = user_session["access_token"]
+            session["refresh_token"] = user_session.get("refresh_token")
+            if user_session["user_id"] not in users:
+                users[user_session["user_id"]] = User(user_session["user_id"])
+            login_user(users[user_session["user_id"]])
+        else:
+            return redirect(url_for("login"))
+
     user_id = session["user_id"]
-    username = session["username"]
+    username = session.get("username", "")
     access_token = session["access_token"]
-    
+
+    if not username:
+        user_response = requests.get(f"{DISCORD_API_BASE_URL}/users/@me", headers={
+            "Authorization": f"Bearer {access_token}"
+        })
+        if user_response.status_code == 200:
+            user_json = user_response.json()
+            session["username"] = user_json["username"]
+            username = user_json["username"]
+
     guilds_response = requests.get(f"{DISCORD_API_BASE_URL}/users/@me/guilds", headers={
         "Authorization": f"Bearer {access_token}"
     })
-    
+
+    if guilds_response.status_code == 401 and "refresh_token" in session:
+        refresh_response = requests.post(f"{DISCORD_API_BASE_URL}/oauth2/token", data={
+            "client_id": os.getenv("DISCORD_CLIENT_ID"),
+            "client_secret": os.getenv("DISCORD_CLIENT_SECRET"),
+            "grant_type": "refresh_token",
+            "refresh_token": session["refresh_token"],
+            "redirect_uri": os.getenv("DISCORD_REDIRECT_URI"),
+            "scope": OAUTH_SCOPE
+        }, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        if refresh_response.status_code == 200:
+            token_json = refresh_response.json()
+            session["access_token"] = token_json["access_token"]
+            session["refresh_token"] = token_json.get("refresh_token", session["refresh_token"])
+            access_token = session["access_token"]
+            # Save to DB
+            mongo_db["sessions"].update_one(
+                {"user_id": session["user_id"]},
+                {"$set": {"access_token": access_token, "refresh_token": session["refresh_token"]}},
+                upsert=True
+            )
+            guilds_response = requests.get(f"{DISCORD_API_BASE_URL}/users/@me/guilds", headers={
+                "Authorization": f"Bearer {access_token}"
+            })
+        else:
+            return redirect(url_for("login"))
+
     if guilds_response.status_code != 200:
         return f"Failed to fetch guilds: {guilds_response.text}", 500
-    
+
     guilds_json = guilds_response.json()
-    
+
     if not isinstance(guilds_json, list):
         return f"Unexpected response format: {guilds_json}", 500
-    
+
     user_guilds = []
-    bot_guild_ids = {str(guild.id) for guild in bot.guilds}
+
+    bot_guild_ids = set()
+    bot_guilds = get_bot_guilds()
+    if bot_guilds:
+        bot_guild_ids = set(bot_guilds)
+    else:
+        bot_guild_ids = set()
 
     official_guild_id = '1152949579407442050'
     affiliated_guild_ids = [guild['guild_id'] for guild in list(mongo_db["affiliated_guilds"].find())]
@@ -228,60 +305,70 @@ def dashboard():
         has_manage_messages = (permissions & MANAGE_MESSAGES_PERMISSION) == MANAGE_MESSAGES_PERMISSION
         is_admin = (permissions & ADMINISTRATOR_PERMISSION) == ADMINISTRATOR_PERMISSION
         is_owner = guild.get("owner", False)
-        bot_present = guild["id"] in bot_guild_ids    
+        bot_present = guild["id"] in bot_guild_ids
+        premium_status = False
+        try:
+            p_check = mongo_db["premium"].find_one({"_id": int(guild["id"])})
+            premium_status = p_check is not None
+        except Exception as e:
+            pass
 
         if (has_manage_messages or is_admin or is_owner) and bot_present:
             user_guilds.append({
                 "id": guild["id"],
                 "name": guild["name"],
                 "icon": guild["icon"],
-                "owner": guild["owner"],
+                "owner": is_owner,
                 "official": True if guild["id"] == official_guild_id else False,
                 "affiliated": True if int(guild["id"]) in affiliated_guild_ids else False,
                 "admin": is_admin,
-                "moderator": has_manage_messages
+                "moderator": has_manage_messages,
+                "premium": premium_status,
+                "member_count": guild.get("member_count", 0),
             })
-            URL = f"http://127.0.0.1:5000/send_latest_audit_logs"
-            # response = requests.post(URL, json={"guild_id": guild["id"]}, headers={"Authorization": bot_token})
-            # if response.status_code == 200:
-            #     audit_logs = response.json()
-            #     if audit_logs:
-            #         guild["audit_logs"] = audit_logs
-            #         print(f"Audit logs for {guild['name']}: {audit_logs}")
-            #     if not audit_logs:
-            #         flash(f"No audit logs found for {guild['name']}.", "info")
-            # else:
-            #     flash(f"Failed to fetch audit logs for {guild['name']}: {response.text}", "error")
-    
+
     session["guilds"] = user_guilds
     return render_template("dashboard.html", user_id=user_id, username=username, user_guilds=user_guilds)
 
 @app.route('/dashboard/<guild_id>', methods=["GET", "POST"])
 @login_required
 def guild(guild_id):
-    guild = bot.get_guild(int(guild_id))
+
+    guild = get_guild(guild_id)
     if not guild:
-        return render_template("404.html"), 404
-    
-    member = guild.get_member(int(session["user_id"]))
-    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
+        flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
 
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
 
-    app_count = mongo_db["applications"].count_documents({"guild_id": guild.id})
+    settings = mongo_db["settings"].find_one({"_id": int(guild_id)})
+    app_count = mongo_db["applications"].count_documents({"guild_id": guild_id})
 
-    return render_template("guild.html", guild=guild, guild_data=guild_data, app_count=app_count)
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+
+    if guild and isinstance(guild.get("created_at", None), str):
+        try:
+            guild["created_at"] = datetime.datetime.fromisoformat(guild["created_at"])
+        except Exception:
+            pass
+    return render_template("guild.html", guild=guild, guild_data=settings, app_count=app_count)
 
 @app.route('/dashboard/<guild_id>/settings/basics', methods=["GET", "POST"])
 @login_required
 def guild_settings_basics(guild_id):
-    guild = bot.get_guild(int(guild_id))
+
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.")
-        return redirect(url_for("guild", guild_id=guild_id))
-    
-    member = guild.get_member(int(session["user_id"]))
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
+
+    member = get_guild_member(guild.get("id"), session["user_id"])
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
         return "You do not have the required permissions to access this page.", 403
 
@@ -317,27 +404,20 @@ def guild_settings_basics(guild_id):
         return redirect(url_for("guild_settings_basics", guild_id=guild_id))
     
     premium_status = False
-    try:
-        sett = mongo_db["premium"].find_one({"_id": Int64(guild.id)})
-        if sett:
-            premium_status = True
-            flash("Premium status enabled.", "success")
-        else:
-            flash("Premium status not enabled for this guild.", "info")
-    except Exception as e:
-        print(f"Error checking premium status for guild {guild.id}: {e}")
-
+    sett = mongo_db["premium"].find_one({"_id": Int64(guild.id)})
+    if sett: premium_status = True
     return render_template("guild_settings_basics.html", guild=guild, guild_data=guild_data, roles=roles, premium_status=premium_status)
 
 @app.route('/dashboard/<guild_id>/settings/anti-ping', methods=["GET", "POST"])
 @login_required
 def anti_ping_settings(guild_id):
-    guild = bot.get_guild(int(guild_id))
+
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.")
-        return redirect(url_for("guild", guild_id=guild_id))
-    
-    member = guild.get_member(int(session["user_id"]))
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
+
+    member = get_guild_member(guild.get("id"), session["user_id"])
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
         return "You do not have the required permissions to access this page.", 403
     
@@ -1366,6 +1446,22 @@ def vote_tracker_api():
         print(f"Failed to notify bot of vote: {e}")
         return jsonify({"error": "Failed to notify bot"}), 500
     return jsonify({"status": "success", "message": "Vote recorded"}), 200
+
+@app.route("/docs")
+def docs():
+    return redirect(url_for("index"))
+
+@app.route("/premium")
+def premium():
+    return render_template("premium.html")
+
+@app.route('/giveaway/<message_id>', methods=["GET","POST"])
+def giveaway(message_id):
+    giveaway = mongo_db["giveaways"].find_one({"message_id": int(message_id)})
+    if not giveaway:
+        return redirect(url_for("dashboard"))
+
+    return render_template("active_giveaway.html", guild=guild, giveaway=giveaway)
 
 def run_production():
     serve(app, host='0.0.0.0', port=80)

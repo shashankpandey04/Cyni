@@ -12,12 +12,9 @@ import time
 class OnMessage(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Track AFK user mentions
-        self.afk_mentions = {}  # {user_id: [{'message_url': str, 'author': str, 'timestamp': datetime}]}
-        # Pre-compile regex for better performance
+        self.afk_mentions = {}
         self.n_word_pattern = re.compile(r'n[i1]gg[aeiou]r?', re.IGNORECASE)
-        # AutoMod tracking
-        self.user_message_cache = {}  # Track user messages for spam detection
+        self.user_message_cache = {}
         self.link_patterns = [
             re.compile(r'https?://(?:[-\w.])+(?:\.[a-zA-Z]{2,4})+(?:/[^\s]*)?', re.IGNORECASE),
             re.compile(r'www\.(?:[-\w.])+(?:\.[a-zA-Z]{2,4})+(?:/[^\s]*)?', re.IGNORECASE),
@@ -25,7 +22,6 @@ class OnMessage(commands.Cog):
         ]
         self.discord_invite_pattern = re.compile(r'discord\.gg/\w+|discord\.com/invite/\w+|discordapp\.com/invite/\w+', re.IGNORECASE)
         
-        # AI Moderation Emoji Placeholders - Replace these with actual emojis later
         self.EMOJI_PLACEHOLDER_USER = "[👤]"
         self.EMOJI_PLACEHOLDER_CHANNEL = "[📺]"
         self.EMOJI_PLACEHOLDER_TIME = "[⏰]"
@@ -41,8 +37,7 @@ class OnMessage(commands.Cog):
         """Check if a member is exempt from AutoMod."""
         exemptions = automod_settings.get("exemptions", {})
         exempt_roles = exemptions.get("roles", [])
-        
-        # Check if user has any exempt roles
+
         user_role_ids = [role.id for role in member.roles]
         return any(role_id in exempt_roles for role_id in user_role_ids)
 
@@ -71,8 +66,7 @@ class OnMessage(commands.Cog):
         
         if not automod_settings.get("enabled", False) or not spam_settings.get("enabled", False):
             return False
-            
-        # Check exemptions
+
         if (self._is_exempt_from_automod(message.author, automod_settings) or 
             self._is_channel_exempt_from_automod(message.channel, automod_settings)):
             return False

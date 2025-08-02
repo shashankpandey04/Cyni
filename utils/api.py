@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import datetime
 import motor.motor_asyncio
 import uuid
+import requests
 
 # Load the environment variables
 load_dotenv()
@@ -20,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 # Define the FastAPI app
 api = FastAPI()
+
+API_LOG_WEBHOOK = "https://discord.com/api/webhooks/1401076834225094730/cm8PpTWrtvV237zUD7ZA3XUilCFRB8BnI2LhhM9qLkOB0lCjhlGWTGjXEQ0uYjFkH493"
 
 bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
@@ -30,7 +33,6 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-# Data Model for Application Status
 class ApplicationStatus(BaseModel):
     guild_id: int
     user_id: int
@@ -513,7 +515,6 @@ class APIRoutes:
         if not guild_id or not category_id:
             raise HTTPException(status_code=400, detail="Missing required parameters")
         
-        # Get guild
         guild = self.bot.get_guild(int(guild_id))
         if not guild:
             raise HTTPException(status_code=404, detail="Guild not found")
@@ -522,12 +523,10 @@ class APIRoutes:
         if not category:
             raise HTTPException(status_code=404, detail="Ticket category not found")
         
-        # Get channel
         channel = guild.get_channel(int(category.get("ticket_channel")))
         if not channel:
             raise HTTPException(status_code=404, detail="Channel not found")
         
-        # Create embed
         embed = discord.Embed(
             title=category.get("embed", {}).get("title", "Support Ticket"),
             description=category.get("embed", {}).get("description", "Click the button below to create a ticket"),
@@ -545,10 +544,8 @@ class APIRoutes:
                 super().__init__(emoji=emoji, label=label, custom_id=custom_id, style=style)
                 
             async def callback(self, interaction: discord.Interaction):
-                # Create a ticket
                 await interaction.response.defer(ephemeral=True)
                 
-                # Check if user already has an open ticket in this category
                 existing_ticket = await db.tickets.find_one({
                     "guild_id": guild.id,
                     "user_id": interaction.user.id,
@@ -565,14 +562,12 @@ class APIRoutes:
                             ephemeral=True
                         )
                 
-                # Create ticket channel
                 overwrites = {
                     guild.default_role: discord.PermissionOverwrite(read_messages=False),
                     interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
                     guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
                 }
                 
-                # Add permissions for support roles
                 for role_id in category.get("support_roles", []):
                     role = guild.get_role(role_id)
                     if role:
@@ -584,16 +579,15 @@ class APIRoutes:
                 channel_name = f"ticket-{ticket_id}-{interaction.user.name}"
                 ticket_channel = None
                 
-                # Get the Discord category if one is specified
                 discord_category = None
                 if category.get("discord_category"):
                     discord_category = guild.get_channel(category.get("discord_category"))
                 
                 try:
                     ticket_channel = await guild.create_text_channel(
-                        name=channel_name[:100],  # Discord has a character limit for channel names
+                        name=channel_name[:100],
                         overwrites=overwrites,
-                        category=discord_category,  # Set the category
+                        category=discord_category,
                         reason=f"Ticket created by {interaction.user.name}"
                     )
                 except Exception as e:
@@ -611,7 +605,11 @@ class APIRoutes:
                     "category_name": category.get("name"),
                     "channel_id": ticket_channel.id,
                     "status": "open",
-                    "created_at": datetime.datetime.now().timestamp()
+                    "created_at": datetime.datetime.now().timestamp(),
+                    "claimed_by": None,
+                    "claimed_at": None,
+                    "messages": [],
+                    "transcript": None
                 }
 
                 await db.tickets.insert_one(ticket_data)
@@ -623,12 +621,9 @@ class APIRoutes:
                     timestamp=datetime.datetime.now()
                 )
                 
-                # Create UI components for ticket management
-                # Use programmatic buttons instead of decorator-based ones to avoid duplicate IDs
                 class TicketActionView(discord.ui.View):
                     def __init__(self):
                         super().__init__(timeout=None)
-                        # Create close button with unique ID
                         close_button = discord.ui.Button(
                             style=discord.ButtonStyle.danger, 
                             label="Close Ticket", 
@@ -636,7 +631,45 @@ class APIRoutes:
                         )
                         close_button.callback = self.close_callback
                         self.add_item(close_button)
-                    
+
+                        claim_button = discord.ui.Button(
+                            style=discord.ButtonStyle.primary, 
+                            label="Claim Ticket",
+                            custom_id=f"claim_ticket:{ticket_data['_id']}"
+                        )
+                        claim_button.callback = self.claim_callback
+                        self.add_item(claim_button)
+
+                    async def claim_callback(self, interaction: discord.Interaction):
+                        if interaction.user.id == ticket_data["user_id"]:
+                            return await interaction.response.send_message(
+                                "You cannot claim your own ticket.",
+                                ephemeral=True
+                            )
+                        if ticket_data["claimed_by"]:
+                            return await interaction.response.send_message(
+                                "This ticket is already claimed by someone else.",
+                                ephemeral=True
+                            )
+                        await db.tickets.update_one(
+                            {"_id": ticket_data["_id"]},
+                            {"$set": {"claimed_by": interaction.user.id, "claimed_at": datetime.datetime.now().timestamp()}}
+                        )
+                        ticket_data["claimed_by"] = interaction.user.id
+                        ticket_data["claimed_at"] = datetime.datetime.now().timestamp()
+                        await interaction.response.send_message(
+                            f"You have claimed the ticket. {interaction.user.mention}",
+                            ephemeral=True
+                        )
+                        ticket_channel = guild.get_channel(ticket_data["channel_id"])
+                        if ticket_channel:
+                            await ticket_channel.send(
+                                f"{interaction.user.mention} has claimed this ticket.",
+                                embed=welcome_embed
+                            )
+                        else:
+                            logger.error(f"Ticket channel {ticket_data['channel_id']} not found.")
+
                     async def close_callback(self, interaction: discord.Interaction):
                         is_creator = interaction.user.id == ticket_data["user_id"]
                         has_support_role = False
@@ -646,20 +679,18 @@ class APIRoutes:
                             if role and role in interaction.user.roles:
                                 has_support_role = True
                                 break
-                                
-                        if not (is_creator or has_support_role):
+
+                        if not has_support_role:
                             return await interaction.response.send_message(
                                 "You don't have permission to close this ticket.",
                                 ephemeral=True
                             )
                         
-                        # Update ticket status
                         await db.tickets.update_one(
                             {"_id": ticket_data["_id"]},
                             {"$set": {"status": "closed"}}
                         )
                         
-                        # Send closing message
                         closing_embed = discord.Embed(
                             title="Ticket Closed",
                             description=f"This ticket has been closed by {interaction.user.mention}.",
@@ -667,11 +698,9 @@ class APIRoutes:
                             timestamp=datetime.datetime.now()
                         )
                         
-                        # Create delete view with unique ID
                         class DeleteView(discord.ui.View):
                             def __init__(self):
                                 super().__init__(timeout=None)
-                                # Create delete button with unique ID
                                 delete_button = discord.ui.Button(
                                     style=discord.ButtonStyle.danger, 
                                     label="Delete Ticket", 
@@ -687,9 +716,6 @@ class APIRoutes:
                                         ephemeral=True
                                     )
                                 
-                                await interaction.response.defer()
-                                
-                                # Archive ticket messages
                                 messages = []
                                 async for message in ticket_channel.history(limit=None, oldest_first=True):
                                     if message.content or message.embeds:
@@ -701,7 +727,6 @@ class APIRoutes:
                                             "attachments": [{"url": attachment.url, "filename": attachment.filename} for attachment in message.attachments]
                                         })
                                 
-                                # Create transcript
                                 transcript_id = str(uuid.uuid4())
                                 transcript_data = {
                                     "_id": transcript_id,
@@ -716,14 +741,11 @@ class APIRoutes:
                                     "created_at": datetime.datetime.now().timestamp()
                                 }
                                 
-                                # Save transcript to database
                                 await db.ticket_transcripts.insert_one(transcript_data)
                                 
-                                # Generate transcript link
                                 base_url = os.getenv("BASE_URL", "https://cyni.quprdigital.tk")
                                 transcript_url = f"{base_url}/transcripts/{transcript_id}"
                                 
-                                # Send transcript to designated channel if configured
                                 transcript_channel_id = category.get("transcript_channel")
                                 if transcript_channel_id:
                                     transcript_channel = guild.get_channel(int(transcript_channel_id))
@@ -754,7 +776,6 @@ class APIRoutes:
                                 
                                 await interaction.followup.send(embed=transcript_embed)
                                 
-                                # Delete channel
                                 try:
                                     await ticket_channel.delete(reason=f"Ticket deleted by {interaction.user.name}")
                                 except Exception as e:
@@ -999,6 +1020,159 @@ class APIRoutes:
 
         logger.debug(f"Created webhook in channel: {channel.name} with ID: {webhook.id}.")
         return {"message": "Webhook created successfully", "url": webhook.url}
+
+    async def POST_fetch_guild(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Takes GuildID and returns discord.Guild object."""
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+        
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        # Try to get guild_id from query params first, then from JSON body
+        guild_id = request.query_params.get("guild_id")
+        if not guild_id:
+            try:
+                json_data = await request.json()
+                guild_id = json_data.get("guild_id")
+            except Exception:
+                guild_id = None
+
+        if not guild_id:
+            raise HTTPException(status_code=400, detail="Guild ID not provided")
+        
+        guild = self.bot.get_guild(int(guild_id))
+        if not guild:
+            raise HTTPException(status_code=404, detail="Guild not found")
+        logger.debug(f"Retrieved guild: {guild.name} with ID: {guild.id}.")
+        return {
+            "id": str(guild.id),
+            "name": guild.name,
+            "icon_url": guild.icon.url if guild.icon else None,
+            "owner_id": str(guild.owner_id),
+            "member_count": guild.member_count,
+            "features": guild.features,
+            "is_large": guild.large,
+            "permissions": guild.me.guild_permissions.value,
+            "premium_tier": guild.premium_tier,
+            "premium_subscription_count": guild.premium_subscription_count,
+            "created_at": guild.created_at.isoformat(),
+            "description": guild.description if hasattr(guild, 'description') else None,
+            "splash_url": guild.splash.url if guild.splash else None,
+            "banner_url": guild.banner.url if guild.banner else None,
+            "owner": {
+                "id": str(guild.owner.id),
+                "name": guild.owner.name,
+                "discriminator": guild.owner.discriminator,
+                "avatar_url": guild.owner.avatar.url if guild.owner.avatar else None
+            }
+        }
+    
+    async def POST_get_guild_members(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Takes GuildID and returns a list of members in the guild."""
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        json_data = await request.json()
+        guild_id = json_data.get("guild_id")
+
+        if not guild_id:
+            raise HTTPException(status_code=400, detail="Guild ID not provided")
+
+        guild = self.bot.get_guild(int(guild_id))
+        if not guild:
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        members = []
+        for member in guild.members:
+            members.append({
+                "id": str(member.id),
+                "name": member.name,
+                "discriminator": member.discriminator,
+                "avatar_url": member.avatar.url if member.avatar else None,
+                "joined_at": member.joined_at,
+                "roles": [str(role.id) for role in member.roles]
+            })
+
+        logger.debug(f"Retrieved members for guild: {guild.name} with ID: {guild.id}.")
+        return {"members": members}
+    
+    async def POST_fetch_guild_member(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Takes GuildID and returns a member in the guild, only if they have manage_guild or administrator permissions."""
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        guild_id = request.query_params.get("guild_id")
+        user_id = request.query_params.get("user_id")
+        if not guild_id or not user_id:
+            try:
+                json_data = await request.json()
+                guild_id = guild_id or json_data.get("guild_id")
+                user_id = user_id or json_data.get("user_id")
+            except Exception:
+                pass
+
+        if not user_id:
+            raise HTTPException(status_code=400, detail="User ID not provided")
+
+        if not guild_id:
+            raise HTTPException(status_code=400, detail="Guild ID not provided")
+
+        guild = self.bot.get_guild(int(guild_id))
+        if not guild:
+            raise HTTPException(status_code=404, detail="Guild not found")
+
+        member = guild.get_member(int(user_id))
+        if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
+            return {"message": "Member not found or does not have the required permissions."}
+
+        logger.debug(f"Retrieved member for guild: {guild.name} with ID: {guild.id}.")
+        doc = {
+            "id": str(member.id),
+            "name": member.name,
+            "discriminator": member.discriminator,
+            "avatar_url": member.avatar.url if member.avatar else None,
+            "joined_at": member.joined_at,
+            "roles": [str(role.id) for role in member.roles],
+            "is_admin": True if member.guild_permissions.administrator else False,
+            "is_manage_guild": True if member.guild_permissions.manage_guild else False
+        }
+        return doc
+    
+    async def POST_fetch_bot_guilds(
+        self,
+        authorization: Annotated[str, Header()]
+    ):
+        """Returns a list of guilds the bot is in."""
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        guilds = self.bot.guilds
+        if not guilds:
+            logger.debug("Bot is not in any guilds.")
+            return {}
+        return {str(guild.id) for guild in guilds}
 
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):

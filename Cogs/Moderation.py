@@ -14,7 +14,6 @@ import asyncio
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.warnings = Warnings(bot.db,"warnings")
 
     @commands.hybrid_command(
         name="warn",
@@ -28,44 +27,51 @@ class Moderation(commands.Cog):
         reason="Reason for the warning"
     )
     @premium_check()
-    async def warn(self, ctx, member: discord.Member, *, reason: str):
+    async def warn(self, ctx, member: discord.Member, *, reason: str = None):
         """
         Warn a user.
         """
-        if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Warn {member}")
+        if reason is None:
+            return await ctx.send(
+                embed=discord.Embed(
+                    description="Please provide a reason for the warning.",
+                    color=RED_COLOR
+                )
+            )
+        if isinstance(ctx, commands.Context):
+            await log_command_usage(self.bot, ctx.guild, ctx.author, f"Warn {member}")
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = RED_COLOR
+                embed=discord.Embed(
+                    description="No settings found.\nPlease set up the bot using the `config` command.",
+                    color=RED_COLOR
                 )
             )
-        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
+        module_enabled = settings.get("moderation_module", {}).get("enabled", False)
         if not module_enabled:
             return await ctx.send(
-                embed = discord.Embed(
-                    description = f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
-                    color = RED_COLOR
+                embed=discord.Embed(
+                    description=f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
+                    color=RED_COLOR
                 )
             )
         if member == ctx.author:
             return await ctx.send(
-                embed = discord.Embed(
-                    description = f"{self.bot.emoji.get('moderation')} You cannot warn yourself.",
-                    color = RED_COLOR
+                embed=discord.Embed(
+                    description=f"{self.bot.emoji.get('moderation')} You cannot warn yourself.",
+                    color=RED_COLOR
                 )
             )
 
-        total_warnings = await self.warnings.find(
+        total_warnings = await self.bot.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
         )
         total_warnings = len(total_warnings)
 
-        doc ={
+        doc = {
             'guild_id': ctx.guild.id,
             'user_id': member.id,
             'reason': reason,
@@ -75,42 +81,42 @@ class Moderation(commands.Cog):
             'active': True,
             'void': False,
             'type': 'warn',
-        }            
+        }
 
-        await self.warnings.insert_one(doc)
+        await self.bot.warnings.insert_one(doc)
         await ctx.send(
-            embed = discord.Embed(
-                description = f"{self.bot.emoji.get('moderation')}{member.mention} has been warned for `{reason}`.\nCase ID: {total_warnings + 1}",
-                color = GREEN_COLOR
+            embed=discord.Embed(
+                description=f"{self.bot.emoji.get('moderation')}{member.mention} has been warned for `{reason}`.\nCase ID: {total_warnings + 1}",
+                color=GREEN_COLOR
             )
         )
         await member.send(
-            embed = discord.Embed(
-                description = f"You have been warned in **{ctx.guild.name}**\n\n**Case ID:** {total_warnings + 1}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
-                color = RED_COLOR
+            embed=discord.Embed(
+                description=f"You have been warned in **{ctx.guild.name}**\n\n**Case ID:** {total_warnings + 1}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                color=RED_COLOR
             )
         )
-        log_channel = ctx.guild.get_channel(settings.get("moderation_module",{}).get("mod_log_channel",0))
+        log_channel = ctx.guild.get_channel(settings.get("moderation_module", {}).get("mod_log_channel", 0))
         if log_channel != 0:
             await log_channel.send(
-                embed = discord.Embed(
-                    title = f"Case {total_warnings + 1} | Warn",
-                    description = f"**User:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
-                    color = GREEN_COLOR
+                embed=discord.Embed(
+                    title=f"Case {total_warnings + 1} | Warn",
+                    description=f"**User:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                    color=GREEN_COLOR
                 )
             )
         else:
             embed = discord.Embed(
-                description = f"{self.bot.emoji.get('moderation')} Moderation log channel not found. Please set up the bot using the `config` command.",
-                color = RED_COLOR
+                description=f"{self.bot.emoji.get('moderation')} Moderation log channel not found. Please set up the bot using the `config` command.",
+                color=RED_COLOR
             )
             await ctx.channel.send(
-                embed = embed
+                embed=embed
             )
 
     @commands.hybrid_command(
         name="warnings",
-        aliases=["warns"],
+        aliases=["warns", "modlogs"],
         extras={"category": "Moderation"}
     )
     @commands.guild_only()
@@ -123,44 +129,74 @@ class Moderation(commands.Cog):
         """
         Get the warnings for a user.
         """
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if not settings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = RED_COLOR
+        try:
+            settings = await self.bot.settings.find_by_id(ctx.guild.id)
+            if not settings:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "No settings found.\nPlease set up the bot using the `config` command.",
+                        color = RED_COLOR
+                    )
                 )
-            )
-        module_enabled = settings.get("moderation_module",{}).get("enabled",False)
-        if not module_enabled:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
-                    color = RED_COLOR
+            module_enabled = settings.get("moderation_module",{}).get("enabled",False)
+            if not module_enabled:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = f"{self.bot.emoji.get('moderation')} Moderation module is not enabled.",
+                        color = RED_COLOR
+                    )
                 )
+            user_warnings = await self.bot.warnings.find(
+                {
+                    'guild_id': ctx.guild.id,
+                    'user_id': member.id,
+                }
             )
-        user_warnings = await self.warnings.find_one(
-            {
-                'guild_id': ctx.guild.id,
-                'user_id': member.id,
-            }
-        )
-        if not user_warnings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = f"{self.bot.emoji.get('moderation')} {member.mention} has no warnings.",
-                    color = GREEN_COLOR
+            if not user_warnings:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = f"{self.bot.emoji.get('moderation')} {member.mention} has no warnings.",
+                        color = GREEN_COLOR
+                    )
                 )
+            embed = discord.Embed(
+                title = f"{member.name}'s Warnings",
+                description=" ",
+                color = RED_COLOR
             )
-        embed = discord.Embed(
-            title = f"{member.name}'s Warnings",
-            description=" ",
-            color = RED_COLOR
-        )
-        for warning in user_warnings["warnings"]:
-            embed.description += f"**Case ID:** {warning['case_id']}\n> **Reason:** {warning['reason']}\n> **Moderator:** <@{warning['moderator_id']}>\n> **Type:** {warning['type']}\n> **Timestamp:** <t:{int(warning['timestamp'])}:R>\n> **Status:** {'Active' if warning['active'] else 'Void'}\n\n"
+            for warning in user_warnings:
+                if warning['type'] == 'mute':
+                    try:
+                        duration = warning['duration']
+                    except KeyError:
+                        duration = "No duration specified"
+                    embed.description += (
+                        f"**Case ID:** {warning['case_id']}\n"
+                        f"> **Reason:** {warning['reason']}\n"
+                        f"> **Moderator:** <@{warning['moderator_id']}>\n"
+                        f"> **Type:** {warning['type']}\n"
+                        f"> **Timestamp:** <t:{int(warning['timestamp'])}:R>\n"
+                        f"> **Duration:** {duration}\n"
+                        f"> **Status:** {'Active' if warning['active'] else 'Voided'}\n\n"
+                    )
+                else:
+                    embed.description += (
+                        f"**Case ID:** {warning['case_id']}\n"
+                        f"> **Reason:** {warning['reason']}\n"
+                        f"> **Moderator:** <@{warning['moderator_id']}>\n"
+                        f"> **Type:** {warning['type']}\n"
+                        f"> **Timestamp:** <t:{int(warning['timestamp'])}:R>\n"
+                        f"> **Status:** {'Active' if warning['active'] else 'Voided'}\n\n"
+                    )
 
-        await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
+        except Exception as e:
+            await ctx.send(
+                embed = discord.Embed(
+                    description = f"An error occurred while fetching warnings for {member.mention}: {str(e)}",
+                    color = RED_COLOR
+                )
+            )
 
     @commands.hybrid_command(
         name="void",
@@ -195,7 +231,7 @@ class Moderation(commands.Cog):
                     color = RED_COLOR
                 )
             )
-        user_warning = await self.warnings.find_one(
+        user_warning = await self.bot.warnings.find_one(
             {
                 'guild_id': ctx.guild.id,
                 'case_id': case,
@@ -210,7 +246,7 @@ class Moderation(commands.Cog):
             )
         user_warning['active'] = False
         user_warning['void'] = True
-        await self.warnings.update_by_id(user_warning)
+        await self.bot.warnings.update_by_id(user_warning)
         await ctx.send(
             embed = discord.Embed(
                 description = f"{self.bot.emoji.get('moderation')} Warning with case ID {case} has been voided.",
@@ -266,7 +302,7 @@ class Moderation(commands.Cog):
                 )
             )
         
-        user_warning = await self.warnings.find_one(
+        user_warning = await self.bot.warnings.find_one(
             {
                 'guild_id': ctx.guild.id,
                 'case_id': case,
@@ -332,7 +368,7 @@ class Moderation(commands.Cog):
                 )
             )
 
-        total_warnings = await self.warnings.find(
+        total_warnings = await self.bot.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
@@ -350,7 +386,7 @@ class Moderation(commands.Cog):
             'void': False,
             'type': 'kick',
         }
-        await self.warnings.insert_one(doc)
+        await self.bot.warnings.insert_one(doc)
 
         await member.kick(reason=reason)
         await ctx.send(
@@ -424,7 +460,7 @@ class Moderation(commands.Cog):
             )
         await member.ban(reason=reason)
         
-        total_warnings = await self.warnings.find(
+        total_warnings = await self.bot.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
@@ -442,7 +478,7 @@ class Moderation(commands.Cog):
             'void': False,
             'type': 'ban',
         }
-        await self.warnings.insert_one(doc)
+        await self.bot.warnings.insert_one(doc)
 
         await ctx.send(
             embed = discord.Embed(
@@ -531,7 +567,7 @@ class Moderation(commands.Cog):
         member = discord.Object(id=userid)
         await ctx.guild.unban(member, reason=reason)
 
-        total_warnings = await self.warnings.find(
+        total_warnings = await self.bot.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
@@ -549,7 +585,7 @@ class Moderation(commands.Cog):
             'void': False,
             'type': 'unban',
         }
-        await self.warnings.insert_one(doc)
+        await self.bot.warnings.insert_one(doc)
 
         await ctx.send(
             embed = discord.Embed(
@@ -593,7 +629,6 @@ class Moderation(commands.Cog):
         """
         if isinstance(ctx,commands.Context):
             await log_command_usage(self.bot,ctx.guild,ctx.author,f"Mute {member} for {time}")
-        print(time)
         settings = await self.bot.settings.find_by_id(ctx.guild.id)
         if not settings:
             return await ctx.send(
@@ -610,8 +645,8 @@ class Moderation(commands.Cog):
                     color = RED_COLOR
                 )
             )
-        time = parse_duration(time)
-        if not time:
+        converted_time = parse_duration(time)
+        if not converted_time:
             return await ctx.send(
                 embed = discord.Embed(
                     description = "Invalid duration.",
@@ -626,9 +661,9 @@ class Moderation(commands.Cog):
                     color=RED_COLOR
                 )
             )
-        time = discord.utils.utcnow() + timedelta(seconds=time)
+        converted_time = discord.utils.utcnow() + timedelta(seconds=converted_time)
         try:
-            await member.edit(timed_out_until=time, reason=reason)
+            await member.edit(timed_out_until=converted_time, reason=reason)
         except Exception as e:
             return await ctx.send(
                 embed = discord.Embed(
@@ -639,7 +674,7 @@ class Moderation(commands.Cog):
                     value=str(e)
                 )
             )
-        total_warnings = await self.warnings.find(
+        total_warnings = await self.bot.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
@@ -655,9 +690,10 @@ class Moderation(commands.Cog):
             'active': True,
             'void': False,
             'type': 'mute',
+            'duration': time,
         }
 
-        await self.warnings.insert_one(doc)
+        await self.bot.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
                 title=f"Case ID: {total_warnings + 1}",
@@ -670,7 +706,7 @@ class Moderation(commands.Cog):
             await mod_log_channel.send(
                 embed = discord.Embed(
                     title = f"Case ID: {total_warnings + 1} | User Muted",
-                    description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
+                    description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>\n> **Duration:** {time}",
                     color = RED_COLOR
                 )
             )
@@ -731,7 +767,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        total_warnings = await self.warnings.find(
+        total_warnings = await self.bot.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
@@ -748,7 +784,7 @@ class Moderation(commands.Cog):
             'void': False,
             'type': 'unmute',
         }
-        await self.warnings.insert_one(doc)
+        await self.bot.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
                 title=f"Case ID: {total_warnings + 1}",
@@ -1430,7 +1466,7 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        total_warnings = await self.warnings.find(
+        total_warnings = await self.bot.warnings.find(
             {
                 'guild_id': ctx.guild.id,
             }
@@ -1447,7 +1483,7 @@ class Moderation(commands.Cog):
             'void': False,
             'type': 'softban',
         }
-        await self.warnings.insert_one(doc)
+        await self.bot.warnings.insert_one(doc)
         await ctx.send(
             embed = discord.Embed(
                 title=f"Case ID: {total_warnings + 1}",
