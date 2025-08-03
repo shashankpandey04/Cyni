@@ -19,15 +19,14 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Define the FastAPI app
 api = FastAPI()
-
-API_LOG_WEBHOOK = "https://discord.com/api/webhooks/1401076834225094730/cm8PpTWrtvV237zUD7ZA3XUilCFRB8BnI2LhhM9qLkOB0lCjhlGWTGjXEQ0uYjFkH493"
 
 bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
 mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
 db = mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else mongo["dev"]
+
+api_token = os.getenv("API_TOKEN", "default_api_token")
 
 import logging
 
@@ -48,11 +47,9 @@ class TicketEmbedRequest(BaseModel):
     category_id: str
 
 
-# Authorization validation function
 async def validate_authorization(bot, token: str):
     """Validate the authorization token."""
-    static_token = bot_token
-    if token == static_token:
+    if token == api_token:
         return True
     return False
 
@@ -109,7 +106,7 @@ class APIRoutes:
             ]
         return mutual_guilds
 
-    async def POST_guild_roles(
+    async def POST_fetch_guild_roles(
         self,
         authorization: Annotated[str | None, Header()],
         request: Request
@@ -123,13 +120,13 @@ class APIRoutes:
         guild_id = json_data.get("guild_id")
         if not guild_id:
             raise HTTPException(status_code=400, detail="Guild ID not provided")
-        guild = self.bot.get_guild(guild_id)
+        guild = self.bot.get_guild(int(guild_id))
         if not guild:
             raise HTTPException(status_code=404, detail="Guild not found")
-        roles = [{"id": role.id, "name": role.name} for role in guild.roles]
+        roles = {role.id: role.name for role in guild.roles}
         return roles
     
-    async def POST_guild_channels(
+    async def POST_fetch_guild_channels(
         self,
         authorization: Annotated[str | None, Header()],
         request: Request
@@ -143,11 +140,11 @@ class APIRoutes:
         guild_id = json_data.get("guild_id")
         if not guild_id:
             raise HTTPException(status_code=400, detail="Guild ID not provided")
-        guild = self.bot.get_guild(guild_id)
+        guild = self.bot.get_guild(int(guild_id))
         if not guild:
             raise HTTPException(status_code=404, detail="Guild not found")
-        channels = [{"id": channel.id, "name": channel.name} for channel in guild.channels]
-        return channels, 200
+        channels = {channel.id: channel.name for channel in guild.channels}
+        return channels
 
     async def POST_guild_members(
         self,

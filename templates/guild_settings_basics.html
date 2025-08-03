@@ -3,21 +3,15 @@
 {% block title %}Basic Settings | Cyni{% endblock %}
 
 {% block content %}
-<!-- Main Layout Container - Unified scroll system -->
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16">
-  <!-- Include Sidebar -->
   {% include 'sidebar.html' %}
-  
-  <!-- Main Content Area with Unified Scroll -->
   <div class="md:ml-64">
     <main class="p-6 lg:p-8 max-w-7xl mx-auto">
-      <!-- Page Header -->
       <div class="mb-8">
         <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Basic Settings</h1>
         <p class="text-slate-600 dark:text-slate-400">This module allows you to configure the basic settings for the bot.</p>
       </div>
         
-        <!-- Status Card -->
         <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden mb-8">
           <div class="p-6">
             <div class="flex items-center">
@@ -28,18 +22,13 @@
                 <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Basic Settings</h2>
                 <p class="text-sm text-slate-600 dark:text-slate-400">
                   Currently <span class="text-green-400">Active</span> and using the following prefix: 
-                  {% if premium_status %}
-                    <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{{ guild_data.get('customization', {}).get('premium_prefix', '') }}</code>
-                  {% else %}
-                    <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{{ guild_data.get('customization', {}).get('prefix', '?') }}</code>
-                  {% endif %}
+                  <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{{ guild_data.get('customization', {}).get('prefix', '?') }}</code>
                 </p>                      
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Settings Form -->
         <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
           <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
             <h3 class="text-xl font-semibold text-slate-900 dark:text-white">Basic Settings</h3>
@@ -48,58 +37,28 @@
 
           <div class="p-6">
             <form method="POST" action="{{ url_for('guild_settings_basics', guild_id=guild.id) }}" id="settingsForm" class="space-y-8">
-              <!-- Bot Prefix -->
               <div class="space-y-3">
                 <label for="prefix" class="block text-sm font-medium text-slate-900 dark:text-white">Custom Prefix</label>
                 <input 
                   type="text" 
                   id="prefix" 
                   name="prefix" 
-                  value="{{ guild_data.get('customization', {}).get('premium_prefix', '') }}" 
+                  value="{{ guild_data.get('customization', {}).get('prefix', '') }}" 
                   class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all"
                   placeholder="Enter custom prefix">
                 <p class="text-xs text-slate-500 dark:text-slate-400">Set a custom prefix for Premium bot.</p>
               </div>
 
-              <!-- Staff Roles -->
               <div class="space-y-3">
-                <label for="staff_roles" class="block text-sm font-medium text-slate-900 dark:text-white">Staff Roles</label>
-                <select 
-                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
-                  id="staff_roles" 
-                  name="staff_roles" 
-                  multiple
-                  size="5">
-                  {% for role_id, role_name in roles.items() %}
-                    <option 
-                      value="{{ role_id }}" 
-                      {% if role_id in guild_data.get('basic_settings', {}).get('staff_roles', []) %}selected{% endif %}
-                      class="py-2 px-2">
-                      {{ role_name }}
-                    </option>
-                  {% endfor %}
-                </select>
+                <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Staff Roles</label>
+                {% from 'components/role_picker.html' import role_picker %}
+                {{ role_picker("staff_roles", guild_data.get('basic_settings', {}).get('staff_roles', []), roles) }}
                 <p class="text-xs text-slate-500 dark:text-slate-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.</p>
               </div>
               
-              <!-- Management Roles -->
               <div class="space-y-3">
-                <label for="management_roles" class="block text-sm font-medium text-slate-900 dark:text-white">Management Roles</label>
-                <select 
-                  class="w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 transition-all" 
-                  id="management_roles" 
-                  name="management_roles" 
-                  multiple
-                  size="5">
-                  {% for role_id, role_name in roles.items() %}
-                    <option 
-                      value="{{ role_id }}" 
-                      {% if role_id in guild_data.get('basic_settings', {}).get('management_roles', []) %}selected{% endif %}
-                      class="py-2 px-2">
-                      {{ role_name }}
-                    </option>
-                  {% endfor %}
-                </select>
+                <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Management Roles</label>
+                {{ role_picker("management_roles", guild_data.get('basic_settings', {}).get('management_roles', []), roles) }}
                 <p class="text-xs text-slate-500 dark:text-slate-400">Select multiple roles by clicking each desired role. Hold Ctrl (or Cmd on Mac) to select or deselect individual roles.</p>
               </div>
 

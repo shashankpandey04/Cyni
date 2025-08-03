@@ -12,6 +12,8 @@ from Database.Mongo import mongo_db
 
 load_dotenv()
 
+api_token = os.getenv("API_TOKEN", "default_api_token")
+
 bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
 ticket_module = Blueprint('ticket_module', __name__)
@@ -263,7 +265,7 @@ def send_ticket_embed(guild_id, category_id):
     try:
         response = requests.post(
             "http://127.0.0.1:5000/send_ticket_embed",
-            headers={"Authorization": bot_token},
+            headers={"Authorization": api_token},
             json=data
         )
         

@@ -1,0 +1,15 @@
+{% macro role_picker(field_name, selected_roles, roles_dict) %}
+<select 
+  id="{{ field_name }}" 
+  name="{{ field_name }}" 
+  multiple 
+  placeholder="Select roles..."
+  class="tom-select w-full glass-effect border border-slate-600/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white"
+>
+    {% for role_id, role_name in roles_dict.items() %}
+    <option value="{{ role_id }}" {% if role_id|string in selected_roles|map('string') %}selected{% endif %}>
+        {{ role_name }}
+    </option>
+    {% endfor %}
+</select>
+{% endmacro %}

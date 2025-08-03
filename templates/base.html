@@ -203,7 +203,6 @@
       });
     });
     
-    // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
         e.preventDefault();
@@ -217,7 +216,6 @@
       });
     });
     
-    // Enhanced dropdown functionality with better UX
     document.addEventListener('click', function(e) {
       const dropdownToggle = e.target.closest('[data-dropdown-toggle]');
       
@@ -226,24 +224,19 @@
         const dropdown = dropdownToggle.nextElementSibling;
         const isOpen = dropdown.classList.contains('show');
         
-        // Close all other dropdowns
         document.querySelectorAll('[data-dropdown-menu]').forEach(menu => {
           menu.classList.remove('show');
         });
         
-        // Toggle current dropdown
         if (!isOpen) {
           dropdown.classList.add('show');
         }
       } else {
-        // Close all dropdowns when clicking outside
         document.querySelectorAll('[data-dropdown-menu]').forEach(menu => {
           menu.classList.remove('show');
         });
       }
     });
-    
-    // Keyboard navigation for dropdowns
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         document.querySelectorAll('[data-dropdown-menu]').forEach(menu => {
@@ -252,6 +245,9 @@
       }
     });
   </script>
+  <script src="{{ url_for('static', filename='js/tom-select.js') }}"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </body>
 </html>
   

@@ -8,6 +8,8 @@ from Database.Mongo import mongo_db
 
 load_dotenv()
 
+api_token = os.getenv("API_TOKEN", "default_api_token")
+
 loa_route = Blueprint('loa_module', __name__)
 BOT_TOKEN = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
@@ -115,7 +117,7 @@ def update_loa(guild_id, user_id):
         {"guild_id": guild.id, "user_id": int(user_id)},
         {"$set": update_fields}
     )
-    headers = {"Authorization": BOT_TOKEN}
+    headers = {"Authorization": api_token}
     api_doc = {
         "guild_id": int(guild.id),
         "user_id": int(user_id),

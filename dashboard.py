@@ -18,14 +18,17 @@ from DashboardModules.AutoModModule import automod
 from DashboardModules.TicketModule import ticket_module
 from DashboardModules.loaModule import loa_route
 
+from utils.site_utils import *
+
 FILES_URL = "https://cyni-file-host.x6xkh0.easypanel.host/upload"
 
 load_dotenv()
 
 users = {}
 
+api_token = os.getenv("API_TOKEN", "default_api_token")
+
 FILE_AUTH_TOKEN = os.getenv("FILE_AUTH_TOKEN")
-CYNI_API_BASE_URL = os.getenv("CYNI_API_BASE_URL", "http://127.0.0.1:5000")
 
 DISCORD_API_BASE_URL = "https://discord.com/api"
 OAUTH_SCOPE = "identify guilds"
@@ -38,49 +41,6 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'default_secret_key')
 mongo_client = MongoClient(os.getenv("MONGO_URI"))
 mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else mongo_client["dev"]
 sessions_collection = mongo_db["sessions"]
-
-def get_bot_guilds():
-    headers = {"Authorization": os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")}
-    response = requests.post(f"{CYNI_API_BASE_URL}/fetch_bot_guilds", headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Error fetching bot guilds: {response.status_code} - {response.text}")
-        return []
-    
-def get_guild(guild_id):
-    headers = {"Authorization": os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")}
-    response = requests.post(f"{CYNI_API_BASE_URL}/fetch_guild", params={"guild_id": guild_id}, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Error fetching guild {guild_id}: {response.status_code} - {response.text}")
-        return None
-    
-def get_guild_member(guild_id, user_id):
-    headers = {"Authorization": os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")}
-    response = requests.post(
-        f"{CYNI_API_BASE_URL}/fetch_guild_member",
-        params={"guild_id": guild_id, "user_id": user_id},
-        headers=headers,
-    )
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Error fetching member {user_id} in guild {guild_id}: {response.status_code} - {response.text}")
-        return None
-
-def check_permissions(guild_id, user_id):
-    guild = get_guild(guild_id)
-    member = get_guild_member(guild_id, user_id)
-    settings = mongo_db["settings"].find_one({"_id": int(guild_id)})
-    if not guild or not member or not settings:
-        return False
-    if (member.get("is_admin") or member.get("is_manage_guild")):
-        return True
-    if member.get("roles") and any(role in settings.get("basic_settings", {}).get("management_roles", []) for role in member.get("roles", [])):
-        return True
-    return False
 
 app.register_blueprint(welcome_route)
 app.register_blueprint(automod)
@@ -288,14 +248,32 @@ def dashboard():
     if not isinstance(guilds_json, list):
         return f"Unexpected response format: {guilds_json}", 500
 
+    whitelabel_bots = {}
+    main_bot_guilds = []
+
+    seen_guild_ids = set()
     user_guilds = []
 
-    bot_guild_ids = set()
-    bot_guilds = get_bot_guilds()
-    if bot_guilds:
-        bot_guild_ids = set(bot_guilds)
-    else:
-        bot_guild_ids = set()
+    for api_url, guild_ids in whitelabel_bots.items():
+        bot_guild_ids = set(get_bot_guilds(api_url))
+        for g in guilds_json:
+            gid = g["id"]
+            if gid in bot_guild_ids and gid in guild_ids and gid not in seen_guild_ids:
+                g["api_url"] = api_url
+                user_guilds.append(g)
+                seen_guild_ids.add(gid)
+
+    main_bot_ids = set(get_bot_guilds(CYNI_API_BASE_URL))
+    for g in guilds_json:
+        gid = g["id"]
+        if gid in main_bot_ids and gid in main_bot_guilds and gid not in seen_guild_ids:
+            g["api_url"] = CYNI_API_BASE_URL
+            user_guilds.append(g)
+            seen_guild_ids.add(gid)
+
+    bot_guild_ids = set(get_bot_guilds(CYNI_API_BASE_URL))
+    for api_url in whitelabel_bots:
+        bot_guild_ids.update(get_bot_guilds(api_url))
 
     official_guild_id = '1152949579407442050'
     affiliated_guild_ids = [guild['guild_id'] for guild in list(mongo_db["affiliated_guilds"].find())]
@@ -368,11 +346,17 @@ def guild_settings_basics(guild_id):
         flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
 
-    member = get_guild_member(guild.get("id"), session["user_id"])
-    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        return "You do not have the required permissions to access this page.", 403
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
 
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    guild_data = mongo_db["settings"].find_one({"_id": guild_id}) or {}
 
     customization = guild_data.get("customization", {})
     prefix = customization.get("prefix", "?")
@@ -380,7 +364,10 @@ def guild_settings_basics(guild_id):
     staff_roles = basic_settings.get("staff_roles", [])
     management_roles = basic_settings.get("management_roles", [])
 
-    roles = {role.id: role.name for role in guild.roles}
+    roles = get_guild_roles(guild_id)
+    if not roles:
+        flash("There was an error fetching roles for this guild.", "error")
+        return redirect(url_for("guild", guild_id=guild_id))
 
     if request.method == "POST":
         prefix = request.form.get("prefix")
@@ -391,7 +378,7 @@ def guild_settings_basics(guild_id):
         management_roles = [int(role) for role in management_roles]
 
         mongo_db["settings"].update_one(
-            {"_id": guild.id},
+            {"_id": guild_id},
             {
                 "$set": {
                     "customization.prefix": prefix,
@@ -404,7 +391,7 @@ def guild_settings_basics(guild_id):
         return redirect(url_for("guild_settings_basics", guild_id=guild_id))
     
     premium_status = False
-    sett = mongo_db["premium"].find_one({"_id": Int64(guild.id)})
+    sett = mongo_db["premium"].find_one({"_id": Int64(guild_id)})
     if sett: premium_status = True
     return render_template("guild_settings_basics.html", guild=guild, guild_data=guild_data, roles=roles, premium_status=premium_status)
 
@@ -417,18 +404,28 @@ def anti_ping_settings(guild_id):
         flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
 
-    member = get_guild_member(guild.get("id"), session["user_id"])
-    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        return "You do not have the required permissions to access this page.", 403
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
     
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
+    guild_data = mongo_db["settings"].find_one({"_id": int(guild_id)}) or {}
 
     anti_ping_module = guild_data.get("anti_ping_module", {})
     affected_roles = anti_ping_module.get("affected_roles", [])
     exempt_roles = anti_ping_module.get("exempt_roles", [])
     enabled = anti_ping_module.get("enabled", False)
     
-    roles = {role.id: role.name for role in guild.roles}
+    roles = get_guild_roles(guild_id)
+    if not roles:
+        flash("No roles found in this guild.", "error")
+        return redirect(url_for("guild", guild_id=guild_id))
+
     if request.method == "POST":
         affected_roles = request.form.getlist("affected_roles")
         exempt_roles = request.form.getlist("exempt_roles")
@@ -438,7 +435,7 @@ def anti_ping_settings(guild_id):
         exempt_roles = [int(role) for role in exempt_roles]
 
         mongo_db["settings"].update_one(
-            {"_id": guild.id},
+            {"_id": int(guild_id)},
             {
                 "$set": {
                     "anti_ping_module.affected_roles": affected_roles,
@@ -455,16 +452,22 @@ def anti_ping_settings(guild_id):
 @app.route('/dashboard/<guild_id>/settings/moderation', methods=["GET", "POST"])
 @login_required
 def moderation_settings(guild_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.")
-        return redirect(url_for("guild", guild_id=guild_id))
-    
-    member = guild.get_member(int(session["user_id"]))
-    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
+
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
     
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    
+    guild_data = mongo_db["settings"].find_one({"_id": guild_id}) or {}
 
     moderation_module = guild_data.get("moderation_module", {})
     enabled = moderation_module.get("enabled", False)
@@ -472,7 +475,10 @@ def moderation_settings(guild_id):
     ban_appeal_channel = moderation_module.get("ban_appeal_channel", None)
     audit_log_channel = moderation_module.get("audit_log", None)
 
-    channels = {channel.id: channel.name for channel in guild.channels}
+    channels = get_guild_channels(guild_id)
+    if not channels:
+        flash("No channels found in this guild.", "error")
+        return redirect(url_for("guild", guild_id=guild_id))
 
     if request.method == "POST":
         enabled = request.form.get("enabled") == "on"
@@ -481,7 +487,7 @@ def moderation_settings(guild_id):
         audit_log_channel = request.form.get("audit_log_channel")
 
         mongo_db["settings"].update_one(
-            {"_id": guild.id},
+            {"_id": int(guild_id)},
             {
                 "$set": {
                     "moderation_module.enabled": enabled,
@@ -500,15 +506,18 @@ def moderation_settings(guild_id):
 @login_required
 def applications_dashboard(guild_id):
     try:
-        guild = bot.get_guild(int(guild_id))
+        guild = get_guild(guild_id)
         if not guild:
-            flash("Guild not found.", "error")
+            flash("Guild not found or you do not have access to it.", "error")
+            return redirect(url_for("dashboard"))
+
+        member = get_guild_member(guild_id, session["user_id"])
+        if not member:
+            flash("You do not have access to this guild.", "error")
             return redirect(url_for("dashboard"))
         
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-        
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles) and not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
             flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
 
@@ -520,53 +529,57 @@ def applications_dashboard(guild_id):
 @app.route('/applications/manage/<guild_id>', methods=["GET"])
 @login_required
 def applications(guild_id):
-    if request.method == "GET":
-        try:
-            guild = bot.get_guild(int(guild_id))
-            if not guild:
-                return redirect(url_for("dashboard"))
-            sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-            management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-            if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles
-                    if management_roles) or not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
-                return redirect(url_for("dashboard"))
-            all_applications = list(mongo_db["applications"].find({"guild_id": int(guild_id)}))
-            return render_template("applications/applications.html", applications=all_applications, guild=guild)
-        except Exception as e:
-            print(f"Error in applications route: {e} /applications/manage/{guild_id}")
-            flash("An error occurred while loading applications.", "error")
-            return redirect(url_for("dashboard"))
-        
+    guild = get_guild(guild_id)
+    if not guild:
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
+
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
+    all_applications = list(mongo_db["applications"].find({"guild_id": int(guild_id)}))
+    return render_template("applications/applications.html", applications=all_applications, guild=guild)
+
 @app.route('/applications/manage/<guild_id>/create', methods=["POST","GET"])
 @login_required
 def create_application(guild_id):
     if request.method == "GET":
-        try:
-            guild = bot.get_guild(int(guild_id))
-            if not guild:
-                flash("Guild not found.", "error")
-                return redirect(url_for("dashboard"))
-            sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-            management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-            if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles
-                        if management_roles) or not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
-                return redirect(url_for("dashboard"))
-            return render_template("applications/create_application.html", guild=guild)
-        except Exception as e:
-            print(f"Error in create_application GET route: {e} /applications/manage/{guild_id}/create")
-            flash("An error occurred while loading the application creation page.", "error")
+        guild = get_guild(guild_id)
+        if not guild:
+            flash("Guild not found or you do not have access to it.", "error")
             return redirect(url_for("dashboard"))
+
+        member = get_guild_member(guild_id, session["user_id"])
+        if not member:
+            flash("You do not have access to this guild.", "error")
+            return redirect(url_for("dashboard"))
+        
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
+            flash("You do not have the required permissions to access this page.", "error")
+            return redirect(url_for("dashboard"))
+        return render_template("applications/create_application.html", guild=guild)
 
     elif request.method == "POST":
         if current_user.is_authenticated:
-            guild = bot.get_guild(int(guild_id))
+            guild = get_guild(guild_id)
             if not guild:
-                flash("Guild not found.", "error")
+                flash("Guild not found or you do not have access to it.", "error")
+                return redirect(url_for("dashboard"))
+
+            member = get_guild_member(guild_id, session["user_id"])
+            if not member:
+                flash("You do not have access to this guild.", "error")
                 return redirect(url_for("dashboard"))
             
-            sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-            management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-            if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles) and not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
+            has_perm = check_permissions(guild_id, session["user_id"])
+            if has_perm is False:
                 flash("You do not have the required permissions to access this page.", "error")
                 return redirect(url_for("dashboard"))
             
@@ -579,44 +592,23 @@ def create_application(guild_id):
             pass_role = int(request.form.get("pass_role"))
             fail_role = int(request.form.get("fail_role"))
             theme_color = request.form.get("theme_color", "amber")
-            
-            # Debug logging
-            print(f"DEBUG: Received questions: {all_questions}")
-            print(f"DEBUG: Number of questions: {len(all_questions)}")
-            print(f"DEBUG: Form data keys: {list(request.form.keys())}")
-            print(f"DEBUG: Form structure: {request.form.get('form_structure')}")
-            
-            # Check if we have form structure (new system)
+
             form_structure = request.form.get("form_structure")
             
-            # Process questions based on system type
             final_questions = []
             if form_structure and form_structure.strip():
                 try:
                     form_data = json.loads(form_structure)
-                    print(f"DEBUG: Parsed form data: {form_data}")
                     
-                    # Extract questions from form structure
                     for section in form_data.get("sections", []):
-                        print(f"DEBUG: Processing section: {section}")
                         for question in section.get("questions", []):
-                            print(f"DEBUG: Processing question: {question}")
                             final_questions.append({"question": question.get("text", "")})
                     
-                    print(f"DEBUG: Questions from form structure: {final_questions}")
                 except Exception as e:
-                    print(f"DEBUG: Error parsing form structure: {e}")
-                    # Fall back to legacy format
                     final_questions = [{"question": question} for question in all_questions]
             else:
-                # Legacy format
                 final_questions = [{"question": question} for question in all_questions]
-            
-            print(f"DEBUG: Final questions to save: {final_questions}")
-            
-            # If no questions from either method, this is a problem
             if not final_questions:
-                print("DEBUG: No questions found - this is the issue!")
                 flash("Error: No questions found in the application form. Please add at least one question.", "error")
                 return redirect(url_for("create_application", guild_id=guild_id))
             
@@ -634,29 +626,22 @@ def create_application(guild_id):
                 "created_at": datetime.datetime.now().timestamp(),
             }
             
-            # If using new form builder system, parse and add the structured form data
             if form_structure:
                 try:
                     form_data = json.loads(form_structure)
                     application_data["form_structure"] = form_data
                 except:
-                    # If JSON parsing fails, continue with legacy format
                     pass
             
             mongo_db["applications"].insert_one(application_data)
             
-            # Debug: Verify what was actually saved
             saved_application = mongo_db["applications"].find_one({"_id": application_data.get("_id")})
             if not saved_application:
-                # Find by other criteria since _id might not be set
                 saved_application = mongo_db["applications"].find_one({
                     "guild_id": int(guild_id),
                     "name": application_name
                 }, sort=[("created_at", -1)])
-            
-            print(f"DEBUG: Saved application data: {saved_application}")
-            print(f"DEBUG: Questions in saved data: {saved_application.get('questions', []) if saved_application else 'Not found'}")
-            
+
             flash("Application created successfully!", "success")
             return redirect(url_for("applications", guild_id=guild_id))
 
@@ -665,25 +650,24 @@ def create_application(guild_id):
 def manage_application(guild_id, application_id):
     application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
     if request.method == "GET":
-        try:
-            guild = bot.get_guild(int(guild_id))
-            if not guild:
-                flash("Guild not found.", "error")
-                return redirect(url_for("applications", guild_id=guild_id))
-            sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-            management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+        guild = get_guild(guild_id)
+        if not guild:
+            flash("Guild not found or you do not have access to it.", "error")
+            return redirect(url_for("dashboard"))
 
-            if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles) and not (guild.get_member(int(session["user_id"])).guild_permissions.manage_guild or guild.get_member(int(session["user_id"])).guild_permissions.administrator):
-                flash("You do not have the required permissions to access this page.", "error")
-                return redirect(url_for("applications", guild_id=guild_id))
-            if not application:
-                return redirect(url_for("applications", guild_id=guild_id))
-            return render_template("applications/manage_application.html", guild=guild, application=application)
-        except Exception as e:
-            print(f"Error in manage_application GET route: {e} /applications/manage/{guild_id}/{application_id}")
-            flash("An error occurred while loading the application management page.", "error")
+        member = get_guild_member(guild_id, session["user_id"])
+        if not member:
+            flash("You do not have access to this guild.", "error")
+            return redirect(url_for("dashboard"))
+        
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
+            flash("You do not have the required permissions to access this page.", "error")
+            return redirect(url_for("dashboard"))
+        if not application:
             return redirect(url_for("applications", guild_id=guild_id))
-    
+        return render_template("applications/manage_application.html", guild=guild, application=application)
+
     if request.method == "POST":
         application_name = request.form.get("application_name")
         application_description = request.form.get("application_description")
@@ -724,15 +708,11 @@ def manage_application(guild_id, application_id):
         form_structure = request.form.get("form_structure")
         final_questions = []
         
-        print(f"DEBUG: Form structure received: {form_structure}")
-        print(f"DEBUG: All questions from getlist: {all_questions}")
-        
         if form_structure and form_structure.strip():
             try:
                 form_data = json.loads(form_structure)
                 print(f"DEBUG: Parsed form data: {form_data}")
                 
-                # Extract questions from form structure
                 for section in form_data.get("sections", []):
                     print(f"DEBUG: Processing section: {section}")
                     for question in section.get("questions", []):
@@ -741,17 +721,14 @@ def manage_application(guild_id, application_id):
                         
             except Exception as e:
                 print(f"Error parsing form structure in manage_application: {e}")
-                # Fall back to legacy format
                 final_questions = [{"question": question} for question in all_questions]
         else:
-            # Check if existing application has form_structure
             if application and "form_structure" in application and application["form_structure"]:
                 print("DEBUG: Using existing form_structure from database")
                 try:
                     form_data = application["form_structure"]
                     print(f"DEBUG: Existing form data: {form_data}")
                     
-                    # Extract questions from existing form structure
                     for section in form_data.get("sections", []):
                         print(f"DEBUG: Processing existing section: {section}")
                         for question in section.get("questions", []):
@@ -759,17 +736,11 @@ def manage_application(guild_id, application_id):
                             final_questions.append({"question": question.get("text", "")})
                             
                 except Exception as e:
-                    print(f"Error parsing existing form structure: {e}")
-                    # Fall back to legacy format
                     final_questions = [{"question": question} for question in all_questions]
             else:
-                # Legacy format
                 final_questions = [{"question": question} for question in all_questions]
         
-        print(f"DEBUG: Final questions to save in manage_application: {final_questions}")
-        
         if not final_questions:
-            print("DEBUG: No questions found - this is the issue!")
             flash("Error: No questions found in the application form. Please add at least one question.", "error")
             return redirect(url_for("manage_application", guild_id=guild_id, application_id=application_id))
 
@@ -810,58 +781,51 @@ def manage_application(guild_id, application_id):
 @login_required
 def apply(guild_id, application_id):
     if request.method == "GET":
-        try:
-            guild = bot.get_guild(int(guild_id))
-            if not guild:
-                flash("Guild not found.", "error")
-                return redirect(url_for("dashboard"))
-            
-            try:
-                application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
-            except Exception as e:
-                flash(f"Invalid application ID: {e}", "error")
-                return redirect(url_for("dashboard"))
-            
-            if not application:
-                flash("Application not found.", "error")
-                return redirect(url_for("dashboard"))
-            
-            if application.get("status") == "close":
-                flash("This application is currently closed.", "error")
-                return redirect(url_for("dashboard"))
-            
-            member = guild.get_member(int(session["user_id"]))
-            if not member:
-                flash("You are not a member of this guild.", "error")
-                return redirect(url_for("dashboard"))
-
-            required_roles = application.get("required_roles", [])
-            if required_roles and not any(role.id in required_roles for role in member.roles):
-                flash("You do not have the required roles to apply for this position.", "error")
-                return redirect(url_for("dashboard"))
-
-            existing_application = mongo_db["user_applications"].find_one({
-                "user_id": session["user_id"],
-                "application_id": str(application_id),
-                "status": "pending"
-            })
-            if existing_application:
-                flash("You have already submitted an application that is pending review.", "error")
-                return redirect(url_for("dashboard"))
-            
-            markdown_application_description = application.get("description", "")
-            application['description'] = markdown.markdown(markdown_application_description, extensions=['extra', 'codehilite', 'smarty'])
-            
-            return render_template("applications/apply.html", guild=guild, application=application)
-            
-        except Exception as e:
-            print(f"Error in application GET route: {e} /applications/apply/{guild_id}/{application_id}")
-            flash("An error occurred while loading the application.", "error")
+        guild = get_guild(guild_id)
+        if not guild:
+            flash("Guild not found or you do not have access to it.", "error")
             return redirect(url_for("dashboard"))
-    
+
+        member = get_guild_member(guild_id, session["user_id"])
+        if not member:
+            flash("You do not have access to this guild.", "error")
+            return redirect(url_for("dashboard"))
+        
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
+            flash("You do not have the required permissions to access this page.", "error")
+            return redirect(url_for("dashboard"))
+        
+        try:
+            application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
+        except Exception as e:
+            flash(f"Invalid application ID: {e}", "error")
+            return redirect(url_for("dashboard"))
+        
+        if not application:
+            flash("Application not found.", "error")
+            return redirect(url_for("dashboard"))
+        
+        if application.get("status") == "close":
+            flash("This application is currently closed.", "error")
+            return redirect(url_for("dashboard"))
+
+        existing_application = mongo_db["user_applications"].find_one({
+            "user_id": session["user_id"],
+            "application_id": str(application_id),
+            "status": "pending"
+        })
+        if existing_application:
+            flash("You have already submitted an application that is pending review.", "error")
+            return redirect(url_for("dashboard"))
+        
+        markdown_application_description = application.get("description", "")
+        application['description'] = markdown.markdown(markdown_application_description, extensions=['extra', 'codehilite', 'smarty'])
+        
+        return render_template("applications/apply.html", guild=guild, application=application)
+
     if request.method == "POST":
         try:
-            # Handle string ID conversion properly
             if ObjectId.is_valid(application_id):
                 application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
             else:
@@ -872,9 +836,9 @@ def apply(guild_id, application_id):
                 flash("Application not found.", "error")
                 return redirect(url_for("dashboard"))
             
-            member = bot.get_guild(int(guild_id)).get_member(int(session["user_id"]))
-            if not member:
-                flash("You are not a member of this guild.", "error")
+            has_perm = check_permissions(guild_id, session["user_id"])
+            if has_perm is False:
+                flash("You do not have the required permissions to access this page.", "error")
                 return redirect(url_for("dashboard"))
             
             existing_application = mongo_db["user_applications"].find_one({
@@ -886,10 +850,8 @@ def apply(guild_id, application_id):
                 flash("You have already submitted an application that is pending review.", "error")
                 return redirect(url_for("dashboard"))
             
-            # Process answers - handle both legacy and new form systems
             answers = []
             
-            # For new form structure with sections
             if "form_structure" in application:
                 question_count = 0
                 for section in application["form_structure"].get("sections", []):
@@ -903,7 +865,6 @@ def apply(guild_id, application_id):
                             "answer": answer,
                             "type": question.get("type", "text")
                         })
-            # Legacy format
             else:
                 answers = [
                     {"question": q["question"], "answer": request.form.get(f"answer_{i+1}", ""), "type": "text"}
@@ -929,7 +890,7 @@ def apply(guild_id, application_id):
                 "application_id": str(application_id),
                 "result_channel_id": application.get("application_channel"),
             }
-            headers = {"Authorization": bot_token}
+            headers = {"Authorization": api_token}
             URL = 'http://127.0.0.1:5000/notify_application_submission'
             try:
                 response = requests.post(URL, headers=headers, json=data, timeout=10)
@@ -942,78 +903,72 @@ def apply(guild_id, application_id):
             return redirect(url_for("dashboard"))
             
         except Exception as e:
-            print(f"Error in application POST route: {e}")
             flash("An error occurred while submitting your application.", "error")
             return redirect(url_for("dashboard"))
     
 @app.route('/applications/logs/<guild_id>', methods=["GET"])
 @login_required
 def application_logs(guild_id):
-    try:
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            return redirect(url_for("dashboard"))
-        
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-            return redirect(url_for("dashboard"))
+    guild = get_guild(guild_id)
+    if not guild:
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
 
-        user_applications = list(mongo_db["user_applications"].find(
-            {"guild_id": int(guild_id)}
-        ))
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
 
-        return render_template("applications/application_logs.html", guild=guild, user_applications=user_applications)
-    except Exception as e:
-        print(f"Error in application_logs route: {e} /applications/logs/{guild_id}")
-        flash("An error occurred while loading application logs.", "error")
-        return redirect(url_for("applications", guild_id=guild_id))
+    user_applications = list(mongo_db["user_applications"].find(
+        {"guild_id": int(guild_id)}
+    ))
+
+    return render_template("applications/application_logs.html", guild=guild, user_applications=user_applications)
 
 @app.route('/applications/logs/<guild_id>/<application_id>/<user_id>', methods=["GET", "POST"])
 @login_required
 def user_application(guild_id, application_id, user_id):
     if request.method == "GET":
-        try:
-            guild = bot.get_guild(int(guild_id))
-            if not guild:
-                flash("Guild not found.", "error")
-                return redirect(url_for("dashboard"))
-            
-            sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-            management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+        guild = get_guild(guild_id)
+        if not guild:
+            flash("Guild not found or you do not have access to it.", "error")
+            return redirect(url_for("dashboard"))
 
-            if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
-                return redirect(url_for("dashboard"))
-            
-            application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
-            if not application:
-                return redirect(url_for("applications", guild_id=guild_id))
+        member = get_guild_member(guild_id, session["user_id"])
+        if not member:
+            flash("You do not have access to this guild.", "error")
+            return redirect(url_for("dashboard"))
+        
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
+            flash("You do not have the required permissions to access this page.", "error")
+            return redirect(url_for("dashboard"))
 
-            user_application = mongo_db["user_applications"].find_one({
-                "guild_id": Int64(guild_id),
-                "user_id": str(user_id),
-                "application_id": str(application_id)
-            })
-            if not user_application:
-                return redirect(url_for("application_logs", guild_id=guild_id))
-            
-            return render_template("applications/user_application.html", guild=guild, application=application, user_application=user_application)
-        except Exception as e:
-            print(f"Error in user_application GET route: {e} /applications/logs/{guild_id}/{application_id}/{user_id}")
-            flash("An error occurred while loading the application details.", "error")
+        application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
+        if not application:
+            return redirect(url_for("applications", guild_id=guild_id))
+
+        user_application = mongo_db["user_applications"].find_one({
+            "guild_id": Int64(guild_id),
+            "user_id": str(user_id),
+            "application_id": str(application_id)
+        })
+        if not user_application:
             return redirect(url_for("application_logs", guild_id=guild_id))
         
-    if request.method == "POST":
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            return redirect(url_for("dashboard"))
-        
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        management_roles = sett.get("basic_settings", {}).get("management_roles", [])
+        return render_template("applications/user_application.html", guild=guild, application=application, user_application=user_application)
 
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+    if request.method == "POST":
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
+            flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
-        
+            
         application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
         if not application:
             return redirect(url_for("applications", guild_id=guild_id))
@@ -1042,7 +997,7 @@ def user_application(guild_id, application_id, user_id):
             "result_channel": application.get("application_channel"),
             "note": request.form.get("note")
         }
-        headers = {"Authorization": bot_token}
+        headers = {"Authorization": api_token}
         URL = 'http://127.0.0.1:5000/notify_user'
         requests.post(URL, headers=headers, json=data)
         return redirect(url_for("application_logs", guild_id=guild_id))
@@ -1051,14 +1006,18 @@ def user_application(guild_id, application_id, user_id):
 @login_required
 def ban_appeal_manage(guild_id):
     if request.method == "GET":
-        guild = bot.get_guild(int(guild_id))
+        guild = get_guild(guild_id)
         if not guild:
-            flash("Guild not found.", "error")
+            flash("Guild not found or you do not have access to it.", "error")
+            return redirect(url_for("dashboard"))
+
+        member = get_guild_member(guild_id, session["user_id"])
+        if not member:
+            flash("You do not have access to this guild.", "error")
             return redirect(url_for("dashboard"))
         
-        sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-        management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
             flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
         appeal_application = mongo_db["appeal_applications"].find_one({"guild_id": int(guild_id)})
@@ -1075,13 +1034,8 @@ def ban_appeal_manage(guild_id):
         return render_template("banappeal/ban_appeal_manage.html", guild=guild, appeal_application=appeal_application)
     
     if request.method == "POST":
-        guild = bot.get_guild(int(guild_id))
-        if not guild:
-            flash("Guild not found.", "error")
-            return redirect(url_for("dashboard"))
-        
-        management_roles = mongo_db["settings"].find_one({"_id": guild.id}).get("basic_settings", {}).get("management_roles", [])
-        if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+        has_perm = check_permissions(guild_id, session["user_id"])
+        if has_perm is False:
             flash("You do not have the required permissions to access this page.", "error")
             return redirect(url_for("dashboard"))
 
@@ -1101,9 +1055,9 @@ def ban_appeal_manage(guild_id):
 @app.route('/banappeal/<guild_id>', methods=["GET", "POST"])
 @login_required
 def ban_appeal(guild_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
 
     if request.method == "GET":
@@ -1158,7 +1112,7 @@ def ban_appeal(guild_id):
         "appeal_id": uid,
         "user_name": session["username"]
     }
-    headers = {"Authorization": bot_token}
+    headers = {"Authorization": api_token}
     URL = 'http://127.0.0.1:5000/notify_ban_appeal'
     
     try:
@@ -1171,13 +1125,18 @@ def ban_appeal(guild_id):
 @app.route('/banappeal/logs/<guild_id>', methods=["GET"])
 @login_required
 def ban_appeal_logs(guild_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
+    
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
     ban_appeals = list(mongo_db["ban_appeals"].find({"guild_id": int(guild_id)}))
@@ -1186,14 +1145,18 @@ def ban_appeal_logs(guild_id):
 @app.route('/banappeal/logs/<guild_id>/<appeal_id>', methods=["GET", "POST"])
 @login_required
 def ban_appeal_log(guild_id, appeal_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
+
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
     
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in management_roles):
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
     
@@ -1220,7 +1183,7 @@ def ban_appeal_log(guild_id, appeal_id):
         "appeal_id": appeal_id,
         "status": new_status,
     }
-    headers = {"Authorization": bot_token}
+    headers = {"Authorization": api_token}
     URL = 'http://127.0.0.1:5000/notify_ban_appeal_status'
     response = requests.post(URL, headers=headers, json=data)
     if response.status_code == 200:
@@ -1232,55 +1195,22 @@ def ban_appeal_log(guild_id, appeal_id):
     else:
         flash("Failed to notify user")
         return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
-    
-@app.route('/notifications/<guild_id>/<user_id>', methods=["GET"])
-@login_required
-def notifications(guild_id, user_id):
-    guild = bot.get_guild(int(guild_id))
-    if not guild:
-        return jsonify({"error": "Guild not found."}), 404
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-
-    if str(user_id) != str(session["user_id"]):
-        return jsonify({
-            "title": "Unauthorized",
-            "message": "You are not authorized to view notifications for this user.",
-            "created_at": datetime.datetime.now().timestamp(),
-            "from": "System"
-        }), 403
-    
-
-    user_notifications = list(mongo_db["notifications"].find({
-        "user_id": str(user_id)
-    }))
-
-    notification_list = []
-    for notification in user_notifications:
-        notification_list.append({
-            "title": "Notification",
-            "message": notification["message"],
-            "created_at": notification["created_at"],
-            "from": notification.get("from", "System")
-        })
-    return jsonify(notification_list)
 
 @app.route('/modpanel/<guild_id>', methods=["GET"])
 @login_required
 def mod_panel(guild_id):
-    sett = mongo_db["settings"].find_one({"_id": int(guild_id)}) or {}
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
-    
-    member = guild.get_member(int(session["user_id"]))
+
+    member = get_guild_member(guild_id, session["user_id"])
     if not member:
-        flash("You are not a member of this guild.", "error")
+        flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
     
-    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
-    if not any(role in [role.id for role in member.roles] for role in staff_roles):
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
 
@@ -1289,19 +1219,18 @@ def mod_panel(guild_id):
 @app.route('/modpanel/<guild_id>/modlogs', methods=["GET", "POST"])
 @login_required
 def mod_logs(guild_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
 
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
-    member = guild.get_member(int(session["user_id"]))
+    member = get_guild_member(guild_id, session["user_id"])
     if not member:
-        flash("You are not a member of this guild.", "error")
+        flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
-
-    if not any(role in [role.id for role in member.roles] for role in staff_roles):
+    
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
 
@@ -1357,39 +1286,33 @@ def mod_logs(guild_id):
 @app.route('/modpanel/<guild_id>/members', methods=["GET", "POST"])
 @login_required
 def view_members(guild_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
 
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
-    
-    member = guild.get_member(int(session["user_id"]))
+    member = get_guild_member(guild_id, session["user_id"])
     if not member:
-        flash("You are not a member of this guild.", "error")
+        flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
-
-    if not any(role in [role.id for role in member.roles] for role in staff_roles):
+    
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
-
+    
     members = guild.members
 
-    # Apply filtering if POST request
     if request.method == "POST":
         search_query = request.form.get("search_query", "")
         access_filter = request.form.get("access_filter", "all")
 
-        # Filter by username or user ID
         if search_query:
             members = [m for m in members if search_query.lower() in m.name.lower() or search_query in str(m.id)]
 
-        # Filter by role
         if access_filter != "all":
             members = [m for m in members if any(role.name.lower() == access_filter.lower() for role in m.roles)]
 
-    # Pagination - 10 members per page
     page = request.args.get('page', 1, type=int)
     members_per_page = 12
     members_paginated = members[(page - 1) * members_per_page:page * members_per_page]
@@ -1399,22 +1322,20 @@ def view_members(guild_id):
 @app.route('/view_profile/<guild_id>/<user_id>', methods=["GET"])
 @login_required
 def view_profile(guild_id, user_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
+
+    member = get_guild_member(guild_id, user_id)
+    if not member:
+        flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
     
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    staff_roles = sett.get("basic_settings", {}).get("staff_roles", [])
-
-    member = guild.get_member(int(user_id))
-    if not member:
-        flash("User not found in this guild.", "error")
-        return redirect(url_for("view_members", guild_id=guild_id))
-    
-    if not any(role in [role.id for role in guild.get_member(int(session["user_id"])).roles] for role in staff_roles):
-        flash("You do not have the required permissions to view this profile.", "error")
-        return redirect(url_for("view_members", guild_id=guild_id))
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You do not have the required permissions to access this page.", "error")
+        return redirect(url_for("dashboard"))
 
     member_roles = [role.name for role in member.roles]
     join_date = member.joined_at.strftime('%Y-%m-%d')
@@ -1467,4 +1388,4 @@ def run_production():
     serve(app, host='0.0.0.0', port=80)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0',port=80)
+    app.run(host='0.0.0.0',port=80, debug=True)

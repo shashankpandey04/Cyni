@@ -4,19 +4,17 @@
 
 {% block content %}
 
-<!-- Hero Section -->
 <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
-  <!-- Animated background -->
+
   <div class="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30"></div>
-  
-  <!-- Floating elements -->
+
   <div class="absolute inset-0 overflow-hidden pointer-events-none">
     <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
     <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
     <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-400/10 rounded-full blur-3xl animate-pulse delay-500"></div>
   </div>
 
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+  <div class="relative z-10 max-w-7xl mx-auto px-8 sm:px-6 lg:px-8 text-center">
     {% if session['username'] %}
     <div class="mb-6">
       <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
@@ -33,14 +31,6 @@
     <p class="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
       The Next Generation Discord Bot for Moderation, Entertainment, and Community Management
     </p>
-
-    <!--Explore Premium Features-->
-    <div class="flex justify-center mb-8">
-      <a href="{{ url_for('premium') }}" class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl">
-        <i data-lucide="star" class="w-5 h-5 mr-2"></i>
-        Explore Premium Features
-      </a>
-    </div>
 
     <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
       <a href="https://discord.com/oauth2/authorize?client_id=1136945734399295538&permissions=8&integration_type=0&scope=bot" 

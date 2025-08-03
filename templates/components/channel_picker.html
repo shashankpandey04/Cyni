@@ -1,0 +1,18 @@
+{% macro channel_picker(field_name, selected_channel_id, channels_dict) %}
+<select 
+  id="{{ field_name }}" 
+  name="{{ field_name }}" 
+  class="tom-select w-full glass-effect border border-white/30 dark:border-slate-600/30 rounded-xl px-4 py-3 text-slate-900 dark:text-white"
+  placeholder="Select a channel..."
+>
+  <option value="">Select Channel</option>
+  {% for channel_id, channel_name in channels_dict.items() %}
+    <option 
+      value="{{ channel_id }}" 
+      {% if channel_id|string == selected_channel_id|string %}selected{% endif %}
+    >
+      {{ channel_name }}
+    </option>
+  {% endfor %}
+</select>
+{% endmacro %}
