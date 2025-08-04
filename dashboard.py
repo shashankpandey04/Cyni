@@ -180,13 +180,11 @@ def dashboard():
         sid = request.cookies.get(app.session_cookie_name)
         user_session = None
 
-        # Try restoring by user ID or session ID
         if "user_id" in session:
             user_session = mongo_db["sessions"].find_one({"user_id": session["user_id"]})
         elif sid:
             user_session = mongo_db["sessions"].find_one({"sid": sid})
 
-        # If found, rehydrate session
         if user_session:
             session["user_id"] = user_session["user_id"]
             session["access_token"] = user_session["access_token"]
@@ -356,10 +354,11 @@ def guild_settings_basics(guild_id):
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
 
-    guild_data = mongo_db["settings"].find_one({"_id": guild_id}) or {}
+    guild_data = mongo_db["settings"].find_one({"_id": int(guild_id)}) or {}
 
     customization = guild_data.get("customization", {})
     prefix = customization.get("prefix", "?")
+    premium_prefix = customization.get("premium_prefix", "?")
     basic_settings = guild_data.get("basic_settings", {})
     staff_roles = basic_settings.get("staff_roles", [])
     management_roles = basic_settings.get("management_roles", [])
@@ -373,21 +372,27 @@ def guild_settings_basics(guild_id):
         prefix = request.form.get("prefix")
         staff_roles = request.form.getlist("staff_roles")
         management_roles = request.form.getlist("management_roles")
+        premium_prefix = request.form.get("premium_prefix", "?")
 
         staff_roles = [int(role) for role in staff_roles]
         management_roles = [int(role) for role in management_roles]
-
-        mongo_db["settings"].update_one(
-            {"_id": guild_id},
-            {
-                "$set": {
-                    "customization.prefix": prefix,
-                    "basic_settings.staff_roles": staff_roles,
-                    "basic_settings.management_roles": management_roles
-                }
-            },
-            upsert=True
-        )
+        
+        try:
+            mongo_db["settings"].update_one(
+                {"_id": int(guild_id)},
+                {
+                    "$set": {
+                        "customization.prefix": prefix,
+                        "customization.premium_prefix": premium_prefix,
+                        "basic_settings.staff_roles": staff_roles,
+                        "basic_settings.management_roles": management_roles
+                    }
+                },
+                upsert=True
+            )
+            flash("Settings updated successfully!", "success")
+        except Exception as e:
+            flash(f"Error updating settings: {e}", "error")
         return redirect(url_for("guild_settings_basics", guild_id=guild_id))
     
     premium_status = False
@@ -467,7 +472,7 @@ def moderation_settings(guild_id):
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
     
-    guild_data = mongo_db["settings"].find_one({"_id": guild_id}) or {}
+    guild_data = mongo_db["settings"].find_one({"_id": int(guild_id)}) or {}
 
     moderation_module = guild_data.get("moderation_module", {})
     enabled = moderation_module.get("enabled", False)
@@ -543,6 +548,7 @@ def applications(guild_id):
     if has_perm is False:
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
+
     all_applications = list(mongo_db["applications"].find({"guild_id": int(guild_id)}))
     return render_template("applications/applications.html", applications=all_applications, guild=guild)
 

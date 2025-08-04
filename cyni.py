@@ -84,6 +84,7 @@ class Bot(commands.AutoShardedBot):
 
         if user.id in [
             1201129677457215558, #coding.nerd
+            707064490826530888, #imlimiteds
         ]:
             return True
         
