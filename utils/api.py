@@ -1169,6 +1169,7 @@ class APIRoutes:
         if not guilds:
             logger.debug("Bot is not in any guilds.")
             return {}
+        logger.debug({str(guild.id) for guild in guilds})
         return {str(guild.id) for guild in guilds}
 
 # Discord Bot API Integration Cog

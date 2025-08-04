@@ -23,10 +23,17 @@ api_token = os.getenv("API_TOKEN", "default_api_token")
 headers = {"Authorization": api_token}
 
 CYNI_API_BASE_URL = os.getenv("CYNI_API_BASE_URL", "http://127.0.0.1:5000")
+CYNI_PREMIUM_URL = os.getenv("CYNI_PREMIUM_URL", "https://cyni-premium-api.x6xkh0.easypanel.host")
 
 def get_api_url_for_guild(guild_id: str) -> str:
-    doc = mongo_db["whitelabel"].find_one({"_id": guild_id}, {"api_url": 1})
-    return doc.get("api_url") if doc and "api_url" in doc else CYNI_API_BASE_URL
+    wl_doc = mongo_db["whitelabel"].find_one({"_id": guild_id}, {"api_url": 1})
+    premium_doc = mongo_db["premium"].find_one({"_id": guild_id})
+    if premium_doc and wl_doc:
+        return wl_doc.get("api_url")
+    elif premium_doc:
+        return CYNI_PREMIUM_URL
+    else:
+        return CYNI_API_BASE_URL
 
 def get_bot_guilds(api_url: str):
     try:

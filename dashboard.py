@@ -248,30 +248,37 @@ def dashboard():
 
     whitelabel_bots = {}
     main_bot_guilds = []
-
-    seen_guild_ids = set()
     user_guilds = []
-
-    for api_url, guild_ids in whitelabel_bots.items():
-        bot_guild_ids = set(get_bot_guilds(api_url))
-        for g in guilds_json:
-            gid = g["id"]
-            if gid in bot_guild_ids and gid in guild_ids and gid not in seen_guild_ids:
-                g["api_url"] = api_url
-                user_guilds.append(g)
+    
+    all_bot_guilds = {
+        CYNI_API_BASE_URL: set(get_bot_guilds(CYNI_API_BASE_URL)),
+        CYNI_PREMIUM_URL: set(get_bot_guilds(CYNI_PREMIUM_URL)),
+    }
+    all_bot_guilds.update({api_url: set(get_bot_guilds(api_url)) for api_url in whitelabel_bots})
+    
+    combined_bot_guild_ids = set().union(*all_bot_guilds.values())
+    
+    seen_guild_ids = set()
+    
+    for guild in guilds_json:
+        gid = guild["id"]
+        if gid in seen_guild_ids:
+            continue
+        for api_url, guild_ids in whitelabel_bots.items():
+            if gid in all_bot_guilds[api_url] and gid in guild_ids:
+                guild["api_url"] = api_url
+                user_guilds.append(guild)
                 seen_guild_ids.add(gid)
-
-    main_bot_ids = set(get_bot_guilds(CYNI_API_BASE_URL))
-    for g in guilds_json:
-        gid = g["id"]
-        if gid in main_bot_ids and gid in main_bot_guilds and gid not in seen_guild_ids:
-            g["api_url"] = CYNI_API_BASE_URL
-            user_guilds.append(g)
-            seen_guild_ids.add(gid)
-
-    bot_guild_ids = set(get_bot_guilds(CYNI_API_BASE_URL))
-    for api_url in whitelabel_bots:
-        bot_guild_ids.update(get_bot_guilds(api_url))
+                break
+        else:
+            if gid in all_bot_guilds[CYNI_API_BASE_URL] and gid in main_bot_guilds:
+                guild["api_url"] = CYNI_API_BASE_URL
+                user_guilds.append(guild)
+                seen_guild_ids.add(gid)
+            elif gid in all_bot_guilds[CYNI_PREMIUM_URL]:
+                guild["api_url"] = CYNI_PREMIUM_URL
+                user_guilds.append(guild)
+                seen_guild_ids.add(gid)
 
     official_guild_id = '1152949579407442050'
     affiliated_guild_ids = [guild['guild_id'] for guild in list(mongo_db["affiliated_guilds"].find())]
@@ -281,7 +288,7 @@ def dashboard():
         has_manage_messages = (permissions & MANAGE_MESSAGES_PERMISSION) == MANAGE_MESSAGES_PERMISSION
         is_admin = (permissions & ADMINISTRATOR_PERMISSION) == ADMINISTRATOR_PERMISSION
         is_owner = guild.get("owner", False)
-        bot_present = guild["id"] in bot_guild_ids
+        bot_present = guild["id"] in combined_bot_guild_ids
         premium_status = False
         try:
             p_check = mongo_db["premium"].find_one({"_id": int(guild["id"])})
