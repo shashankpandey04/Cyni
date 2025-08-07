@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 from utils.constants import YELLOW_COLOR, BLANK_COLOR, RED_COLOR, GREEN_COLOR
 import utils.prc_api as prc_api
 from utils.prc_api import ServerPlayers, ServerStatus, ServerKillLogs, ServerJoinLogs, ResponseFailed, ServerLinkNotFound
-from cyni import is_erlc_staff, is_erlc_management, premium_check
+from cyni import premium_check, is_roblox_management, is_roblox_staff
 from utils.utils import get_discord_by_roblox, log_command_usage
 from utils.pagination import Pagination
 from UI.erlc import StaffRoles, LoggingChannels
@@ -146,7 +146,7 @@ class ERLC(commands.Cog):
         }
     )
     @commands.guild_only()
-    @is_erlc_management()
+    @is_roblox_management()
     @premium_check()
     async def erlc_config(self, ctx):
         """
@@ -172,7 +172,6 @@ class ERLC(commands.Cog):
             if not sett:
                 sett = {}
             
-            # Ensure ERLC settings structure exists
             if 'erlc' not in sett:
                 sett['erlc'] = {}
                 
@@ -180,20 +179,7 @@ class ERLC(commands.Cog):
             sett = {'erlc': {}}
             
         try:
-            embed1 = discord.Embed(
-                title="ERLC Staff Roles Configuration",
-                description=(
-                    "**Configure the roles that have access to ERLC commands.**\n\n"
-                    "> **ERLC Staff Roles**\n"
-                    "- Roles that can use basic ERLC commands like server info, players, kills, etc.\n\n"
-                    "> **ERLC Management Roles**\n"
-                    "- Roles that can use management ERLC commands like linking servers and advanced configurations.\n\n"
-                    "> Use the dropdowns below to select the appropriate roles for your server."
-                ),
-                color=BLANK_COLOR
-            )
-            
-            embed2 = discord.Embed(
+            embed_1 = discord.Embed(
                 title="ERLC Logging Channels Configuration",
                 description=(
                     "**Configure where ERLC events will be logged.**\n\n"
@@ -206,14 +192,13 @@ class ERLC(commands.Cog):
                 color=BLANK_COLOR
             )
 
-            all_embeds = [embed1, embed2]
+            all_embeds = [embed_1]
             views = [
-                StaffRoles(self.bot, ctx, sett),
                 LoggingChannels(self.bot, ctx, sett)
             ]
             
             view = Pagination(self.bot, ctx.author.id, all_embeds, views)
-            await ctx.send(embed=embed1, view=view)
+            await ctx.send(embed=embed_1, view=view)
 
         except Exception as e:
             return await ctx.send(
@@ -281,7 +266,7 @@ class ERLC(commands.Cog):
         name="info",
         description="Get information about the ERLC server."
     )
-    @is_erlc_staff()
+    @is_roblox_staff()
     @is_server_linked()
     @premium_check()
     async def erlc_info(self, ctx: commands.Context):
@@ -334,7 +319,7 @@ class ERLC(commands.Cog):
         name="staff",
         description="Get information about the ERLC server staff."
     )
-    @is_erlc_staff()
+    @is_roblox_staff()
     @is_server_linked()
     @premium_check()
     async def erlc_staff(self, ctx: commands.Context):
@@ -387,7 +372,7 @@ class ERLC(commands.Cog):
         name="kills",
         description="Get the kill logs of the server."
     )
-    @is_erlc_staff()
+    @is_roblox_staff()
     @is_server_linked()
     @premium_check()
     async def kills(self, ctx: commands.Context):
@@ -430,7 +415,7 @@ class ERLC(commands.Cog):
         name="players",
         description="Get current players in the server."
     )
-    @is_erlc_staff()
+    @is_roblox_staff()
     @is_server_linked()
     @premium_check()
     async def server_players(self, ctx: commands.Context):
@@ -514,7 +499,7 @@ class ERLC(commands.Cog):
         name="check",
         description="Check if all ERLC players are in the Discord server."
     )
-    @is_erlc_staff()
+    @is_roblox_staff()
     @is_server_linked()
     @premium_check()
     @commands.guild_only()
@@ -594,7 +579,7 @@ class ERLC(commands.Cog):
         name="joinlogs",
         description="Get the join and leave logs of the server."
     )
-    @is_erlc_staff()
+    @is_roblox_staff()
     @is_server_linked()
     @premium_check()
     @commands.guild_only()

@@ -1,23 +1,19 @@
 import discord
 from discord.ext import commands
-
 from utils.constants import YELLOW_COLOR
 from utils.utils import discord_time, generate_embed
 from cyni import premium_check_fun
 import datetime
+import io
 
-class OnThreadCreate(commands.Cog):
+class OnRawThreadDelete(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_thread_create(self, thread):
-        """
-        This event is triggered when a thread is created.
-        :param thread (discord.Thread): The thread that was created.
-        """
-        
-        if thread.archived:
+    async def on_raw_thread_delete(self, payload):
+        thread = self.bot.get_channel(payload.thread_id)
+        if thread is None:
             return
         premium_status = await premium_check_fun(self.bot, thread.guild)
         if premium_status in [True] and self.bot.is_premium == False:
@@ -32,18 +28,27 @@ class OnThreadCreate(commands.Cog):
         guild_log_channel = thread.guild.get_channel(sett["moderation_module"]["audit_log"])
         if not guild_log_channel:
             return
-        
-        if thread.parent.id == 1398220765198815333:
-            await thread.send(
-                "Thank you for creating a support thread! <@&1236184696417816636> will assist you soon.\n\nTo help us resolve your issue faster, please provide detailed information about your question or problem, including any relevant screenshots or error messages."
-            )
+
+        # Attempt to create transcript
+        transcript = io.StringIO()
+        try:
+            async for msg in thread.history(limit=None, oldest_first=True):
+                timestamp = msg.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                author = f"{msg.author.name}#{msg.author.discriminator}"
+                content = msg.content
+                transcript.write(f"[{timestamp}] {author}: {content}\n")
+        except Exception as e:
+            transcript.write("Could not fetch messages or thread was already deleted.\n")
+
+        transcript.seek(0)
+        file = discord.File(fp=transcript, filename=f"thread-{thread.id}-transcript.txt")
 
         created_at = discord_time(datetime.datetime.now())
-        async for entry in thread.guild.audit_logs(limit=1, action=discord.AuditLogAction.thread_create):
+        async for entry in thread.guild.audit_logs(limit=1, action=discord.AuditLogAction.thread_delete):
             embed = generate_embed(
                 guild=thread.guild,
-                title="Thread Created",
-                description=f"{entry.user.mention} created {thread.mention}",
+                title="Thread Deleted",
+                description=f"{entry.user.mention} deleted a thread",
                 category="logging",
                 footer=f"Thread ID: {thread.id}",
                 fields=[
@@ -53,8 +58,7 @@ class OnThreadCreate(commands.Cog):
                     {"name": "Created At", "value": created_at, "inline": True}
                 ]
             )
-            await guild_log_channel.send(embed=embed)
-    
-        
+            await guild_log_channel.send(embed=embed, file=file)
+
 async def setup(bot):
-    await bot.add_cog(OnThreadCreate(bot))
+    await bot.add_cog(OnRawThreadDelete(bot))

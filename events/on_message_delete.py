@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
-from utils.constants import RED_COLOR
 from utils.utils import discord_time, generate_embed
 from cyni import premium_check_fun
 import datetime
+import io
 
 class OnMessageDelete(commands.Cog):
     def __init__(self, bot):
@@ -36,19 +36,16 @@ class OnMessageDelete(commands.Cog):
 
     def _should_log_message(self, message):
         """Check if the message should be logged."""
-        if message.embeds or message.attachments:
+        if message.author.bot or message.webhook_id:
             return False
         
-        if not message.content or not message.content.strip():
-            return False
-            
-        if message.author.bot:
-            return False
-        
-        if message.webhook_id:
-            return False
-            
-        return True
+        if message.attachments:
+            return True
+
+        if message.content and message.content.strip():
+            return True
+
+        return False
 
     def _truncate_content(self, content, max_length=1000):
         """Truncate message content if it's too long."""
@@ -95,22 +92,57 @@ class OnMessageDelete(commands.Cog):
                 deletion_type = "self-deleted"
                 description = f"Message sent by {message.author.mention} was deleted on {created_at}"
             
+            fields = [
+                {"name": "Channel", "value": message.channel.mention, "inline": True},
+                {"name": "Author", "value": f"{message.author.mention}\n({message.author.name})", "inline": True},
+                {"name": "Deletion Type", "value": deletion_type.title(), "inline": True}
+            ]
+            
+            if message.content and message.content.strip():
+                fields.append({"name": "Message Content", "value": f"```{self._truncate_content(message.content)}```", "inline": False})
+            
             embed = generate_embed(
                 guild=message.guild,
                 title="Message Deleted",
                 category="logging",
                 description=description,
                 footer=f"Channel ID: {message.channel.id}",
-                fields=[
-                    {"name": "Channel", "value": message.channel.mention, "inline": True},
-                    {"name": "Author", "value": f"{message.author.mention}\n({message.author.name})", "inline": True},
-                    {"name": "Deletion Type", "value": deletion_type.title(), "inline": True},
-                    {"name": "Message Content", "value": f"```{self._truncate_content(message.content)}```", "inline": False}
-                ]
+                fields=fields
             )
             
-            if message.author.avatar:
-                embed.set_thumbnail(url=message.author.avatar.url)
+            files_to_send = []
+            attachment_info = []
+            
+            for attachment in message.attachments:
+                try:
+                    attachment_info.append(f"**{attachment.filename}** ({attachment.size} bytes)")
+                
+                    if attachment.content_type and attachment.content_type.startswith("image/"):
+                        if not embed.thumbnail.url:
+                            embed.set_thumbnail(url=attachment.url)
+                        try:
+                            file_bytes = await attachment.read()
+                            files_to_send.append(discord.File(fp=io.BytesIO(file_bytes), filename=attachment.filename))
+                        except:
+                            pass
+                    else:
+                        try:
+                            file_bytes = await attachment.read()
+                            files_to_send.append(discord.File(fp=io.BytesIO(file_bytes), filename=attachment.filename))
+                        except:
+                            pass
+                except Exception as e:
+                    print(f"Error processing attachment {attachment.filename}: {e}")
+            
+            if attachment_info:
+                embed.add_field(
+                    name=f"Attachments ({len(attachment_info)})",
+                    value="\n".join(attachment_info[:10]),
+                    inline=False
+                )
+            
+            if not embed.image.url and message.author.avatar:
+                embed.set_image(url=message.author.avatar.url)
             
             if message.created_at:
                 embed.add_field(
@@ -120,6 +152,12 @@ class OnMessageDelete(commands.Cog):
                 )
             
             await self._send_log_embed(guild_log_channel, embed)
+            
+            for file in files_to_send:
+                try:
+                    await guild_log_channel.send(file=file)
+                except Exception as e:
+                    print(f"Error sending attachment file: {e}")
             
         except Exception as e:
             print(f"Error in on_message_delete: {e}")

@@ -1,11 +1,9 @@
-from flask import render_template, redirect, url_for, request, flash, Blueprint, session, jsonify
-from flask_login import login_required, current_user
+from flask import render_template, redirect, url_for, request, flash, Blueprint, session
+from flask_login import login_required
 from cyni import bot
-from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 import datetime
-import json
 import uuid
 import requests
 from Database.Mongo import mongo_db
@@ -13,8 +11,6 @@ from Database.Mongo import mongo_db
 load_dotenv()
 
 api_token = os.getenv("API_TOKEN", "default_api_token")
-
-bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
 ticket_module = Blueprint('ticket_module', __name__)
 
@@ -32,17 +28,13 @@ def ticket_settings(guild_id):
         flash("You don't have permission to access this page", "danger")
         return redirect(url_for('dashboard'))
         
-    # Get guild settings
     settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
     ticket_settings = settings.get("ticket_module", {})
-    
-    # Get all ticket categories
+
     ticket_categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
-    
-    # Get all text channels for selection
+
     channels = {channel.id: channel.name for channel in guild.text_channels}
-    
-    # Get all roles for permission settings
+
     roles = {role.id: role.name for role in guild.roles}
     
     discord_categories = {category.id: category.name for category in guild.categories}
@@ -65,7 +57,7 @@ def new_ticket_category(guild_id):
         return redirect(url_for('dashboard'))
     
     existing_categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
-    premium = mongo_db["premium"].find_one({"guild_id": guild_id})
+    premium = mongo_db["premium"].find_one({"guild_id": int(guild_id)})
     if len(existing_categories) >= 1 and not premium:
         flash("Upgrade to CYNI Premium to create more than one ticket category", "danger")
         return redirect(url_for('ticket_module.ticket_settings', guild_id=guild_id))
@@ -91,19 +83,16 @@ def new_ticket_category(guild_id):
         if discord_category:
             discord_category = int(discord_category)
         support_roles = request.form.getlist('support_roles')
-        
-        # Convert support_roles to integers
+
         support_roles = [int(role_id) for role_id in support_roles]
-        
-        # Create embed settings
+
         embed_title = request.form.get('embed_title', 'Support Ticket')
         embed_description = request.form.get('embed_description', 'Click the button below to create a ticket')
         embed_color = request.form.get('embed_color', '#5865F2').lstrip('#')
         embed_color = int(embed_color, 16)
         
         category_id = str(uuid.uuid4())
-        
-        # Save to database
+
         ticket_category = {
             "_id": category_id,
             "guild_id": guild_id,
@@ -111,7 +100,7 @@ def new_ticket_category(guild_id):
             "description": category_description,
             "emoji": emoji,
             "ticket_channel": ticket_channel,
-            "transcript_channel": transcript_channel,  # Add transcript channel
+            "transcript_channel": transcript_channel,
             "discord_category": discord_category,
             "support_roles": support_roles,
             "created_at": datetime.datetime.now(),
@@ -124,8 +113,7 @@ def new_ticket_category(guild_id):
         
         mongo_db["ticket_categories"].insert_one(ticket_category)
         flash(f"Ticket category '{category_name}' created successfully", "success")
-        
-        # Ensure ticket module is enabled in settings
+
         mongo_db["settings"].update_one(
             {"_id": guild_id},
             {"$set": {"ticket_module.enabled": True}},
@@ -149,8 +137,7 @@ def edit_ticket_category(guild_id, category_id):
     if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
         flash("You don't have permission to access this page", "danger")
         return redirect(url_for('dashboard'))
-    
-    # Get the ticket category
+
     category = mongo_db["ticket_categories"].find_one({"_id": category_id, "guild_id": guild_id})
     if not category:
         flash("Ticket category not found", "danger")
@@ -158,7 +145,6 @@ def edit_ticket_category(guild_id, category_id):
     
     channels = {channel.id: channel.name for channel in guild.text_channels}
     roles = {role.id: role.name for role in guild.roles}
-    # Get Discord categories for the category selector
     categories = {category.id: category.name for category in guild.categories}
     
     if request.method == 'POST':
@@ -174,16 +160,13 @@ def edit_ticket_category(guild_id, category_id):
             discord_category = int(discord_category)
         support_roles = request.form.getlist('support_roles')
         
-        # Convert support_roles to integers
         support_roles = [int(role_id) for role_id in support_roles]
         
-        # Update embed settings
         embed_title = request.form.get('embed_title')
         embed_description = request.form.get('embed_description')
         embed_color = request.form.get('embed_color', '#5865F2').lstrip('#')
         embed_color = int(embed_color, 16)
         
-        # Update in database
         mongo_db["ticket_categories"].update_one(
             {"_id": category_id},
             {"$set": {
@@ -191,7 +174,7 @@ def edit_ticket_category(guild_id, category_id):
                 "description": category_description,
                 "emoji": emoji,
                 "ticket_channel": ticket_channel,
-                "transcript_channel": transcript_channel,  # Add transcript channel
+                "transcript_channel": transcript_channel,
                 "discord_category": discord_category,
                 "support_roles": support_roles,
                 "embed": {

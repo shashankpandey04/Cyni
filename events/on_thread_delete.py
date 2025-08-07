@@ -6,15 +6,15 @@ from utils.utils import discord_time, generate_embed
 from cyni import premium_check_fun
 import datetime
 
-class OnThreadCreate(commands.Cog):
+class OnThreadDelete(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_thread_create(self, thread):
+    async def on_thread_delete(self, thread):
         """
-        This event is triggered when a thread is created.
-        :param thread (discord.Thread): The thread that was created.
+        This event is triggered when a thread is deleted.
+        :param thread (discord.Thread): The thread that was deleted.
         """
         
         if thread.archived:
@@ -32,18 +32,13 @@ class OnThreadCreate(commands.Cog):
         guild_log_channel = thread.guild.get_channel(sett["moderation_module"]["audit_log"])
         if not guild_log_channel:
             return
-        
-        if thread.parent.id == 1398220765198815333:
-            await thread.send(
-                "Thank you for creating a support thread! <@&1236184696417816636> will assist you soon.\n\nTo help us resolve your issue faster, please provide detailed information about your question or problem, including any relevant screenshots or error messages."
-            )
 
         created_at = discord_time(datetime.datetime.now())
-        async for entry in thread.guild.audit_logs(limit=1, action=discord.AuditLogAction.thread_create):
+        async for entry in thread.guild.audit_logs(limit=1, action=discord.AuditLogAction.thread_delete):
             embed = generate_embed(
                 guild=thread.guild,
-                title="Thread Created",
-                description=f"{entry.user.mention} created {thread.mention}",
+                title="Thread Deleted",
+                description=f"{entry.user.mention} deleted a thread",
                 category="logging",
                 footer=f"Thread ID: {thread.id}",
                 fields=[
@@ -57,4 +52,4 @@ class OnThreadCreate(commands.Cog):
     
         
 async def setup(bot):
-    await bot.add_cog(OnThreadCreate(bot))
+    await bot.add_cog(OnThreadDelete(bot))

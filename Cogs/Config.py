@@ -5,6 +5,7 @@ from menu import (
     StaffInfraction, ServerManagement, PartnershipModule,
     LOAConfig
 )
+from UI.RobloxManagement import RobloxManagement
 from utils.pagination import Pagination
 from cyni import is_management, premium_check
 from utils.constants import BLANK_COLOR, RED_COLOR
@@ -137,7 +138,19 @@ class Config(commands.Cog):
                 )
             )
 
-            all_embed = [embed1, embed2, embed3, embed4, embed5, embed6, embed7]
+            embed_8 = discord.Embed(
+                title="Roblox Management",
+                description=(
+                    "> **Staff Configuration**\n"
+                    "This setting allows you to configure the staff & management roles and permissions to access Roblox-related commands.\n\n"
+                    # "> **Shifts Configuration**\n"
+                    # "This setting allows you to configure the shifts and scheduling for your Roblox staff.\n\n"
+                    # "> **Punishments Configuration**\n"
+                    # "This setting allows you to configure the punishments for your Roblox staff.\n\n"
+                )
+            )
+
+            all_embed = [embed1, embed2, embed3, embed4, embed5, embed6, embed7, embed_8]
             views = [
                 BasicConfig(self.bot, sett, ctx.author.id), 
                 AntiPingView(self.bot, sett, ctx.author.id), 
@@ -145,7 +158,8 @@ class Config(commands.Cog):
                 StaffInfraction(bot=self.bot,setting=sett,user_id=ctx.author.id),
                 ServerManagement(bot=self.bot,setting=sett,user_id=ctx.author.id),
                 PartnershipModule(bot=self.bot,setting=sett,user_id=ctx.author.id),
-                LOAConfig(bot=self.bot,setting=sett,user_id=ctx.author.id)
+                LOAConfig(bot=self.bot,setting=sett,user_id=ctx.author.id),
+                RobloxManagement(self.bot, ctx, sett)
             ]
             view = Pagination(self.bot, ctx.author.id, all_embed, views)
             await ctx.send(embed=embed1, view=view)

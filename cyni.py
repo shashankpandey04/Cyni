@@ -77,7 +77,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-_version = "8.1.0"
+_version = "8.1.1"
 class Bot(commands.AutoShardedBot):
 
     async def is_owner(self, user: User) -> bool:
@@ -219,7 +219,7 @@ bot = Bot(
     case_insensitive=True,
     intents=intents,
     help_command=None,
-    allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=True),
+    allowed_mentions=discord.AllowedMentions(everyone=False, roles=True, users=True),
 )
 
 bot.debug_server = [1152949579407442050]
@@ -315,60 +315,42 @@ async def staff_or_management_check(bot,guild,member):
         return True
     return False
 
-async def erlc_staff_check(bot, guild, member):
-    """Check if member has ERLC staff permissions or regular staff permissions."""
+async def roblox_staff_check(bot, guild, member):
+    """Check if member has Roblox staff permissions."""
     if member.guild_permissions.administrator:
         return True
-    
-    # Check regular staff roles first
-    if await staff_check(bot, guild, member):
-        return True
-    
-    # Check ERLC-specific staff roles
+
     guild_settings = await bot.settings.get(guild.id)
-    if guild_settings and "erlc" in guild_settings:
-        if "staff_roles" in guild_settings["erlc"]:
-            erlc_staff_roles = guild_settings["erlc"]["staff_roles"]
-            if erlc_staff_roles:
-                if isinstance(erlc_staff_roles, list):
-                    for role in erlc_staff_roles:
+    if guild_settings and "roblox" in guild_settings:
+        if "staff_roles" in guild_settings["roblox"]:
+            roblox_staff_roles = guild_settings["roblox"]["staff_roles"]
+            if roblox_staff_roles:
+                if isinstance(roblox_staff_roles, list):
+                    for role in roblox_staff_roles:
                         if role in [r.id for r in member.roles]:
                             return True
-                elif isinstance(erlc_staff_roles, int):
-                    if erlc_staff_roles in [r.id for r in member.roles]:
+                elif isinstance(roblox_staff_roles, int):
+                    if roblox_staff_roles in [r.id for r in member.roles]:
                         return True
     return False
 
-async def erlc_management_check(bot, guild, member):
-    """Check if member has ERLC management permissions or regular management permissions."""
+async def roblox_management_check(bot, guild, member):
+    """Check if member has Roblox management permissions."""
     if member.guild_permissions.administrator:
         return True
-    
-    # Check regular management roles first
-    if await management_check(bot, guild, member):
-        return True
-    
-    # Check ERLC-specific management roles
+
     guild_settings = await bot.settings.get(guild.id)
-    if guild_settings and "erlc" in guild_settings:
-        if "management_roles" in guild_settings["erlc"]:
-            erlc_management_roles = guild_settings["erlc"]["management_roles"]
-            if erlc_management_roles:
-                if isinstance(erlc_management_roles, list):
-                    for role in erlc_management_roles:
+    if guild_settings and "roblox" in guild_settings:
+        if "management_roles" in guild_settings["roblox"]:
+            roblox_management_roles = guild_settings["roblox"]["management_roles"]
+            if roblox_management_roles:
+                if isinstance(roblox_management_roles, list):
+                    for role in roblox_management_roles:
                         if role in [r.id for r in member.roles]:
                             return True
-                elif isinstance(erlc_management_roles, int):
-                    if erlc_management_roles in [r.id for r in member.roles]:
+                elif isinstance(roblox_management_roles, int):
+                    if roblox_management_roles in [r.id for r in member.roles]:
                         return True
-    return False
-
-async def erlc_staff_or_management_check(bot, guild, member):
-    """Check if member has ERLC staff or management permissions."""
-    if member.guild_permissions.administrator:
-        return True
-    if await erlc_staff_check(bot, guild, member) or await erlc_management_check(bot, guild, member):
-        return True
     return False
 
 async def premium_check_fun(bot, guild):
@@ -399,25 +381,18 @@ def is_staff_or_management():
         raise commands.MissingPermissions(["Staff or Management"])
     return commands.check(predicate)
 
-def is_erlc_staff():
+def is_roblox_staff():
     async def predicate(ctx):
-        if await erlc_staff_check(ctx.bot, ctx.guild, ctx.author):
+        if await roblox_staff_check(ctx.bot, ctx.guild, ctx.author):
             return True
-        raise commands.MissingPermissions(["ERLC Staff"])
+        raise commands.MissingPermissions(["Roblox Staff"])
     return commands.check(predicate)
 
-def is_erlc_management():
+def is_roblox_management():
     async def predicate(ctx):
-        if await erlc_management_check(ctx.bot, ctx.guild, ctx.author):
+        if await roblox_management_check(ctx.bot, ctx.guild, ctx.author):
             return True
-        raise commands.MissingPermissions(["ERLC Management"])
-    return commands.check(predicate)
-
-def is_erlc_staff_or_management():
-    async def predicate(ctx):
-        if await erlc_staff_or_management_check(ctx.bot, ctx.guild, ctx.author):
-            return True
-        raise commands.MissingPermissions(["ERLC Staff or Management"])
+        raise commands.MissingPermissions(["Roblox Management"])
     return commands.check(predicate)
 
 def premium_check():
@@ -428,30 +403,6 @@ def premium_check():
             raise NotPremiumError()
         return True
     return commands.check(predicate)
-
-async def fetch_invite(guild_id):
-    guild = bot.get_guild(guild_id)
-    if not guild:
-        raise ValueError("Guild not found.")
-    
-    try:
-        invite = await guild.vanity_invite()
-        return invite.url
-    except discord.Forbidden:
-        pass
-
-    try:
-        invites = await guild.invites()
-        if invites:
-            return invites[0].url
-    except discord.Forbidden:
-        pass
-
-    try:
-        invite = await guild.text_channels[0].create_invite()
-        return invite.url
-    except discord.Forbidden:
-        raise ValueError("Failed to get invite")
 
 def bot_ready():
     if bot.is_ready():

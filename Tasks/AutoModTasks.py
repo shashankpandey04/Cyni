@@ -16,8 +16,6 @@ class AutoModTasks(commands.Cog):
         """Clean up old entries from AutoMod caches."""
         try:
             current_time = time.time()
-            
-            # Clean up message cache from on_message event
             if hasattr(self.bot, 'get_cog'):
                 on_message_cog = self.bot.get_cog('OnMessage')
                 if on_message_cog and hasattr(on_message_cog, 'user_message_cache'):
@@ -25,27 +23,22 @@ class AutoModTasks(commands.Cog):
                     users_to_remove = []
                     
                     for user_id, timestamps in cache.items():
-                        # Remove timestamps older than 30 seconds (generous cleanup)
                         cache[user_id] = [ts for ts in timestamps if current_time - ts <= 30]
                         
-                        # Remove empty entries
                         if not cache[user_id]:
                             users_to_remove.append(user_id)
                     
                     for user_id in users_to_remove:
                         del cache[user_id]
                 
-                # Clean up join timestamps from on_member_join event
                 on_join_cog = self.bot.get_cog('OnMemberJoin')
                 if on_join_cog and hasattr(on_join_cog, 'join_timestamps'):
                     cache = on_join_cog.join_timestamps
                     guilds_to_remove = []
                     
                     for guild_id, timestamps in cache.items():
-                        # Remove timestamps older than 60 seconds (generous cleanup)
                         cache[guild_id] = [ts for ts in timestamps if current_time - ts <= 60]
                         
-                        # Remove empty entries
                         if not cache[guild_id]:
                             guilds_to_remove.append(guild_id)
                     

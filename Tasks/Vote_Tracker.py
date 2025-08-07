@@ -1,6 +1,6 @@
 import datetime
 from discord.ext import tasks
-import time
+import discord
 
 @tasks.loop(minutes=1, reconnect=True)
 async def vote_track(bot):
@@ -8,10 +8,16 @@ async def vote_track(bot):
     Track votes for the bot and removes the vote role if the user has not voted in the last 12 hours.
     """
     try:
+        guild_id = 1152949579407442050
+        guild = bot.get_guild(guild_id)
+        if guild is None:
+            print(f"Guild with ID {guild_id} not found.")
+            return
         votes = await bot.vote_tracker_document.find({})
         for vote in votes:
-            user = bot.get_user(vote["user_id"])
+            user = discord.utils.get(guild.members, id=vote["user_id"])
             if user is None:
+                print(f"User with ID {vote['user_id']} not found in guild {guild_id}.")
                 continue
 
             if datetime.datetime.now() - vote["voted_at"] > datetime.timedelta(hours=12):

@@ -7,7 +7,6 @@ from typing import List, Dict, Optional
 import logging
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
-import utils.prc_api as prc_api
 from utils.prc_api import ServerKillLogs, ServerJoinLogs, ResponseFailed
 
 class PRCLogsProcessor:
@@ -16,16 +15,13 @@ class PRCLogsProcessor:
     def __init__(self, bot):
         self.bot = bot
         self.logger = logging.getLogger(__name__)
-        # Cache to track last processed log timestamps per guild
         self.last_kill_log_timestamp = {}
         self.last_join_log_timestamp = {}
-        # Cache for Roblox usernames
         self.username_cache = {}
-        # Cache for guilds and channels (refreshed every 5 minutes)
         self.guilds_cache = []
         self.channels_cache = {}
         self.last_cache_update = 0
-        self.cache_duration = 300  # 5 minutes in seconds
+        self.cache_duration = 300
 
     def start_task(self):
         """Start the PRC logs processing task."""
@@ -51,7 +47,6 @@ class PRCLogsProcessor:
         """Get username with caching to reduce API calls."""
         if user_id not in self.username_cache:
             try:
-                # Offload potentially blocking API call to a thread
                 username = await asyncio.to_thread(self.bot.roblox._get_username_by_id, user_id)
                 self.username_cache[user_id] = username
             except Exception as e:
@@ -63,7 +58,6 @@ class PRCLogsProcessor:
         """Get all guilds that have ERLC configuration with logging channels (with caching)."""
         current_time = time.time()
         
-        # Check if cache is still valid (5 minutes)
         if current_time - self.last_cache_update < self.cache_duration and self.guilds_cache:
             return self.guilds_cache
         
@@ -138,20 +132,18 @@ class PRCLogsProcessor:
 
                         embeds.append(embed)
 
-                        # Update last processed timestamp
                         self.last_kill_log_timestamp[guild_id] = log.Timestamp
 
                     except Exception as e:
                         self.logger.error(f"Error processing kill log for guild {guild_id}: {e}")
 
-                # Send all embeds in this batch at once
                 if embeds:
                     await channel.send(embeds=embeds)
                     # Small delay between batches
                     await asyncio.sleep(1)
 
         except ResponseFailed as e:
-            if e.code != 422:  # Don't log server offline errors
+            if e.code != 422:
                 self.logger.error(f"PRC API error for kill logs guild {guild_id}: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error processing kill logs for guild {guild_id}: {e}")
@@ -175,13 +167,11 @@ class PRCLogsProcessor:
     async def process_join_logs(self, guild_id: int, join_logs_channel_id: int):
         """Process and send join/leave logs for a guild."""
         try:
-            # Fetch join logs from PRC API
             join_logs: List[ServerJoinLogs] = await self.bot.prc_api._fetch_server_join_logs(guild_id)
             
             if not join_logs:
                 return
 
-            # Get last processed timestamp for this guild
             last_timestamp = self.last_join_log_timestamp.get(guild_id, 0)
             new_logs = []
 
@@ -193,16 +183,12 @@ class PRCLogsProcessor:
             if not new_logs:
                 return
 
-            # Sort by timestamp (oldest first for chronological posting)
             new_logs.sort(key=lambda x: x.Timestamp or 0)
 
-            # Get the channel (with caching)
             channel = await self.get_cached_channel(join_logs_channel_id)
             if not channel:
-                self.logger.warning(f"Join logs channel {join_logs_channel_id} not found for guild {guild_id}")
                 return
 
-            # Group logs into batches of 10 to send together
             batch_size = 10
             for i in range(0, len(new_logs), batch_size):
                 batch = new_logs[i:i + batch_size]
@@ -219,16 +205,13 @@ class PRCLogsProcessor:
                             player_name = player_parts[0]
                             player_link = player_name
 
-                        # Determine action and color
                         status = 'joined' if log.Join else 'left'
                         color = GREEN_COLOR if log.Join else RED_COLOR
                         emoji = "🟢" if log.Join else "🔴"
                         log_type = "Player Join Log" if log.Join else "Player Leave Log"
 
-                        #we only process data from past 1 minute
                         if log.Timestamp and log.Timestamp < int(time.time()) - 60:
                             continue
-                        # Create embed for individual join/leave log
                         embed = discord.Embed(
                             title=f"{emoji} {log_type}",
                             description=f"{player_link} {status} the server <t:{int(log.Timestamp)}:R>",
@@ -243,20 +226,17 @@ class PRCLogsProcessor:
 
                         embeds.append(embed)
 
-                        # Update last processed timestamp
                         self.last_join_log_timestamp[guild_id] = log.Timestamp
 
                     except Exception as e:
                         self.logger.error(f"Error processing join log for guild {guild_id}: {e}")
 
-                # Send all embeds in this batch at once
                 if embeds:
                     await channel.send(embeds=embeds)
-                    # Small delay between batches
                     await asyncio.sleep(1)
 
         except ResponseFailed as e:
-            if e.code != 422:  # Don't log server offline errors
+            if e.code != 422:
                 self.logger.error(f"PRC API error for join logs guild {guild_id}: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error processing join logs for guild {guild_id}: {e}")
@@ -265,31 +245,25 @@ class PRCLogsProcessor:
     async def process_prc_logs(self):
         """Main task loop to process PRC logs for all configured guilds."""
         try:
-            # Get all guilds with ERLC logging configuration
             guilds = await self.get_guilds_with_erlc_config()
 
             for guild_data in guilds:
                 guild_id = guild_data.get('_id')
                 erlc_config = guild_data.get('erlc', {})
 
-                # Check if guild has a linked ERLC server
                 try:
                     await self.bot.prc_api._fetch_server_status(guild_id)
                 except (ResponseFailed, Exception):
-                    # Skip guilds without linked ERLC servers
                     continue
 
-                # Process kill logs if channel is configured
                 kill_logs_channel = erlc_config.get('kill_logs_channel')
                 if kill_logs_channel:
                     await self.process_kill_logs(guild_id, kill_logs_channel)
 
-                # Process join logs if channel is configured
                 join_logs_channel = erlc_config.get('join_logs_channel')
                 if join_logs_channel:
                     await self.process_join_logs(guild_id, join_logs_channel)
 
-                # Small delay between guilds to avoid rate limits (reduced since running more frequently)
                 await asyncio.sleep(0.5)
 
         except Exception as e:
@@ -300,7 +274,6 @@ class PRCLogsProcessor:
         """Wait for the bot to be ready before starting the task."""
         await self.bot.wait_until_ready()
 
-# Global processor instance
 prc_processor = None
 
 def setup_prc_logs_processor(bot):
