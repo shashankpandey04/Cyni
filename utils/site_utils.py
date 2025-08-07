@@ -117,3 +117,20 @@ def get_guild_roles(guild_id):
     else:
         print(f"Error fetching roles for guild {guild_id}: {response.status_code} - {response.text}")
         return None
+    
+def get_guild_members(guild_id):
+    api_url = get_api_url_for_guild(guild_id)
+    if not api_url:
+        print(f"API URL for guild {guild_id} not found.")
+        return None
+    
+    response = requests.post(
+        f"{api_url}/fetch_guild_members",
+        json={"guild_id": guild_id},
+        headers=headers
+    )
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching members for guild {guild_id}: {response.status_code} - {response.text}")
+        return None

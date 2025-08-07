@@ -3,15 +3,10 @@
 {% block title %}Moderation Logs | Cyni{% endblock %}
 
 {% block content %}
-<!-- Main Layout Container -->
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900 pt-16">
-  <!-- Include Moderation Sidebar -->
   {% include 'mod_sidebar.html' %}
-  
-  <!-- Main Content Area -->
   <div class="md:ml-64">
     <main class="p-6 lg:p-8 max-w-7xl mx-auto">
-      <!-- Page Header -->
       <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 mb-8 shadow-lg">
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0">
           <div class="flex items-center">
@@ -23,8 +18,6 @@
               <p class="text-slate-600 dark:text-slate-400">Review and manage moderation actions</p>
             </div>
           </div>
-          
-          <!-- Stats -->
           <div class="flex items-center space-x-4">
             <div class="text-center">
               <div class="text-2xl font-bold text-slate-900 dark:text-white">{{ logs|length }}</div>
@@ -42,11 +35,9 @@
         </div>
       </div>
 
-      <!-- Logs Container -->
       <div id="logs-container" class="space-y-6">
         {% if logs|length == 0 %}
-        <!-- Empty State -->
-        <div class="glass-effect rounded-2xl p-12 border border-white/60 dark:border-slate-700/60 text-center">
+        <div class="rounded-2xl p-12 border border-white/60 dark:border-slate-700/60 text-center bg-white/70 dark:bg-slate-800/70 backdrop-blur">
           <div class="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <i data-lucide="file-text" class="w-8 h-8 text-slate-400"></i>
           </div>
@@ -56,9 +47,7 @@
         {% endif %}
 
         {% for log in logs %}
-        <!-- Log Entry -->
-        <div class="glass-effect rounded-2xl border border-white/60 dark:border-slate-700/60 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
-          <!-- Log Header -->
+        <div class="rounded-2xl border border-white/60 dark:border-slate-700/60 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-slate-800/70 backdrop-blur" x-data="{ open: false }">
           <div class="bg-white/50 dark:bg-slate-800/50 px-6 py-4 border-b border-white/20 dark:border-slate-700/30">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-4">
@@ -70,9 +59,7 @@
                   <p class="text-sm text-slate-600 dark:text-slate-400">User ID: {{ log.user_id }}</p>
                 </div>
               </div>
-              
               <div class="flex items-center space-x-3">
-                <!-- Status Badge -->
                 {% if log.active %}
                   <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 status-badge">
                     <i data-lucide="check-circle" class="w-3 h-3 mr-1"></i>
@@ -84,42 +71,34 @@
                     Voided
                   </span>
                 {% endif %}
-                
-                <!-- Toggle Button -->
-                <button class="inline-flex items-center px-3 py-2 glass-effect text-slate-700 dark:text-slate-200 font-medium rounded-lg hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200 toggle-btn" data-bs-toggle="collapse" data-bs-target="#log-{{ log._id }}">
+                <button type="button"
+                  class="inline-flex items-center px-3 py-2 text-slate-700 dark:text-slate-200 font-medium rounded-lg hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-200"
+                  @click="open = !open">
                   <i data-lucide="eye" class="w-4 h-4 mr-2"></i>
                   Details
                 </button>
               </div>
             </div>
           </div>
-          
-          <!-- Log Details (Collapsible) -->
-          <div id="log-{{ log._id }}" class="collapse">
+          <div x-show="open" x-transition id="log-{{ log._id }}">
             <div class="p-6 space-y-6">
-              <!-- Current Reason -->
               <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
                 <label class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Current Reason</label>
                 <p class="text-slate-700 dark:text-slate-300 reason-text">{{ log.reason }}</p>
               </div>
-
-              <!-- Update Form -->
               <form class="update-log-form space-y-4" data-log-id="{{ log._id }}">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <!-- Update Reason -->
                   <div>
                     <label for="reason-{{ log._id }}" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Update Reason</label>
-                    <input type="text" 
-                           id="reason-{{ log._id }}" 
-                           name="reason" 
+                    <input type="text"
+                           id="reason-{{ log._id }}"
+                           name="reason"
                            value="{{ log.reason }}"
                            class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   </div>
-                  
-                  <!-- Change Status -->
                   <div>
                     <label for="status-{{ log._id }}" class="block text-sm font-medium text-slate-900 dark:text-white mb-2">Change Status</label>
-                    <select id="status-{{ log._id }}" 
+                    <select id="status-{{ log._id }}"
                             name="status"
                             class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                       <option value="active" {% if log.active %}selected{% endif %}>Active</option>
@@ -127,8 +106,6 @@
                     </select>
                   </div>
                 </div>
-                
-                <!-- Submit Button -->
                 <div class="flex justify-end">
                   <button type="submit" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg">
                     <i data-lucide="save" class="w-4 h-4 mr-2"></i>
@@ -142,14 +119,13 @@
         {% endfor %}
       </div>
 
-      <!-- Pagination -->
       {% if total_pages > 1 %}
       <div class="mt-8 flex justify-center">
-        <nav class="glass-effect rounded-lg border border-white/60 dark:border-slate-700/60 overflow-hidden">
+        <nav class="rounded-lg border border-white/60 dark:border-slate-700/60 overflow-hidden bg-white/70 dark:bg-slate-800/70 backdrop-blur">
           <ul class="flex">
             {% for page_num in range(1, total_pages + 1) %}
             <li>
-              <a href="{{ url_for('mod_logs', guild_id=guild.id, page=page_num) }}" 
+              <a href="{{ url_for('mod_logs', guild_id=guild.id, page=page_num) }}"
                  class="block px-4 py-2 text-sm font-medium {% if page_num == current_page %}bg-blue-500 text-white{% else %}text-slate-700 dark:text-slate-200 hover:bg-white/20 dark:hover:bg-black/20{% endif %} transition-all duration-200 border-r border-white/20 dark:border-slate-700/30 last:border-r-0">
                 {{ page_num }}
               </a>
@@ -163,46 +139,35 @@
   </div>
 </div>
 
+<script src="//unpkg.com/alpinejs" defer></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    // Initialize Lucide icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
-
-    // Handle form submissions
     document.querySelectorAll(".update-log-form").forEach(form => {
         form.addEventListener("submit", (e) => {
             e.preventDefault();
-            
             const logId = form.dataset.logId;
             const reason = form.querySelector(`[name="reason"]`).value;
             const status = form.querySelector(`[name="status"]`).value;
             const guild_id = "{{ guild.id }}";
-            
-            // Show loading state
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i>Saving...';
             submitBtn.disabled = true;
-
             fetch(`/modpanel/${guild_id}/modlogs`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ log_id: logId, reason: reason.trim(), status })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Show success message
                     const successMsg = document.createElement('div');
                     successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
                     successMsg.innerHTML = '<i data-lucide="check" class="w-4 h-4 mr-2 inline"></i>Log updated successfully!';
                     document.body.appendChild(successMsg);
-                    
-                    // Update status badge
                     const statusBadge = document.querySelector(`#log-${logId} .status-badge`);
                     if (status === "active") {
                         statusBadge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 status-badge";
@@ -211,29 +176,15 @@ document.addEventListener("DOMContentLoaded", () => {
                         statusBadge.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 status-badge";
                         statusBadge.innerHTML = '<i data-lucide="x-circle" class="w-3 h-3 mr-1"></i>Voided';
                     }
-
-                    // Update reason text
                     document.querySelector(`#log-${logId} .reason-text`).textContent = reason.trim();
-                    
-                    // Remove success message after 3 seconds
-                    setTimeout(() => {
-                        successMsg.remove();
-                    }, 3000);
-                    
-                    // Re-initialize icons
-                    if (typeof lucide !== 'undefined') {
-                        lucide.createIcons();
-                    }
+                    setTimeout(() => { successMsg.remove(); }, 3000);
+                    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
                 } else {
-                    // Show error message
                     const errorMsg = document.createElement('div');
                     errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
                     errorMsg.innerHTML = `<i data-lucide="x" class="w-4 h-4 mr-2 inline"></i>Error: ${data.error}`;
                     document.body.appendChild(errorMsg);
-                    
-                    setTimeout(() => {
-                        errorMsg.remove();
-                    }, 5000);
+                    setTimeout(() => { errorMsg.remove(); }, 5000);
                 }
             })
             .catch(error => {
@@ -242,24 +193,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
                 errorMsg.innerHTML = '<i data-lucide="x" class="w-4 h-4 mr-2 inline"></i>An error occurred. Please try again.';
                 document.body.appendChild(errorMsg);
-                
-                setTimeout(() => {
-                    errorMsg.remove();
-                }, 5000);
+                setTimeout(() => { errorMsg.remove(); }, 5000);
             })
             .finally(() => {
-                // Restore button state
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-                
-                // Re-initialize icons
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
+                if (typeof lucide !== 'undefined') { lucide.createIcons(); }
             });
         });
     });
 });
 </script>
-
 {% endblock %}

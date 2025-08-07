@@ -1209,9 +1209,9 @@ def ban_appeal_log(guild_id, appeal_id):
         flash("Failed to notify user")
         return redirect(url_for("ban_appeal_logs", guild_id=guild_id))
 
-@app.route('/modpanel/<guild_id>', methods=["GET"])
+@app.route('/panel/discord/<guild_id>', methods=["GET"])
 @login_required
-def mod_panel(guild_id):
+def discord_mod_panel(guild_id):
     guild = get_guild(guild_id)
     if not guild:
         flash("Guild not found or you do not have access to it.", "error")
@@ -1226,12 +1226,16 @@ def mod_panel(guild_id):
     if has_perm is False:
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
+    
+    users = get_guild_members(guild_id)
+    if not users:
+        flash("No users found in this guild.", "info")
 
-    return render_template("mod_panel.html", guild=guild, users=guild.members)
+    return render_template("mod_panel.html", guild=guild, users=users)
 
-@app.route('/modpanel/<guild_id>/modlogs', methods=["GET", "POST"])
+@app.route('/panel/discord/<guild_id>/modlogs', methods=["GET", "POST"])
 @login_required
-def mod_logs(guild_id):
+def discord_mod_logs(guild_id):
     guild = get_guild(guild_id)
     if not guild:
         flash("Guild not found or you do not have access to it.", "error")
@@ -1296,9 +1300,9 @@ def mod_logs(guild_id):
         current_page=page,
     )
 
-@app.route('/modpanel/<guild_id>/members', methods=["GET", "POST"])
+@app.route('/panel/discord/<guild_id>/members', methods=["GET", "POST"])
 @login_required
-def view_members(guild_id):
+def discord_view_members(guild_id):
     guild = get_guild(guild_id)
     if not guild:
         flash("Guild not found or you do not have access to it.", "error")
@@ -1314,7 +1318,10 @@ def view_members(guild_id):
         flash("You do not have the required permissions to access this page.", "error")
         return redirect(url_for("dashboard"))
     
-    members = guild.members
+    members = get_guild_members(guild_id)
+    if not members:
+        flash("No members found in this guild.", "info")
+        return render_template("view_members.html", guild=guild, members=[], total_pages=0, current_page=1)
 
     if request.method == "POST":
         search_query = request.form.get("search_query", "")
@@ -1328,13 +1335,14 @@ def view_members(guild_id):
 
     page = request.args.get('page', 1, type=int)
     members_per_page = 12
-    members_paginated = members[(page - 1) * members_per_page:page * members_per_page]
+    members_list = list(members)
+    members_paginated = members_list[(page - 1) * members_per_page:page * members_per_page]
 
-    return render_template("view_members.html", guild=guild, members=members_paginated, total_pages=(len(members) // members_per_page) + 1, current_page=page)
+    return render_template("view_members.html", guild=guild, members=members_paginated, total_pages=(len(members_list) // members_per_page) + 1, current_page=page)
 
-@app.route('/view_profile/<guild_id>/<user_id>', methods=["GET"])
+@app.route('/panel/discord/<guild_id>/<user_id>', methods=["GET"])
 @login_required
-def view_profile(guild_id, user_id):
+def discord_view_profile(guild_id, user_id):
     guild = get_guild(guild_id)
     if not guild:
         flash("Guild not found or you do not have access to it.", "error")

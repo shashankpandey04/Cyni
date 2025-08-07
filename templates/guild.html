@@ -209,7 +209,7 @@
         {% if moderation_enabled %}
         <div class="group relative flex flex-col min-h-[180px] flex-grow">
           <div class="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-          <a href="{{ url_for('mod_logs', guild_id=guild.id) }}" class="relative flex flex-col flex-grow p-4 rounded-2xl min-h-[180px] bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-500 hover:-translate-y-1 shadow-md hover:shadow-xl border border-white/20 dark:border-slate-700/50">
+          <a href="{{ url_for('discord_mod_logs', guild_id=guild.id) }}" class="relative flex flex-col flex-grow p-4 rounded-2xl min-h-[180px] bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-500 hover:-translate-y-1 shadow-md hover:shadow-xl border border-white/20 dark:border-slate-700/50">
             <div class="flex items-center justify-between mb-3">
               <div class="w-10 h-10 bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
                 <i data-lucide="scroll" class="w-5 h-5 text-white"></i>

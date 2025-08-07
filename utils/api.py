@@ -815,7 +815,7 @@ class APIRoutes:
             }
         }
     
-    async def POST_get_guild_members(
+    async def POST_fetch_guild_members(
         self,
         authorization: Annotated[str | None, Header()],
         request: Request

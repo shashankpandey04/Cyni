@@ -35,7 +35,7 @@ class OnThreadCreate(commands.Cog):
         
         if thread.parent.id == 1398220765198815333:
             await thread.send(
-                "Thank you for creating a support thread! <@&1236184696417816636> will assist you soon.\n\nTo help us resolve your issue faster, please provide detailed information about your question or problem, including any relevant screenshots or error messages."
+                "Thank you for creating a support thread! <@&1158043149424398406> will assist you soon.\n\nTo help us resolve your issue faster, please provide detailed information about your question or problem, including any relevant screenshots or error messages."
             )
 
         created_at = discord_time(datetime.datetime.now())
