@@ -804,10 +804,10 @@ def apply(guild_id, application_id):
             flash("You do not have access to this guild.", "error")
             return redirect(url_for("dashboard"))
         
-        has_perm = check_permissions(guild_id, session["user_id"])
-        if has_perm is False:
-            flash("You do not have the required permissions to access this page.", "error")
-            return redirect(url_for("dashboard"))
+        # has_perm = check_permissions(guild_id, session["user_id"])
+        # if has_perm is False:
+        #     flash("You do not have the required permissions to access this page.", "error")
+        #     return redirect(url_for("dashboard"))
         
         try:
             application = mongo_db["applications"].find_one({"_id": ObjectId(application_id)})
