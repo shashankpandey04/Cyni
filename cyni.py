@@ -48,7 +48,6 @@ class NotPremiumError(PremiumCheckError):
     def __init__(self):
         super().__init__("This server is not premium enabled. Please upgrade to CYNI Premium to access this feature.")
 
-
 load_dotenv()
 
 intents = discord.Intents.default()
@@ -65,6 +64,10 @@ discord.utils.setup_logging(level=logging.INFO)
 
 _version = "8.1.1"
 class Bot(commands.AutoShardedBot):
+    
+    RATE_LIMIT_WINDOW = 10  # seconds
+    RATE_LIMIT_ABUSE_THRESHOLD = 5
+    RATE_LIMIT_ALERT_CHANNEL = 1160481880253140992  
 
     async def is_owner(self, user: User) -> bool:
 
@@ -88,6 +91,10 @@ class Bot(commands.AutoShardedBot):
         await super().close()
         self.mongo.close()
         print('Closed!')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rate_limit_tracker = {}
 
     async def on_ready(self):
         categories = await self.ticket_categories.find({})
@@ -123,6 +130,34 @@ class Bot(commands.AutoShardedBot):
         self.logger.info(f'Logged in as {self.user.name} ({self.user.id})')
         self.logger.info('------')
 
+    async def handle_rate_limit_alert(self, guild_id, channel_id, route):
+        now = time.time()
+        key = (guild_id, channel_id)
+
+        self.rate_limit_tracker.setdefault(key, []).append(now)
+        self.rate_limit_tracker[key] = [
+            ts for ts in self.rate_limit_tracker[key]
+            if now - ts <= self.RATE_LIMIT_WINDOW
+        ]
+
+        alert_channel = self.get_channel(self.RATE_LIMIT_ALERT_CHANNEL)
+        if alert_channel:
+            if len(self.rate_limit_tracker[key]) >= self.RATE_LIMIT_ABUSE_THRESHOLD:
+                await alert_channel.send(
+                    f"🚨 **Rate Limit Abuse Detected** 🚨\n"
+                    f"Guild ID: `{guild_id}`\n"
+                    f"Channel ID: `{channel_id}`\n"
+                    f"Route: `{route.method} {route.path}`\n"
+                    f"Hits in {self.RATE_LIMIT_WINDOW}s: `{len(self.rate_limit_tracker[key])}`"
+                )
+            else:
+                await alert_channel.send(
+                    f"⚠️ Rate limit hit.\n"
+                    f"Guild ID: `{guild_id}`\n"
+                    f"Channel ID: `{channel_id}`\n"
+                    f"Route: `{route.method} {route.path}`"
+                )
+
     async def setup_hook(self) -> None:
         self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
         self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
@@ -149,9 +184,35 @@ class Bot(commands.AutoShardedBot):
         self.premium = Document(self.db, 'premium')
         self.shift_types = Document(self.db, 'shift_types')
         self.ticket_categories = Document(self.db, 'ticket_categories')
+        self.terminated_accounts = Document(self.db, 'terminated_accounts')
         self.emoji = EmojiController(self)
         self.logger = logging.getLogger()
         await self.emoji.prefetch_emojis()
+
+        orig_request = self.http.request
+        async def rate_limit_aware_request(route, *args, **kwargs):
+            try:
+                return await orig_request(route, *args, **kwargs)
+            except discord.HTTPException as e:
+                if "429" in str(e) or "rate limited" in str(e).lower():
+                    guild_id = None
+                    channel_id = None
+
+                    if "channel_id" in kwargs:
+                        channel_id = kwargs["channel_id"]
+                    elif hasattr(route, "channel_id") and route.channel_id:
+                        channel_id = route.channel_id
+
+                    if channel_id:
+                        channel_obj = self.get_channel(int(channel_id))
+                        if channel_obj and isinstance(channel_obj, discord.abc.GuildChannel):
+                            guild_id = channel_obj.guild.id
+
+                    await self.handle_rate_limit_alert(guild_id, channel_id, route)
+                    raise
+                raise
+
+        self.http.request = rate_limit_aware_request
 
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]

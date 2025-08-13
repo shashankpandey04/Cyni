@@ -105,7 +105,6 @@ class PRCLogsProcessor:
 
             channel = await self.get_cached_channel(kill_logs_channel_id)
             if not channel:
-                self.logger.warning(f"Kill logs channel {kill_logs_channel_id} not found for guild {guild_id}")
                 return
             
             batch_size = 10
@@ -139,14 +138,15 @@ class PRCLogsProcessor:
 
                 if embeds:
                     await channel.send(embeds=embeds)
-                    # Small delay between batches
                     await asyncio.sleep(1)
 
         except ResponseFailed as e:
             if e.code != 422:
-                self.logger.error(f"PRC API error for kill logs guild {guild_id}: {e}")
+                #self.logger.error(f"PRC API error for kill logs guild {guild_id}: {e}")
+                pass
         except Exception as e:
-            self.logger.error(f"Unexpected error processing kill logs for guild {guild_id}: {e}")
+            #self.logger.error(f"Unexpected error processing kill logs for guild {guild_id}: {e}")
+            pass
 
     async def _parse_player_info(self, player_info: str):
         """Parse player info into name and profile link."""

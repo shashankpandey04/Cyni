@@ -12,6 +12,7 @@ from bson import ObjectId, Int64
 from cyni import bot
 import markdown
 import json
+from collections import defaultdict
 
 from DashboardModules.WelcomeModule import welcome_route
 from DashboardModules.AutoModModule import automod
@@ -42,6 +43,8 @@ mongo_client = MongoClient(os.getenv("MONGO_URI"))
 mongo_db = mongo_client["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else mongo_client["dev"]
 sessions_collection = mongo_db["sessions"]
 
+terminated_account_ids = list(mongo_db["terminated_accounts"].distinct("user_id"))
+
 app.register_blueprint(welcome_route)
 app.register_blueprint(automod)
 app.register_blueprint(ticket_module)
@@ -67,13 +70,52 @@ class User(UserMixin):
     def get_id(self):
         return self.id
 
+global_request_times = []
+user_request_times = defaultdict(list)
+
+RATE_LIMIT_GLOBAL_WINDOW = 1  # seconds
+RATE_LIMIT_GLOBAL_THRESHOLD = 3
+RATE_LIMIT_USER_THRESHOLD = 5
+
 @app.before_request
 def ensure_logged_in_user():
+    if "user_id" in session and int(session["user_id"]) in terminated_account_ids:
+        return render_template("termination/account.html")
     if "user_id" in session and not current_user.is_authenticated:
         user_id = session["user_id"]
         user = load_user(user_id)
         if user:
             login_user(user)
+
+@app.before_request
+def rate_limit():
+    now = datetime.datetime.now().timestamp()
+    if request.endpoint in ["index", "static"]:  
+        return
+
+    global_request_times[:] = [t for t in global_request_times if now - t <= RATE_LIMIT_GLOBAL_WINDOW]
+    if len(global_request_times) >= RATE_LIMIT_GLOBAL_THRESHOLD:
+        try:
+            headers = {"Authorization": api_token}
+            URL = "http://127.0.0.1:5000/report_ratelimit"
+            uid = session.get("user_id", "unknown")
+            requests.post(URL, json={"user_id": uid}, headers=headers)
+        except Exception as e:
+            app.logger.error(f"Error reporting rate limit: {e}")
+        flash("You're being rate limited. You may face account termination if this continues.")
+        return redirect(url_for("index"))
+    global_request_times.append(now)
+
+    if "user_id" in session:
+        uid = session["user_id"]
+        user_request_times[uid] = [t for t in user_request_times[uid] if now - t <= RATE_LIMIT_GLOBAL_WINDOW]
+        if len(user_request_times[uid]) >= RATE_LIMIT_USER_THRESHOLD:
+            headers = {"Authorization": api_token}
+            URL = "http://127.0.0.1:5000/report_ratelimit"
+            requests.post(URL, json={"user_id": uid}, headers=headers)
+            flash(f"You're being rate limited. You may face account termination if this continues.")
+            return redirect(url_for("index"))
+        user_request_times[uid].append(now)
 
 @login_manager.user_loader
 def load_user(user_id):

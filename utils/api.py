@@ -1,5 +1,5 @@
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, Header, HTTPException, Request
+from fastapi import FastAPI, APIRouter, Header, HTTPException, Request, Depends
 from discord.ext import commands
 from pydantic import BaseModel
 import discord
@@ -56,9 +56,15 @@ async def validate_authorization(bot, token: str):
 
 # API Routes
 class APIRoutes:
+
+    RATE_LIMIT_WINDOW = 1  # seconds
+    RATE_LIMIT_THRESHOLD = 5  # max total requests per window
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.router = APIRouter()
+        self.request_times = []
+
         for attr in dir(self):
             if attr.startswith(("GET_", "POST_", "PATCH_", "DELETE_")) and not attr.startswith("_"):
                 method = attr.split("_")[0]
@@ -68,11 +74,14 @@ class APIRoutes:
                     f"/{route}",
                     getattr(self, attr),
                     methods=[method.upper()],
+                    dependencies=[Depends(self.check_rate_limit)] 
                 )
-
-    def GET_status(self):
-        """API status check."""
-        return {"guilds": len(self.bot.guilds), "ping": round(self.bot.latency * 1000)}
+    async def check_rate_limit(self, request: Request):
+        now = datetime.datetime.now().timestamp()
+        self.request_times = [t for t in self.request_times if now - t <= self.RATE_LIMIT_WINDOW]
+        if len(self.request_times) >= self.RATE_LIMIT_THRESHOLD:
+            raise HTTPException(status_code=429, detail="Too Many Requests (global rate limit)")
+        self.request_times.append(now)
 
     async def GET_guilds(self, authorization: Annotated[str | None, Header()]):
         """Get a list of guilds the bot is in."""
@@ -911,6 +920,35 @@ class APIRoutes:
             return {}
         logger.debug({str(guild.id) for guild in guilds})
         return {str(guild.id) for guild in guilds}
+    
+    async def POST_report_ratelimit(
+            self,
+            authorization: Annotated[str | None, Header()],
+            request: Request
+    ):
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+
+        data = await request.json()
+        user_id = data.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=400, detail="User ID not provided")
+        
+        channel_id = 1405223711233146910
+        embed = discord.Embed(
+            title="Rate Limit Exceeded",
+            description=f"User {user_id} has exceeded the rate limit.",
+            color=discord.Color.red()
+        )
+
+        channel = self.bot.get_channel(channel_id)
+        if channel:
+            await channel.send(embed=embed)
+
+        return {"message": "Rate limit event reported successfully"}
 
 # Discord Bot API Integration Cog
 class ServerAPI(commands.Cog):

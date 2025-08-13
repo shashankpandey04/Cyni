@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Access Denied - CYNI Bot</title>
+<style>
+    body {
+        background: #000;
+        color: #00ff99;
+        font-family: 'Courier New', monospace;
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    /* Scanline Overlay */
+    body::before {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+            to bottom,
+            rgba(0, 255, 153, 0.05) 0px,
+            rgba(0, 255, 153, 0.05) 1px,
+            transparent 2px,
+            transparent 4px
+        );
+        animation: scanlines 2s linear infinite;
+        pointer-events: none;
+    }
+    @keyframes scanlines {
+        from { background-position: 0 0; }
+        to { background-position: 0 4px; }
+    }
+
+    /* Wrapper */
+    .wrapper {
+        max-width: 800px;
+        text-align: center;
+        padding: 20px;
+        z-index: 10;
+    }
+
+    /* CYNI Logo */
+    .logo {
+        max-width: 150px;
+        margin-bottom: 20px;
+        filter: drop-shadow(0 0 10px #00ff99);
+        animation: flicker 3s infinite;
+        border-radius: 50%;
+    }
+
+    /* Glitch Text */
+    .glitch {
+        font-size: 3rem;
+        font-weight: bold;
+        position: relative;
+        color: #00ff99;
+        text-shadow: 0 0 5px #00ff99;
+        animation: glitch 1s infinite;
+    }
+
+    .glitch::before,
+    .glitch::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #ff0055;
+        overflow: hidden;
+        clip: rect(0, 900px, 0, 0);
+        animation: glitchTop 1s infinite;
+    }
+
+    .glitch::after {
+        color: #00aaff;
+        animation: glitchBottom 1s infinite;
+    }
+
+    @keyframes glitchTop {
+        0% { clip: rect(0, 900px, 0, 0); }
+        20% { clip: rect(0, 900px, 50px, 0); transform: translate(-2px, -2px); }
+        40% { clip: rect(0, 900px, 20px, 0); transform: translate(2px, 2px); }
+        60% { clip: rect(0, 900px, 60px, 0); transform: translate(-1px, 1px); }
+        80% { clip: rect(0, 900px, 30px, 0); transform: translate(1px, -1px); }
+        100% { clip: rect(0, 900px, 0, 0); }
+    }
+
+    @keyframes glitchBottom {
+        0% { clip: rect(0, 900px, 0, 0); }
+        20% { clip: rect(40px, 900px, 100px, 0); transform: translate(2px, 2px); }
+        40% { clip: rect(10px, 900px, 90px, 0); transform: translate(-2px, -2px); }
+        60% { clip: rect(50px, 900px, 150px, 0); transform: translate(1px, -1px); }
+        80% { clip: rect(30px, 900px, 120px, 0); transform: translate(-1px, 1px); }
+        100% { clip: rect(0, 900px, 0, 0); }
+    }
+
+    @keyframes glitch {
+        0% { text-shadow: 0 0 5px #00ff99; }
+        20% { text-shadow: 2px 0 red, -2px 0 blue; }
+        40% { text-shadow: -2px 0 blue, 2px 0 red; }
+        60% { text-shadow: 0 0 5px #00ff99; }
+        100% { text-shadow: 0 0 5px #00ff99; }
+    }
+
+    /* Flicker Effect */
+    @keyframes flicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+        20%, 24%, 55% { opacity: 0.8; }
+        22% { opacity: 0.6; }
+    }
+
+    /* Terminal-style text */
+    .terminal-text {
+        font-size: 1.1rem;
+        color: #00ff99;
+        margin-top: 15px;
+        opacity: 0.85;
+    }
+
+    /* Button */
+    .btn {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        border: 1px solid #00ff99;
+        color: #00ff99;
+        text-decoration: none;
+        background: transparent;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+    .btn:hover {
+        background: #00ff99;
+        color: #000;
+        box-shadow: 0 0 15px #00ff99;
+    }
+</style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Replace with CYNI Bot logo -->
+        <img class="logo" src="https://cyni.quprdigital.tk/static/images/cyni_premium.png" alt="CYNI Bot Locked">
+        
+        <div class="glitch" data-text="ACCESS DENIED">ACCESS DENIED</div>
+        
+        <div class="terminal-text">
+            Unauthorized access detected.  
+            Your account has been <span style="color:#ff0055;">terminated</span> by CYNI Bot security systems.  
+            Due to potential abuse or undisclosed reasons, this account is no longer active.
+        </div>
+        
+        <a href="/" class="btn">RETURN HOME</a>
+    </div>
+</body>
+</html>
