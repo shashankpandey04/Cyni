@@ -3,7 +3,6 @@ from discord import app_commands
 from discord.ext import commands
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
-from Datamodels.Warning import Warnings
 from cyni import is_staff_or_management,is_management, premium_check
 from utils.Schema import warning
 from utils.utils import log_command_usage

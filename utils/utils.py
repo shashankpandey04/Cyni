@@ -17,7 +17,7 @@ async def get_prefix(bot, message):
     :param message (discord.Message): The message.
     :return (str): The prefix.
     """
-    settings = await bot.settings.get(message.guild.id)
+    settings = await bot.settings.find_by_id(message.guild.id)
     
     if settings is None:
         return commands.when_mentioned_or("?")(bot,message)
@@ -50,9 +50,7 @@ def discord_time(dt):
     :param dt (datetime): The datetime object.
     :return (str): The Discord timestamp.
     """
-    # Convert datetime to a Unix timestamp
     unix_timestamp = int(dt.timestamp())
-    # Return the Discord formatted timestamp
     return f"<t:{unix_timestamp}:R>"
 
 def parse_duration(duration):
@@ -129,37 +127,47 @@ async def config_change_log(bot,guild,member,data):
 
 async def create_full_backup(guild, bot):
     """
-    Create a full backup of the guild's settings, roles, channels, categories, and permissions,
-    including additional data from various collections.
+    Create a comprehensive backup of the guild, including roles, channels, categories,
+    permissions, settings, and other relevant data for template restoration.
     
     Args:
-    guild (discord.Guild): The guild to back up.
-    bot (commands.Bot): The bot instance.
+        guild (discord.Guild): The guild to back up.
+        bot (commands.Bot): The bot instance.
     
     Returns:
-    dict: Backup data including backup ID and ID mappings.
+        dict: Backup data including backup ID and mappings.
     """
     backup_data = {
         "_id": guild.id,
         "guild_name": guild.name,
         "guild_owner_id": guild.owner_id,
+        "icon_url": guild.icon.url if guild.icon else None,
         "roles": [],
         "categories": [],
         "channels": [],
-        "permissions": [],
-        "settings": {},
-        "staff_activity": [],
-        "infraction_logs": [],
-        "warnings": []
+        "emojis": [],
+        "features": list(guild.features),
+        "afk_channel_id": guild.afk_channel.id if guild.afk_channel else None,
+        "afk_timeout": guild.afk_timeout,
+        "system_channel_id": guild.system_channel.id if guild.system_channel else None,
+        "verification_level": guild.verification_level.value,
+        "explicit_content_filter": guild.explicit_content_filter.value,
+        "default_notifications": guild.default_notifications.value,
+        "banner_url": guild.banner.url if guild.banner else None,
+        "splash_url": guild.splash.url if guild.splash else None,
+        "created_at": guild.created_at.isoformat(),
     }
 
     for role in guild.roles:
         role_data = {
+            "id": role.id,
             "name": role.name,
-            "permissions": list(role.permissions),
+            "permissions": role.permissions.value,
             "color": role.color.value,
             "hoist": role.hoist,
-            "position": role.position
+            "position": role.position,
+            "mentionable": role.mentionable,
+            "managed": role.managed
         }
         backup_data["roles"].append(role_data)
 
@@ -167,43 +175,78 @@ async def create_full_backup(guild, bot):
         category_data = {
             "id": category.id,
             "name": category.name,
-            "position": category.position
+            "position": category.position,
+            "permissions": [
+                {
+                    "target_id": ow.target.id,
+                    "target_type": type(ow.target).__name__,
+                    "allow": ow.allow.value,
+                    "deny": ow.deny.value
+                }
+                for ow in category.overwrites.values()
+            ]
         }
         backup_data["categories"].append(category_data)
-        
+
         for channel in category.channels:
             channel_data = {
                 "id": channel.id,
                 "type": channel.type.name,
                 "name": channel.name,
                 "position": channel.position,
-                "nsfw": channel.nsfw,
-                "slowmode_delay": channel.slowmode_delay,
-                "category_id": category.id
+                "nsfw": getattr(channel, "nsfw", False),
+                "slowmode_delay": getattr(channel, "slowmode_delay", 0),
+                "topic": getattr(channel, "topic", None),
+                "category_id": category.id,
+                "permissions": [
+                    {
+                        "target_id": ow.target.id,
+                        "target_type": type(ow.target).__name__,
+                        "allow": ow.allow.value,
+                        "deny": ow.deny.value
+                    }
+                    for ow in channel.overwrites.values()
+                ]
             }
             backup_data["channels"].append(channel_data)
 
-    settings = await bot.settings.find_one({"_id": guild.id})
-    if settings:
-        backup_data["settings"] = settings
+    for channel in guild.channels:
+        if channel.category is None:
+            channel_data = {
+                "id": channel.id,
+                "type": channel.type.name,
+                "name": channel.name,
+                "position": channel.position,
+                "nsfw": getattr(channel, "nsfw", False),
+                "slowmode_delay": getattr(channel, "slowmode_delay", 0),
+                "topic": getattr(channel, "topic", None),
+                "category_id": None,
+                "permissions": [
+                    {
+                        "target_id": ow.target.id,
+                        "target_type": type(ow.target).__name__,
+                        "allow": ow.allow.value,
+                        "deny": ow.deny.value
+                    }
+                    for ow in channel.overwrites.values()
+                ]
+            }
+            backup_data["channels"].append(channel_data)
 
-    staff_activity = await bot.staff_activity.find_one({"_id": guild.id})
-    if staff_activity:
-        backup_data["staff_activity"] = staff_activity.get("staff", [])
-
-    infraction_logs = await bot.infraction_log.find({"_id": guild.id})
-    for log in infraction_logs:
-        backup_data["infraction_logs"].extend(log.get("staff", []))
-
-    warnings_cursor = await bot.warnings.find({"_id": {"$regex": f"^{guild.id}-"}})
-    for warning in warnings_cursor:
-        backup_data["warnings"].append(warning)
+    for emoji in guild.emojis:
+        backup_data["emojis"].append({
+            "id": emoji.id,
+            "name": emoji.name,
+            "animated": emoji.animated,
+            "url": str(emoji.url)
+        })
 
     await bot.backup.update_by_id(backup_data)
 
     return {
         "_id": guild.id,
-        "guild_owner_id": guild.owner_id
+        "guild_owner_id": guild.owner_id,
+        "guild_name": guild.name
     }
 
 def compare_overwrites(before_overwrites, after_overwrites):

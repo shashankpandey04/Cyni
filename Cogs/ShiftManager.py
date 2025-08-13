@@ -6,9 +6,30 @@ from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from discord import app_commands
 from cyni import is_roblox_management, is_roblox_staff
 from utils.utils import log_command_usage
-import re
+from utils.autocompletes import shift_type_autocomplete
 from utils.pagination import Pagination
 from Views.ShiftManager import *
+
+    # shift_types = data["shift_types"]
+
+    # if shift_types and len(shift_types) != 0:
+    #     return [
+    #         app_commands.Choice(
+    #             name=shift_type.get("shift_name", "Unknown"),
+    #             value=shift_type.get("shift_name", "Unknown")
+    #         )
+    #         for shift_type in shift_types
+    #     ]
+    # else:
+    #     return [
+    #         app_commands.Choice(
+    #             name="Default",
+    #             value="default"
+    #         ),
+    #     ]
+
+
+
 
 class ShiftManager(commands.Cog):
     def __init__(self, bot):
@@ -31,11 +52,21 @@ class ShiftManager(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def manage(self, ctx, type: str = None):
+    @app_commands.autocomplete(type=shift_type_autocomplete)
+    async def manage(self, ctx, type: str):
         """
         Manage shifts.
         """
-        pass
+        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+        if type not in filtered_shift_types:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Invalid Shift Type",
+                    description="Please make sure you have selected a valid shift type.",
+                    color=RED_COLOR
+                )
+            )
 
     @shift.command(
         name="view",
@@ -43,11 +74,21 @@ class ShiftManager(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def view(self, ctx, type: str = None):
+    @app_commands.autocomplete(type=shift_type_autocomplete)
+    async def view(self, ctx, type: str):
         """
         View shifts.
         """
-        pass
+        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+        if type not in filtered_shift_types:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Invalid Shift Type",
+                    description="Please make sure you have selected a valid shift type.",
+                    color=RED_COLOR
+                )
+            )
 
     @shift.command(
         name="active",
@@ -55,11 +96,22 @@ class ShiftManager(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def active(self, ctx, type: str = None):
+    @app_commands.autocomplete(type=shift_type_autocomplete)
+    async def active(self, ctx, type: str):
         """
         View active shifts.
         """
-        pass
+        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+        if type not in filtered_shift_types:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Invalid Shift Type",
+                    description="Please make sure you have selected a valid shift type.",
+                    color=RED_COLOR
+                )
+            )
+
 
     @shift.command(
         name="history",
@@ -67,11 +119,20 @@ class ShiftManager(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def history(self, ctx, type: str = None):
+    async def history(self, ctx, type: str):
         """
         View shift history.
         """
-        pass
+        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+        if type not in filtered_shift_types:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Invalid Shift Type",
+                    description="Please make sure you have selected a valid shift type.",
+                    color=RED_COLOR
+                )
+            )
 
 async def setup(bot):
     await bot.add_cog(ShiftManager(bot))

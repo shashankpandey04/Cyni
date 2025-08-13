@@ -406,3 +406,18 @@ class TicketDeleteView(discord.ui.View):
                 "Failed to delete ticket. Please contact an administrator.",
                 ephemeral=True
             )
+
+
+class TicketView(discord.ui.View):
+    def __init__(self, guild, category_id, category, logger):
+        super().__init__(timeout=None)
+        self.add_item(TicketButton(
+            emoji=category.get("emoji", "🎫"),
+            label=f"Create {category.get('name')}",
+            custom_id=f"create_ticket:{category_id}",
+            style=discord.ButtonStyle.secondary,
+            guild=guild,
+            category_id=category_id,
+            category=category,
+            logger=logger
+        ))

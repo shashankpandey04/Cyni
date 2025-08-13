@@ -42,202 +42,211 @@ class Infraction(commands.Cog):
         '''
         Warn, demote or promote a staff member.
         '''
-        await ctx.typing()
-        if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Staff Infraction for {member}")
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if settings is None:
-            return await ctx.send(
-                embed = discord.Embed(
-                    title = "Error",
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
+        try:
+            await ctx.typing()
+            if isinstance(ctx,commands.Context):
+                await log_command_usage(self.bot,ctx.guild,ctx.author,f"Staff Infraction for {member}")
+            settings = await self.bot.settings.find_by_id(ctx.guild.id)
+            if settings is None:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        title = "Error",
+                        description = "No settings found.\nPlease set up the bot using the `config` command.",
+                        color = discord.Color.red()
+                    )
+                )        
+            enabled = settings.get("staff_management", {}).get("enabled", False)
+            if not enabled:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Module not enabled",
+                        description="Please enable Staff Management Module via `/config` command.",
+                        color=BLANK_COLOR
+                    )
                 )
-            )        
-        enabled = settings.get("staff_management", {}).get("enabled", False)
-        if not enabled:
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Module not enabled",
-                    description="Please enable Staff Management Module via `/config` command.",
-                    color=BLANK_COLOR
+            
+            count = await self.bot.infraction_log.count_all(
+                {"guild_id": ctx.guild.id}
+            )
+            if type == "warning":
+                infract_embed = discord.Embed(
+                    title = f"{member} has been warned.",
+                    description=" ",
+                    color = YELLOW_COLOR
                 )
+            elif type == "demotion":
+                infract_embed = discord.Embed(
+                    title = f"{member} has been demoted.",
+                    description=" ",
+                    color = RED_COLOR
+                )
+            elif type == "promotion":
+                infract_embed = discord.Embed(
+                    title = f"{member} has been promoted.",
+                    description=" ",
+                    color = GREEN_COLOR
+                )
+            else:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Error",
+                        description="Invalid type. Please provide a valid type.",
+                        color=RED_COLOR
+                    )
+                )
+            if role_remove != None:
+                await member.remove_roles(role_remove)
+            if role_add != None:
+                await member.add_roles(role_add)
+            
+            if approver is not None:
+                infract_embed.description += f"\n**Approved by:** {approver}"
+
+            if punishment is not None:
+                infract_embed.description += f"\n**Punishment:** {punishment}"
+
+            if reason is not None:
+                infract_embed.description += f"\n**Reason:** {reason}"
+            
+            if rank is not None:
+                infract_embed.description += f"\n**Rank:** {rank}"
+            
+            infract_embed.set_author(
+                name=ctx.author,
+                icon_url=ctx.author.avatar.url
+            ).set_thumbnail(
+                url=member.avatar.url
+            ).set_footer(
+                text=f"Infraction Case: {count + 1}"
             )
-        
-        count = await self.bot.infraction_log.count_all(
-            {"guild_id": ctx.guild.id}
-        )
-        if type == "warning":
-            infract_embed = discord.Embed(
-                title = f"{member} has been warned.",
-                description=" ",
-                color = YELLOW_COLOR
-            )
-        elif type == "demotion":
-            infract_embed = discord.Embed(
-                title = f"{member} has been demoted.",
-                description=" ",
-                color = RED_COLOR
-            )
-        elif type == "promotion":
-            infract_embed = discord.Embed(
-                title = f"{member} has been promoted.",
-                description=" ",
-                color = GREEN_COLOR
-            )
-        else:
-            return await ctx.send(
+
+            infraction_doc = {
+                "guild_id": ctx.guild.id,
+                "member_id": member.id,
+                "type": type,
+                "approver_id": approver.id,
+                "reason": reason,
+                "rank": rank,
+                "punishment": punishment,
+                "date": ctx.message.created_at.strftime("%d %b %Y %H:%M:%S"),
+                "case": count + 1
+            }
+
+            await self.bot.infraction_log.insert_doc(infraction_doc)
+
+            if type == "warning":
+                infract_embed.color = YELLOW_COLOR
+                try:
+                    warning_channel = settings["staff_management"]["warning_channel"]
+                except KeyError:
+                    warning_channel = None
+                if warning_channel:
+                    channel = ctx.guild.get_channel(warning_channel)
+                    if channel:
+                        await channel.send(member.mention ,embed=infract_embed)
+                        await ctx.send(
+                            embed = discord.Embed(
+                                title = "Success",
+                                description = f"{member} has been warned.",
+                                color = BLANK_COLOR
+                            )
+                        )
+                    else:
+                        await ctx.send(member.mention,
+                            embed = discord.Embed(
+                                title = "Error",
+                                description = "Staff Warning Log channel not found.",
+                                color = RED_COLOR
+                            )
+                        )
+                else:
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Channel not setuped",
+                            description="Please select Staff Warning Log channel via `/config` command from Staff Management Page.",
+                            color = RED_COLOR
+                        )
+                    )
+            elif type == "demotion":
+                infract_embed.color = RED_COLOR
+                try:
+                    demotion_channel = settings["staff_management"]["demotion_channel"]
+                except KeyError:
+                    demotion_channel = None
+                if demotion_channel:
+                    channel = ctx.guild.get_channel(demotion_channel)
+                    if channel:
+                        await channel.send(member.mention, embed=infract_embed)
+                        await ctx.send(
+                            embed = discord.Embed(
+                                title = "Success",
+                                description = f"{member} has been demoted.",
+                                color = BLANK_COLOR
+                            )
+                        )
+                    else:
+                        await ctx.send(member.mention,
+                            embed = discord.Embed(
+                                title = "Error",
+                                description = f"Demotion channel not found.",
+                                color = RED_COLOR
+                            )
+                        )
+                else:
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Channel not setuped",
+                            description="Please select Staff Demotion Log channel via `/config` command from Staff Management Page.",
+                            color = RED_COLOR
+                        )
+                    )
+            elif type == "promotion":
+                infract_embed.color = GREEN_COLOR
+                try:
+                    promotion_channel = settings["staff_management"]["promotion_channel"]
+                except KeyError:
+                    promotion_channel = None
+                if promotion_channel:
+                    channel = ctx.guild.get_channel(promotion_channel)
+                    if channel:
+                        await channel.send(member.mention,embed=infract_embed)
+                        await ctx.send(
+                            embed = discord.Embed(
+                                title = "Success",
+                                description = f"{member} has been promoted.",
+                                color = BLANK_COLOR
+                            )
+                        )
+                    else:
+                        await ctx.send(member.mention,
+                            embed = discord.Embed(
+                                title = "Error",
+                                description = "Promotion channel not found.",
+                                color = RED_COLOR
+                            )
+                        )
+                else:
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Channel not setuped",
+                            description="Please select Staff Promotion Log channel via `/config` command from Staff Management Page.",
+                            color = RED_COLOR
+                        )
+                    )
+            if dm == "true":
+                await member.send(
+                    embed = infract_embed
+                )
+        except Exception as e:
+            self.bot.logger.error(f"Error occurred in Infraction Post Command: {e}")
+            await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description="Invalid type. Please provide a valid type.",
+                    title="Something went wrong",
+                    description=f"Error occurred while processing the infraction. ```{e}```",
                     color=RED_COLOR
                 )
             )
-        if role_remove != None:
-            await member.remove_roles(role_remove)
-        if role_add != None:
-            await member.add_roles(role_add)
-        
-        if approver is not None:
-            infract_embed.description += f"\n**Approved by:** {approver}"
 
-        if punishment is not None:
-            infract_embed.description += f"\n**Punishment:** {punishment}"
-
-        if reason is not None:
-            infract_embed.description += f"\n**Reason:** {reason}"
-        
-        if rank is not None:
-            infract_embed.description += f"\n**Rank:** {rank}"
-        
-        infract_embed.set_author(
-            name=ctx.author,
-            icon_url=ctx.author.avatar.url
-        ).set_thumbnail(
-            url=member.avatar.url
-        ).set_footer(
-            text=f"Infraction Case: {count + 1}"
-        )
-
-        infraction_doc = {
-            "guild_id": ctx.guild.id,
-            "member_id": member.id,
-            "type": type,
-            "approver_id": approver.id,
-            "reason": reason,
-            "rank": rank,
-            "punishment": punishment,
-            "date": ctx.message.created_at.strftime("%d %b %Y %H:%M:%S"),
-            "case": count + 1
-        }
-
-        await self.bot.infraction_log.insert_doc(infraction_doc)
-
-        if type == "warning":
-            infract_embed.color = YELLOW_COLOR
-            try:
-                warning_channel = settings["staff_management"]["warning_channel"]
-            except KeyError:
-                warning_channel = None
-            if warning_channel:
-                channel = ctx.guild.get_channel(warning_channel)
-                if channel:
-                    await channel.send(member.mention ,embed=infract_embed)
-                    await ctx.send(
-                        embed = discord.Embed(
-                            title = "Success",
-                            description = f"{member} has been warned.",
-                            color = BLANK_COLOR
-                        )
-                    )
-                else:
-                    await ctx.send(member.mention,
-                        embed = discord.Embed(
-                            title = "Error",
-                            description = "Staff Warning Log channel not found.",
-                            color = RED_COLOR
-                        )
-                    )
-            else:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        title="Channel not setuped",
-                        description="Please select Staff Warning Log channel via `/config` command from Staff Management Page.",
-                        color = RED_COLOR
-                    )
-                )
-        elif type == "demotion":
-            infract_embed.color = RED_COLOR
-            try:
-                demotion_channel = settings["staff_management"]["demotion_channel"]
-            except KeyError:
-                demotion_channel = None
-            if demotion_channel:
-                channel = ctx.guild.get_channel(demotion_channel)
-                if channel:
-                    await channel.send(member.mention, embed=infract_embed)
-                    await ctx.send(
-                        embed = discord.Embed(
-                            title = "Success",
-                            description = f"{member} has been demoted.",
-                            color = BLANK_COLOR
-                        )
-                    )
-                else:
-                    await ctx.send(member.mention,
-                        embed = discord.Embed(
-                            title = "Error",
-                            description = f"Demotion channel not found.",
-                            color = RED_COLOR
-                        )
-                    )
-            else:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        title="Channel not setuped",
-                        description="Please select Staff Demotion Log channel via `/config` command from Staff Management Page.",
-                        color = RED_COLOR
-                    )
-                )
-        elif type == "promotion":
-            infract_embed.color = GREEN_COLOR
-            try:
-                promotion_channel = settings["staff_management"]["promotion_channel"]
-            except KeyError:
-                promotion_channel = None
-            if promotion_channel:
-                channel = ctx.guild.get_channel(promotion_channel)
-                if channel:
-                    await channel.send(member.mention,embed=infract_embed)
-                    await ctx.send(
-                        embed = discord.Embed(
-                            title = "Success",
-                            description = f"{member} has been promoted.",
-                            color = BLANK_COLOR
-                        )
-                    )
-                else:
-                    await ctx.send(member.mention,
-                        embed = discord.Embed(
-                            title = "Error",
-                            description = "Promotion channel not found.",
-                            color = RED_COLOR
-                        )
-                    )
-            else:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        title="Channel not setuped",
-                        description="Please select Staff Promotion Log channel via `/config` command from Staff Management Page.",
-                        color = RED_COLOR
-                    )
-                )
-        if dm == "true":
-            await member.send(
-                embed = infract_embed
-            )
-
-            
     @infraction.command(
         name="view",
         extras={

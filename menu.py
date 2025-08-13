@@ -901,23 +901,24 @@ class PremiumButton(View):
 
 class LOARequest(View):
     def __init__(self, bot, guild_id: int, user_id: int, schema_id):
-        super().__init__()
+        super().__init__(timeout=None)
         self.bot = bot
         self.user_id = user_id
         self.guild_id = guild_id
         self.schema_id = schema_id
-        self.deny_callback = None
 
         self.accept_button = discord.ui.Button(
             label="Accept",
             style=discord.ButtonStyle.success,
-            row=0
+            row=0,
+            custom_id=f"loa_accept:{schema_id}"
         )
 
         self.deny_button = discord.ui.Button(
             label="Deny",
             style=discord.ButtonStyle.danger,
-            row=0
+            row=0,
+            custom_id=f"loa_deny:{schema_id}"
         )
 
         self.accept_button.callback = self.accept_callback
@@ -930,7 +931,7 @@ class LOARequest(View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
 
-        document = await self.bot.loa.find_by_id(self.schema_id)
+        document = await self.bot.loa.find_by_id(ObjectId(self.schema_id))
         if not isinstance(document, dict):
             return await interaction.response.send_message(
                 embed=discord.Embed(
@@ -999,7 +1000,7 @@ class LOARequest(View):
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
 
-        document = await self.bot.loa.find_by_id(self.schema_id)
+        document = await self.bot.loa.find_by_id(ObjectId(self.schema_id))
         if not isinstance(document, dict):
             return await interaction.response.send_message(
                 embed=discord.Embed(

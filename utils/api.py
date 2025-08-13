@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 import datetime
 import motor.motor_asyncio
 
-from Views.Tickets import TicketButton
+from Views.Tickets import TicketButton, TicketView
 
 # Load the environment variables
 load_dotenv()
@@ -537,19 +537,13 @@ class APIRoutes:
         else:
             embed.set_footer(text=f"{guild.name}")
 
-        view = discord.ui.View(timeout=None)
-        button = TicketButton(
-            emoji=category.get("emoji", "🎫"),
-            label=f"Create {category.get('name')}",
-            custom_id=f"create_ticket:{category_id}",
-            style=discord.ButtonStyle.secondary,
+        view = TicketView(
             guild=guild,
             category_id=category_id,
             category=category,
             logger=logger
         )
-        view.add_item(button)
-        
+
         try:
             await channel.send(embed=embed, view=view)
             return {"message": "Ticket embed sent successfully"}

@@ -114,3 +114,35 @@ async def application_type_autocomplete(
                 value="None"
             )
         ]
+    
+async def shift_type_autocomplete(
+        interaction: discord.Interaction,_:str
+) -> typing.List[app_commands.Choice[str]]:
+    bot = interaction.client
+
+    data = await bot.shift_types.find_by_id(interaction.guild.id)
+    if data is None:
+        return [
+            app_commands.Choice(
+                name="Default",
+                value="default"
+            ),
+        ]
+
+    shift_types = list(data.keys()) if isinstance(data, dict) else []
+
+    if shift_types and len(shift_types) != 0:
+        return [
+            app_commands.Choice(
+                name=shift_type,
+                value=shift_type
+            )
+            for shift_type in shift_types
+        ]
+    else:
+        return [
+            app_commands.Choice(
+                name="Default",
+                value="default"
+            ),
+        ]

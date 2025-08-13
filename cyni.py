@@ -23,6 +23,9 @@ from utils.emoji_controller import EmojiController
 
 from decouple import config
 
+from Views.Tickets import TicketView
+from menu import LOARequest
+
 # from Models.modai import ModerationModel
 
 # Custom exceptions for premium checks
@@ -86,6 +89,40 @@ class Bot(commands.AutoShardedBot):
         self.mongo.close()
         print('Closed!')
 
+    async def on_ready(self):
+        categories = await self.ticket_categories.find({})
+        for category in categories:
+            guild = self.get_guild(int(category["guild_id"]))
+            if not guild:
+                continue
+
+            self.add_view(TicketView(
+                guild=guild,
+                category_id=str(category["_id"]),
+                category=category,
+                logger=self.logger
+            ))
+            
+        loa_requests = await self.loa.find({
+            "accepted": False,
+            "denied": False,
+            "voided": False,
+            "expired": False
+        })
+
+        for loa in loa_requests:
+            self.add_view(
+                LOARequest(
+                    bot=self,
+                    guild_id=int(loa["guild_id"]),
+                    user_id=int(loa["user_id"]),
+                    schema_id=str(loa["_id"])
+                )
+            )
+
+        self.logger.info(f'Logged in as {self.user.name} ({self.user.id})')
+        self.logger.info('------')
+
     async def setup_hook(self) -> None:
         self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
         self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
@@ -110,7 +147,10 @@ class Bot(commands.AutoShardedBot):
         self.erlc = Document(self.db, 'erlc')
         self.vote_tracker = Document(self.db, 'vote_tracker')
         self.premium = Document(self.db, 'premium')
+        self.shift_types = Document(self.db, 'shift_types')
+        self.ticket_categories = Document(self.db, 'ticket_categories')
         self.emoji = EmojiController(self)
+        self.logger = logging.getLogger()
         await self.emoji.prefetch_emojis()
 
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]

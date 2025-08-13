@@ -254,10 +254,8 @@ class RobloxShiftConfig(View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         try:
             settings["roblox"]["shift_module"]["channel"] = self.shift_log_channel_select.values[0].id
-            print("Shift log channel set to:", settings["roblox"]["shift_module"]["channel"])
         except KeyError:
             settings["roblox"]["shift_module"] = {"channel": self.shift_log_channel_select.values[0].id}
-            print("Shift log channel set to:", settings["roblox"]["shift_module"]["channel"])
         await self.bot.settings.update({"_id": interaction.guild.id}, settings)
 
         await interaction.response.send_message(
