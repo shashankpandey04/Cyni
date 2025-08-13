@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 import datetime
 import motor.motor_asyncio
 
-from UI.Tickets import TicketButton
+from Views.Tickets import TicketButton
 
 # Load the environment variables
 load_dotenv()

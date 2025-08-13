@@ -1,14 +1,10 @@
 import discord
 from discord.ext import commands
 import time
-
-import roblox
-
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from discord import app_commands
-from cyni import is_management, is_staff, premium_check
+from cyni import is_roblox_management, is_roblox_staff
 from utils.utils import log_command_usage
-import re
 from utils.pagination import Pagination
 
 class RobloxPunishments(commands.Cog):
@@ -28,10 +24,11 @@ class RobloxPunishments(commands.Cog):
 
     @punishment.command(
         name="log",
-        aliases=["v"],
+        aliases=["lg"],
     )
     @commands.guild_only()
-    async def view(self, ctx, roblox: str = None, user: discord.User = None):
+    @is_roblox_staff()
+    async def log_punishment(self, ctx, roblox: str = None, user: discord.User = None):
         """
         View Roblox punishments for a user.
         """
@@ -42,6 +39,7 @@ class RobloxPunishments(commands.Cog):
         aliases=["v"],
     )
     @commands.guild_only()
+    @is_roblox_staff()
     async def view_punishments(self, ctx, roblox: str = None, user: discord.User = None):
         """View a user's Roblox punishments."""
         if not roblox and not user:
@@ -59,6 +57,7 @@ class RobloxPunishments(commands.Cog):
         aliases=["m"],
     )
     @commands.guild_only()
+    @is_roblox_staff()
     async def manage(self, ctx, punishment_id: int = None):
         """
         Manage Roblox punishments.

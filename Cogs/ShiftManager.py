@@ -4,10 +4,11 @@ import time
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from discord import app_commands
-from cyni import is_management, is_staff, premium_check
+from cyni import is_roblox_management, is_roblox_staff
 from utils.utils import log_command_usage
 import re
 from utils.pagination import Pagination
+from Views.ShiftManager import *
 
 class ShiftManager(commands.Cog):
     def __init__(self, bot):
@@ -29,6 +30,7 @@ class ShiftManager(commands.Cog):
         aliases=["m"],
     )
     @commands.guild_only()
+    @is_roblox_staff()
     async def manage(self, ctx, type: str = None):
         """
         Manage shifts.
@@ -40,6 +42,7 @@ class ShiftManager(commands.Cog):
         aliases=["v"],
     )
     @commands.guild_only()
+    @is_roblox_staff()
     async def view(self, ctx, type: str = None):
         """
         View shifts.
@@ -51,6 +54,7 @@ class ShiftManager(commands.Cog):
         aliases=["a"],
     )
     @commands.guild_only()
+    @is_roblox_staff()
     async def active(self, ctx, type: str = None):
         """
         View active shifts.
@@ -62,6 +66,7 @@ class ShiftManager(commands.Cog):
         aliases=["h"],
     )
     @commands.guild_only()
+    @is_roblox_staff()
     async def history(self, ctx, type: str = None):
         """
         View shift history.

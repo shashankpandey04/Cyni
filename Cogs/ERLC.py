@@ -11,7 +11,7 @@ from utils.prc_api import ServerPlayers, ServerStatus, ServerKillLogs, ServerJoi
 from cyni import premium_check, is_roblox_management, is_roblox_staff
 from utils.utils import get_discord_by_roblox, log_command_usage
 from utils.pagination import Pagination
-from UI.erlc import StaffRoles, LoggingChannels
+from Views.erlc import LoggingChannels
 
 class ERLC(commands.Cog):
     """ERLC server management commands."""

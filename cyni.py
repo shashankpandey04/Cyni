@@ -23,23 +23,6 @@ from utils.emoji_controller import EmojiController
 
 from decouple import config
 
-from Datamodels.Settings import Settings
-from Datamodels.Analytics import Analytics
-from Datamodels.Warning import Warnings
-from Datamodels.StaffActivity import StaffActivity
-from Datamodels.Errors import Errors
-from Datamodels.Sessions import Sessions
-from Datamodels.Infraction_log import Infraction_log
-from Datamodels.Infraction_types import Infraction_type
-from Datamodels.Giveaway import Giveaway
-from Datamodels.Backup import Backup
-from Datamodels.afk import AFK
-from Datamodels.Applications import Applications
-from Datamodels.Partnership import Partnership
-from Datamodels.LOA import LOA
-from Datamodels.voteTracker import voteTracker
-from Datamodels.Premium import Premium
-
 # from Models.modai import ModerationModel
 
 # Custom exceptions for premium checks
@@ -87,34 +70,6 @@ class Bot(commands.AutoShardedBot):
             707064490826530888, #imlimiteds
         ]:
             return True
-        
-    def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
-            self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else self.mongo["dev"]
-            self.bot_version = _version
-            self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
-            # if self.is_premium:
-            #     self.modai = ModerationModel()
-            self.premium_document = Document(self.db, 'premium')
-            self.settings_document = Document(self.db, 'settings')
-            self.analytics_document = Document(self.db, 'analytics')
-            self.warnings_document = Document(self.db, 'warnings')
-            self.actvity_document = Document(self.db, 'staff_activity')
-            self.appeals_document = Document(self.db, 'ban_appeals')
-            self.errors_document = Document(self.db, 'errors')
-            self.sessions_document = Document(self.db, 'sessions')
-            self.infraction_log_document = Document(self.db, 'infraction_log')
-            self.infraction_types_document = Document(self.db, 'infraction_types')
-            self.giveaway_document = Document(self.db, 'giveaways')
-            self.backup_document = Document(self.db, 'backup')
-            self.afk_document = Document(self.db,'afk')
-            self.applications_document = Document(self.db, 'applications')
-            self.partnership_document = Document(self.db, 'partnership')
-            self.loa_document = Document(self.db, 'loa')
-            self.erlc_document = Document(self.db, 'erlc')
-            self.vote_tracker_document = voteTracker(self.db, 'vote_tracker')
-            self.emoji = EmojiController(self)
 
     async def close(self):
         print('Closing...')
@@ -132,26 +87,30 @@ class Bot(commands.AutoShardedBot):
         print('Closed!')
 
     async def setup_hook(self) -> None:
-
-        self.settings = Settings(self.db, 'settings')
-        self.analytics = Analytics(self.db, 'analytics')
-        self.warnings = Warnings(self.db, 'warnings')
-        self.staff_activity = StaffActivity(self.db, 'staff_activity')
+        self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
+        self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
+        self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else self.mongo["dev"]
+        self.bot_version = _version
+        self.settings = Document(self.db, 'settings')
+        self.analytics = Document(self.db, 'analytics')
+        self.warnings = Document(self.db, 'warnings')
+        self.staff_activity = Document(self.db, 'staff_activity')
         self.ban_appeals = Document(self.db, 'ban_appeals')
-        self.errors = Errors(self.db, 'errors')
-        self.sessions = Sessions(self.db, 'sessions')
-        self.infraction_log = Infraction_log(self.db, 'infraction_log')
-        self.infraction_types = Infraction_type(self.db, 'infraction_types')
-        self.giveaways = Giveaway(self.db, 'giveaways')
-        self.backup = Backup(self.db, 'backup')
-        self.afk = AFK(self.db,'afk')
+        self.errors = Document(self.db, 'errors')
+        self.sessions = Document(self.db, 'sessions')
+        self.infraction_log = Document(self.db, 'infraction_log')
+        self.infraction_types = Document(self.db, 'infraction_types')
+        self.giveaways = Document(self.db, 'giveaways')
+        self.backup = Document(self.db, 'backup')
+        self.afk = Document(self.db, 'afk')
         self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
-        self.applications = Applications(self.db, 'applications')
-        self.partnership = Partnership(self.db, 'partnership')
-        self.loa = LOA(self.db, 'loa')
+        self.applications = Document(self.db, 'applications')
+        self.partnership = Document(self.db, 'partnership')
+        self.loa = Document(self.db, 'loa')
         self.erlc = Document(self.db, 'erlc')
-        self.vote_tracker = voteTracker(self.db, 'vote_tracker')
-        self.premium = Premium(self.db, 'premium')
+        self.vote_tracker = Document(self.db, 'vote_tracker')
+        self.premium = Document(self.db, 'premium')
+        self.emoji = EmojiController(self)
         await self.emoji.prefetch_emojis()
 
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]

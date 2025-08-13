@@ -140,9 +140,9 @@ class OnMessageDelete(commands.Cog):
                     value="\n".join(attachment_info[:10]),
                     inline=False
                 )
-            
-            if not embed.image.url and message.author.avatar:
-                embed.set_image(url=message.author.avatar.url)
+
+            if not embed.thumbnail.url and message.author.avatar:
+                embed.set_thumbnail(url=message.author.avatar.url)
             
             if message.created_at:
                 embed.add_field(

@@ -13,7 +13,7 @@ async def vote_track(bot):
         if guild is None:
             print(f"Guild with ID {guild_id} not found.")
             return
-        votes = await bot.vote_tracker_document.find({})
+        votes = await bot.vote_tracker.find({})
         for vote in votes:
             user = discord.utils.get(guild.members, id=vote["user_id"])
             if user is None:

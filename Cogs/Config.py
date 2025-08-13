@@ -5,7 +5,7 @@ from menu import (
     StaffInfraction, ServerManagement, PartnershipModule,
     LOAConfig
 )
-from UI.RobloxManagement import RobloxManagement
+from Views.RobloxManagement import RobloxManagement
 from utils.pagination import Pagination
 from cyni import is_management, premium_check
 from utils.constants import BLANK_COLOR, RED_COLOR
