@@ -5,8 +5,8 @@ import logging
 # from numpy import block
 from cyni import afk_users
 import re
-from datetime import timedelta, datetime
-import asyncio
+from datetime import timedelta, datetime, timezone
+# import asyncio  # Removed unused import
 import time
 
 class OnMessage(commands.Cog):
@@ -114,7 +114,7 @@ class OnMessage(commands.Cog):
                     title="🚨 AutoMod: Spam Detected",
                     description=f"**User:** {message.author.mention}\n**Action:** {action_text}\n**Channel:** {message.channel.mention}",
                     color=0xff4444,
-                    timestamp=datetime.utcnow()
+                    timestamp=datetime.now(timezone.utc)
                 )
                 embed.add_field(name="Messages in time window", value=f"{len(self.user_message_cache[user_id])}/{message_threshold}", inline=True)
                 embed.add_field(name="Time window", value=f"{time_window} seconds", inline=True)
@@ -161,7 +161,7 @@ class OnMessage(commands.Cog):
                 
                 # Take additional action based on settings
                 if action == "warn":
-                    warning_msg = await message.channel.send(
+                    await message.channel.send(
                         f"{message.author.mention}, your message contained prohibited content and has been removed.",
                         delete_after=10
                     )
@@ -599,7 +599,7 @@ class OnMessage(commands.Cog):
 
             await self._handle_afk_mentions(message)
 
-            settings = await self.bot.settings.get(message.guild.id)
+            settings = await self.bot.settings.find_by_id(message.guild.id)
             if not settings:
                 return
             
