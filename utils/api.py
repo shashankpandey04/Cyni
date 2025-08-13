@@ -540,7 +540,7 @@ class APIRoutes:
         view = discord.ui.View(timeout=None)
         button = TicketButton(
             emoji=category.get("emoji", "🎫"),
-            label=f"Create {category.get('name')} Ticket",
+            label=f"Create {category.get('name')}",
             custom_id=f"create_ticket:{category_id}",
             style=discord.ButtonStyle.secondary,
             guild=guild,
