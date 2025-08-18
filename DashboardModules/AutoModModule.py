@@ -1,13 +1,12 @@
 from flask import render_template, redirect, url_for, request, flash, Blueprint, session, jsonify
 from flask_login import login_required, current_user
-from cyni import bot
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 from Database.Mongo import mongo_db
+from utils.site_utils import get_guild, get_guild_member, get_guild_channels, get_guild_roles, check_permissions
 
 load_dotenv()
-bot_token = os.getenv("PRODUCTION_TOKEN") if os.getenv("PRODUCTION_TOKEN") else os.getenv("DEV_TOKEN")
 
 automod = Blueprint('automod', __name__)
 
@@ -15,30 +14,39 @@ automod = Blueprint('automod', __name__)
 @login_required
 def automod_settings(guild_id):
     guild_id = int(guild_id)
-    guild = bot.get_guild(guild_id)
+    guild = get_guild(guild_id)
     if not guild:
-        flash('Guild not found', 'danger')
-        return redirect(url_for('dashboard'))
-        
-    member = guild.get_member(int(session["user_id"]))
-    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        flash("You don't have permission to access this page", "danger")
-        return redirect(url_for('dashboard'))
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
+    
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
 
     settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
     is_premium = mongo_db['premium'].find_one({"_id": guild_id}) is not None
     
     automod_settings = settings.get("automod_module", {})
     
-    roles = {role.id: role.name for role in guild.roles if role.name != "@everyone"}
-    channels = {channel.id: channel.name for channel in guild.text_channels}
-    
+    roles = get_guild_roles(guild_id)
+    if not roles:
+        flash("There was an error fetching roles for this guild.", "error")
+        return redirect(url_for("guild", guild_id=guild_id))
+
+    channels = get_guild_channels(guild_id)
+    if not channels:
+        flash("No channels found in this guild.", "error")
+        return redirect(url_for("guild", guild_id=guild_id))
+
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You need Management Roles to access this page.", "error")
+        return redirect(url_for("dashboard"))
+
     if request.method == 'POST':
         action_type = request.form.get('action_type')
-        print(f"Form submitted - action_type: {action_type}")
-        print(f"Form data: {dict(request.form)}")
-        
-        # Check for special actions
+
         if request.form.get('add_keyword') == '1':
             action_type = 'custom_keyword'
         elif request.form.get('add_domain') == '1':
@@ -105,20 +113,21 @@ def automod_settings(guild_id):
                           roles=roles,
                           channels=channels,
                           is_premium=is_premium,
-                          is_owner=guild.owner_id == int(session["user_id"]))
+                          is_owner=guild["owner_id"] == int(session["user_id"]))
 
 @automod.route('/dashboard/<guild_id>/settings/automod/toggle', methods=['POST'])
 @login_required
 def automod_toggle(guild_id):
     """AJAX endpoint for handling toggle changes without page refresh"""
     guild_id = int(guild_id)
-    guild = bot.get_guild(guild_id)
+    guild = get_guild(guild_id)
     if not guild:
         return jsonify({'success': False, 'message': 'Guild not found'}), 404
-        
-    member = guild.get_member(int(session["user_id"]))
-    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
+    
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
         return jsonify({'success': False, 'message': 'No permission'}), 403
+
 
     settings = mongo_db["settings"].find_one({"_id": guild_id}) or {}
     is_premium = settings.get("premium", False)

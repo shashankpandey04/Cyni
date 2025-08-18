@@ -926,6 +926,11 @@ def apply(guild_id, application_id):
                     for i, q in enumerate(application["questions"])
                 ]
             
+            member = get_guild_member(guild_id, session["user_id"])
+            if not member:
+                flash("You do not have access to this guild.", "error")
+                return redirect(url_for("dashboard"))
+
             application_data = {
                 "guild_id": int(guild_id),
                 "name": str(member.name),

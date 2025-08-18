@@ -26,11 +26,11 @@ CYNI_API_BASE_URL = os.getenv("CYNI_API_BASE_URL", "http://127.0.0.1:5000")
 CYNI_PREMIUM_URL = os.getenv("CYNI_PREMIUM_URL", "https://cyni-premium-api.x6xkh0.easypanel.host")
 
 def get_api_url_for_guild(guild_id: str) -> str:
-    wl_doc = mongo_db["whitelabel"].find_one({"_id": guild_id}, {"api_url": 1})
+    #wl_doc = mongo_db["whitelabel"].find_one({"_id": guild_id}, {"api_url": 1})
     premium_doc = mongo_db["premium"].find_one({"_id": guild_id})
-    if premium_doc and wl_doc:
-        return wl_doc.get("api_url")
-    elif premium_doc:
+    #if premium_doc and wl_doc:
+        #return wl_doc.get("api_url")
+    if premium_doc:
         return CYNI_PREMIUM_URL
     else:
         return CYNI_API_BASE_URL
@@ -80,11 +80,14 @@ def check_permissions(guild_id, user_id):
     settings = mongo_db["settings"].find_one({"_id": int(guild_id)})
     if not guild or not member or not settings:
         return False
-    if (member.get("is_admin") or member.get("is_manage_guild")):
-        return True
-    if member.get("roles") and any(role in settings.get("basic_settings", {}).get("management_roles", []) for role in member.get("roles", [])):
-        return True
-    return False
+    return (
+        member.get("is_admin") or
+        member.get("is_manage_guild") or
+        (member.get("roles") and any(
+            role in settings.get("basic_settings", {}).get("management_roles", [])
+            for role in member.get("roles", [])
+        ))
+    )
 
 def get_guild_channels(guild_id):
     api_url = get_api_url_for_guild(guild_id)

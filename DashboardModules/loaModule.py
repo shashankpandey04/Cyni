@@ -1,10 +1,10 @@
 from flask import render_template, redirect, url_for, request, flash, Blueprint, session, jsonify
 from flask_login import login_required, current_user
-from cyni import bot
 import os
 import requests
 from dotenv import load_dotenv
 from Database.Mongo import mongo_db
+from utils.site_utils import check_permissions, get_guild, get_guild_member, get_guild_channels, get_guild_roles
 
 load_dotenv()
 
@@ -16,42 +16,43 @@ BOT_TOKEN = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.ge
 @loa_route.route('/dashboard/<guild_id>/loa', methods=['GET'])
 @login_required
 def loa_homepage(guild_id):
-    guild = bot.get_guild(int(guild_id))
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    member = guild.get_member(int(session["user_id"]))
+    guild = get_guild(guild_id)
     if not guild:
-        flash("Guild not found.", "error")
+        flash("Guild not found or you do not have access to it.", "error")
         return redirect(url_for("dashboard"))
-
-    if not any(role in [role.id for role in member.roles] for role in management_roles) and not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        flash('You do not have the required permissions to access this page', 'danger')
-        return redirect(url_for('dashboard'))
+    
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
+        
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You need Management Roles to access this page.", "error")
+        return redirect(url_for("dashboard"))
 
     loa_collection = mongo_db["loa"]
     loas = loa_collection.find(
-        {"guild_id": guild.id}
+        {"guild_id": guild["id"]}
     )
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id}) or {}
+    guild_data = mongo_db["settings"].find_one({"_id": guild["id"]}) or {}
     return render_template("loa/index.html", loa=loas, guild=guild, guild_data=guild_data)
 
 @loa_route.route('/dashboard/<guild_id>/loa/<user_id>', methods=['GET'])
 @login_required
 def view_loa(guild_id, user_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(int(guild_id))
     if not guild:
         return {"error": "Guild not found."}, 404
     
-    member = guild.get_member(int(session["user_id"]))
+    member = get_guild_member(guild_id, session["user_id"])
     if not member:
         return {"error": "Member not found in the guild."}, 404
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in member.roles] for role in management_roles) and not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        return {"error": "You do not have the required permissions to view this LOA."}, 403
-    
+
+    has_permission = check_permissions(guild.id, session["user_id"])
+    if not has_permission:
+        return {"error": "You do not have permission to view this LOA."}, 403
+
     loa_collection = mongo_db["loa"]
     loa = loa_collection.find_one(
         {"guild_id": guild.id, "user_id": int(user_id)}
@@ -59,8 +60,7 @@ def view_loa(guild_id, user_id):
     if not loa:
         return {"error": "LOA not found."}, 404
 
-    member = guild.get_member(int(user_id))
-    display_name = member.display_name if member else str(loa["user_id"])
+    display_name = member["display_name"] if member else str(loa["user_id"])
 
     return jsonify({
         "guild_id": str(loa["guild_id"]),
@@ -80,18 +80,17 @@ def view_loa(guild_id, user_id):
 @loa_route.route('/loa/<guild_id>/update/<user_id>', methods=['POST'])
 @login_required
 def update_loa(guild_id, user_id):
-    guild = bot.get_guild(int(guild_id))
+    guild = get_guild(int(guild_id))
     if not guild:
         return {"error": "Guild not found."}, 404
     
-    member = guild.get_member(int(session["user_id"]))
+    member = get_guild_member(guild_id, session["user_id"])
     if not member:
         return {"error": "You are not a member of this guild."}, 404
-    
-    sett = mongo_db["settings"].find_one({"_id": guild.id}) or {}
-    management_roles = sett.get("basic_settings", {}).get("management_roles", [])
-    if not any(role in [role.id for role in member.roles] for role in management_roles) and not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        return {"error": "You do not have the required permissions to update this LOA."}, 403
+
+    has_permission = check_permissions(guild.id, session["user_id"])
+    if not has_permission:
+        return {"error": "You do not have permission to update this LOA."}, 403
 
     loa = mongo_db["loa"].find_one({"guild_id": int(guild_id), "user_id": int(user_id)})
     if loa is None:

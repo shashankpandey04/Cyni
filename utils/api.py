@@ -57,8 +57,8 @@ async def validate_authorization(bot, token: str):
 # API Routes
 class APIRoutes:
 
-    RATE_LIMIT_WINDOW = 1  # seconds
-    RATE_LIMIT_THRESHOLD = 5  # max total requests per window
+    RATE_LIMIT_WINDOW = 1
+    RATE_LIMIT_THRESHOLD = 10
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -899,7 +899,8 @@ class APIRoutes:
             "joined_at": member.joined_at,
             "roles": [str(role.id) for role in member.roles],
             "is_admin": True if member.guild_permissions.administrator else False,
-            "is_manage_guild": True if member.guild_permissions.manage_guild else False
+            "is_manage_guild": True if member.guild_permissions.manage_guild else False,
+            "display_name": member.display_name
         }
         return doc
     
