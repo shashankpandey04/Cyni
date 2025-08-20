@@ -38,7 +38,7 @@ class Partnership_Log(commands.Cog):
     @app_commands.describe(invite="Discord Invite Link")
     @commands.guild_only()
     @premium_check()
-    async def log(self, ctx, title: str, *, description: str, invite: str, representative: discord.Member, role: discord.Role, image: str = None):
+    async def log(self, ctx, title: str, *, description: str, invite: str, representative: discord.Member, role: discord.Role = None, image: str = None):
         """
         Log a partnership.
         """
