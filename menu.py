@@ -98,7 +98,7 @@ class BasicConfig(discord.ui.View):
                 settings["customization"]["prefix"] = self.prefix_button.values[0]
         except KeyError:
             settings = {"_id": interaction.guild.id, "customization": {"prefix": self.prefix_button.values[0]}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Prefix Updated!", ephemeral=True)
 
     async def staff_roles_callback(self, interaction: discord.Interaction):
@@ -120,7 +120,7 @@ class BasicConfig(discord.ui.View):
             settings['basic_settings']['staff_roles'] = [role.id for role in self.staff_role_select.values]
         except KeyError:
             settings = {"_id": interaction.guild.id, "basic_settings": {"staff_roles": [role.id for role in self.staff_role_select.values]}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Staff Roles Updated!", ephemeral=True)
 
     async def management_roles_callback(self, interaction: discord.Interaction):
@@ -142,7 +142,7 @@ class BasicConfig(discord.ui.View):
             settings['basic_settings']['management_roles'] = [role.id for role in self.management_role_select.values]
         except KeyError:
             settings = {"_id": interaction.guild.id, "basic_settings": {"management_roles": [role.id for role in self.management_role_select.values]}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Management Roles Updated!", ephemeral=True)
 class StaffInfraction(View):
     def __init__(self, bot,setting, user_id: int):
@@ -238,7 +238,7 @@ class StaffInfraction(View):
         except KeyError:
             settings = {"_id": interaction.guild.id, "staff_management": {"enabled": True}}
 
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         await interaction.response.send_message(f"Staff Infraction Module {'Enabled' if settings.get('staff_management', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
@@ -252,7 +252,7 @@ class StaffInfraction(View):
             settings["staff_management"]["promotion_channel"] = self.promotion_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "staff_management": {"promotion_channel": self.promotion_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Promotion Channel Updated!",ephemeral=True)
 
     async def infraction_channel(self, interaction: discord.Interaction):
@@ -265,7 +265,7 @@ class StaffInfraction(View):
             settings["staff_management"]["demotion_channel"] = self.infraction_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "staff_management": {"demotion_channel": self.infraction_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Infraction Channel Updated!",ephemeral=True)
 
     async def warning_channel(self, interaction: discord.Interaction):
@@ -278,7 +278,7 @@ class StaffInfraction(View):
             settings["staff_management"]["warning_channel"] = self.warning_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "staff_management": {"warning_channel": self.warning_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Warning Channel Updated!",ephemeral=True)
 
 class AntiPingView(View):
@@ -355,7 +355,7 @@ class AntiPingView(View):
             settings["anti_ping_module"]["enabled"] = not settings["anti_ping_module"].get("enabled",False)
         except KeyError:
             settings = {"_id": interaction.guild.id, "anti_ping_module": {"enabled": True}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         await interaction.response.send_message(
             f"Anti Ping Module {'Enabled' if settings.get('anti_ping_module', {}).get('enabled', False) else 'Disabled'}",
@@ -376,7 +376,7 @@ class AntiPingView(View):
             settings["anti_ping_module"]["affected_roles"] = [role.id for role in self.affected_roles_button.values]
         except KeyError:
             settings = {"_id": interaction.guild.id, "anti_ping_module": {"affected_roles": [role.id for role in self.affected_roles_button.values]}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Affected Roles Updated!",ephemeral=True)
 
     async def bypass_roles_callback(self,interaction:discord.Interaction):
@@ -392,7 +392,7 @@ class AntiPingView(View):
             settings["anti_ping_module"]["exempt_roles"] = [role.id for role in self.bypass_roles_button.values]
         except KeyError:
             settings = {"_id": interaction.guild.id, "anti_ping_module": {"exempt_roles": [role.id for role in self.bypass_roles_button.values]}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Bypass Roles Updated!",ephemeral=True)
 
 class MessageQuotaModal(Modal):
@@ -515,7 +515,7 @@ class ModerationModule(discord.ui.View):
             settings["moderation_module"]["enabled"] = True if self.enable_select.values[0] == "enable" else False
         except KeyError:
             settings = {"_id": interaction.guild.id, "moderation_module": {"enabled": True if self.enable_select.values[0] == "enable" else False}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         await interaction.response.send_message(f"Moderation Module {'Enabled' if settings.get('moderation_module', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
@@ -532,7 +532,7 @@ class ModerationModule(discord.ui.View):
             settings["moderation_module"]["mod_log_channel"] = self.moderation_log_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "moderation_module": {"mod_log_channel": self.moderation_log_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Moderation Log Channel Updated!",ephemeral=True)
 
     async def ban_appeal_channel_callback(self,interaction:discord.Interaction):
@@ -543,7 +543,7 @@ class ModerationModule(discord.ui.View):
             settings["moderation_module"]["ban_appeal_channel"] = self.ban_appeal_channel.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "moderation_module": {"ban_appeal_channel": self.ban_appeal_channel.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Ban Appeal Log Channel Updated!",ephemeral=True)
 
     async def audit_channel_select_callback(self,interaction:discord.Interaction):
@@ -554,7 +554,7 @@ class ModerationModule(discord.ui.View):
             settings["moderation_module"]["audit_log"] = self.audit_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "moderation_module": {"audit_log": self.audit_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Audit Log Channel Updated!",ephemeral=True)
     
 class ServerManagement(discord.ui.View):
@@ -648,7 +648,7 @@ class ServerManagement(discord.ui.View):
             settings["server_management"]["enabled"] = not settings["server_management"].get("enabled",False)
         except KeyError:
             settings = {"_id": interaction.guild.id, "server_management": {"enabled": True}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         await interaction.response.send_message(f"Server Management Module {'Enabled' if settings.get('server_management', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
@@ -665,7 +665,7 @@ class ServerManagement(discord.ui.View):
             settings["server_management"]["application_channel"] = self.application_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "server_management": {"application_channel": self.application_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Application Channel Updated!",ephemeral=True)
 
     async def cyni_log_channel_callback(self,interaction:discord.Interaction):
@@ -681,7 +681,7 @@ class ServerManagement(discord.ui.View):
             settings["server_management"]["cyni_log_channel"] = self.cyni_log_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "server_management": {"cyni_log_channel": self.cyni_log_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Cyni Log Channel Updated!",ephemeral=True)
 
     async def suggestion_channel_callback(self,interaction:discord.Interaction):
@@ -697,7 +697,7 @@ class ServerManagement(discord.ui.View):
             settings["server_management"]["suggestion_channel"] = self.suggestion_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "server_management": {"suggestion_channel": self.suggestion_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Suggestion Channel Updated!",ephemeral=True)
 
 class UpVote(discord.ui.Button):
@@ -850,7 +850,7 @@ class PartnershipModule(View):
             settings["partnership_module"]["enabled"] = not settings["partnership_module"].get("enabled",False)
         except KeyError:
             settings = {"_id": interaction.guild.id, "partnership_module": {"enabled": True}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message(f"Partnership Module {'Enabled' if settings.get('partnership_module', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
     async def partnership_channel_callback(self,interaction:discord.Interaction):
@@ -866,7 +866,7 @@ class PartnershipModule(View):
             settings["partnership_module"]["partnership_channel"] = self.partnership_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "partnership_module": {"partnership_channel": self.partnership_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Partnership Channel Updated!",ephemeral=True)
 
     async def partner_role_callback(self,interaction:discord.Interaction):
@@ -882,7 +882,7 @@ class PartnershipModule(View):
             settings["partnership_module"]["partner_role"] = self.partner_role_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "partnership_module": {"partner_role": self.partner_role_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Partner Role Updated!",ephemeral=True)
 
 class PremiumButton(View):
@@ -1123,7 +1123,7 @@ class LOAConfig(discord.ui.View):
             settings["leave_of_absence"]["enabled"] = not settings["leave_of_absence"].get("enabled",False)
         except KeyError:
             settings = {"_id": interaction.guild.id, "leave_of_absence": {"enabled": True}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         await interaction.response.send_message(f"LOA Module {'Enabled' if settings.get('leave_of_absence', {}).get('enabled', False)
 
@@ -1142,7 +1142,7 @@ class LOAConfig(discord.ui.View):
             settings["leave_of_absence"]["loa_channel"] = self.loa_channel_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "leave_of_absence": {"loa_channel": self.loa_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("LOA Channel Updated!",ephemeral=True)
 
     async def loa_role_callback(self,interaction:discord.Interaction):
@@ -1158,6 +1158,6 @@ class LOAConfig(discord.ui.View):
             settings["leave_of_absence"]["loa_role"] = self.loa_role_select.values[0].id
         except KeyError:
             settings = {"_id": interaction.guild.id, "leave_of_absence": {"loa_role": self.loa_role_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("LOA Role Updated!",ephemeral=True)
         

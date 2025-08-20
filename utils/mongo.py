@@ -47,17 +47,19 @@ class Document:
         
         await self.db.insert_one(document)
 
-    async def update(self, query, update, upsert=False):
+    async def update(self, query, update, upsert=False, replace=False):
         """
         Update a document in the database.
-        :param query (dict): The query to find the document.
-        :param update (dict): The update to apply to the document.
+        If replace=True, replaces the whole document.
+        Otherwise requires update operators like $set, $push, etc.
         """
         if not isinstance(query, collections.abc.Mapping):
             raise TypeError('query must be a dictionary')
-        if not await self.db.find_one(query):
-            await self.db.insert_one(query)
-        await self.db.update_one(query, update, upsert=upsert)
+
+        if replace:
+            await self.db.replace_one(query, update, upsert=upsert)
+        else:
+            await self.db.update_one(query, update, upsert=upsert)
 
     async def update_one(self, query, update, upsert=False):
         """
@@ -81,6 +83,14 @@ class Document:
         """
         return await self.db.find_one({'_id': id})
     
+    async def get(self, id):
+        """
+        Get a document by its ID. Works as an alias for find_by_id.
+        :param id (str): The ID of the document.
+        :return (dict): The document.
+        """
+        return await self.find_by_id(id)
+
     async def delete_by_id(self, id):
         """
         Delete a document by its ID.

@@ -43,8 +43,8 @@ class ModerationRoles(View):
             self.sett['roblox'] = {}
         self.sett['roblox']['staff_roles'] = selected_roles
         
-        await self.bot.settings.update({"_id": interaction.guild.id}, self.sett)
-        
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": self.sett}, upsert=True)
+
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="Roblox Staff Roles Updated",
@@ -60,9 +60,9 @@ class ModerationRoles(View):
         if 'roblox' not in self.sett:
             self.sett['roblox'] = {}
         self.sett['roblox']['management_roles'] = selected_roles
-        
-        await self.bot.settings.update({"_id": interaction.guild.id}, self.sett)
-        
+
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": self.sett}, upsert=True)
+
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="Roblox Management Roles Updated",
@@ -86,19 +86,19 @@ class RobloxManagement(View):
         self.roblox_staff_roles_button.callback = self.roblox_staff_roles_callback
         self.add_item(self.roblox_staff_roles_button)
 
-        self.roblox_shift_config_button = Button(
-            label="Configure Roblox Shift Settings",
-            style=discord.ButtonStyle.secondary
-        )
-        self.roblox_shift_config_button.callback = self.roblox_shift_config_callback
-        self.add_item(self.roblox_shift_config_button)
+        # self.roblox_shift_config_button = Button(
+        #     label="Configure Roblox Shift Settings",
+        #     style=discord.ButtonStyle.secondary
+        # )
+        # self.roblox_shift_config_button.callback = self.roblox_shift_config_callback
+        # self.add_item(self.roblox_shift_config_button)
 
-        self.roblox_punishment_button = Button(
-            label="Configure Roblox Punishment Settings",
-            style=discord.ButtonStyle.secondary
-        )
-        self.roblox_punishment_button.callback = self.roblox_punishment_callback
-        self.add_item(self.roblox_punishment_button)
+        # self.roblox_punishment_button = Button(
+        #     label="Configure Roblox Punishment Settings",
+        #     style=discord.ButtonStyle.secondary
+        # )
+        # self.roblox_punishment_button.callback = self.roblox_punishment_callback
+        # self.add_item(self.roblox_punishment_button)
 
     async def roblox_staff_roles_callback(self, interaction: discord.Interaction):
         """
@@ -115,31 +115,31 @@ class RobloxManagement(View):
             ephemeral=True
         )
 
-    async def roblox_shift_config_callback(self, interaction: discord.Interaction):
-        """
-        Opens the Roblox shift configuration modal.
-        """
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                title="Roblox Shift Configuration",
-                description="Configure the Roblox shift settings for your server.",
-                color=BLANK_COLOR
-            ),
-            view=RobloxShiftConfig(self.bot, self.ctx, self.sett),
-            ephemeral=True
-        )
+    # async def roblox_shift_config_callback(self, interaction: discord.Interaction):
+    #     """
+    #     Opens the Roblox shift configuration modal.
+    #     """
+    #     await interaction.response.send_message(
+    #         embed=discord.Embed(
+    #             title="Roblox Shift Configuration",
+    #             description="Configure the Roblox shift settings for your server.",
+    #             color=BLANK_COLOR
+    #         ),
+    #         view=RobloxShiftConfig(self.bot, self.ctx, self.sett),
+    #         ephemeral=True
+    #     )
 
-    async def roblox_punishment_callback(self, interaction: discord.Interaction):
-        """
-        Opens the Roblox punishment configuration modal.
-        """
-        await interaction.response.send_message(
-            embed=discord.Embed(
-                title="Roblox Punishment Configuration",
-                description="Configure the Roblox punishment settings for your server.",
-                color=BLANK_COLOR
-            )
-        )
+    # async def roblox_punishment_callback(self, interaction: discord.Interaction):
+    #     """
+    #     Opens the Roblox punishment configuration modal.
+    #     """
+    #     await interaction.response.send_message(
+    #         embed=discord.Embed(
+    #             title="Roblox Punishment Configuration",
+    #             description="Configure the Roblox punishment settings for your server.",
+    #             color=BLANK_COLOR
+    #         )
+    #     )
 
 class OnBreakRoleConfig(View):
     def __init__(self, bot, ctx, sett):
@@ -183,7 +183,7 @@ class OnBreakRoleConfig(View):
             settings["roblox"]["shift_module"]["on_break_role"] = self.on_break_role_select.values[0].id
         except KeyError:
             settings["roblox"]["shift_module"] = {"on_break_role": self.on_break_role_select.values[0].id}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
 
         await interaction.response.send_message(
             embed=discord.Embed(
@@ -256,7 +256,7 @@ class RobloxShiftConfig(View):
             settings["roblox"]["shift_module"]["channel"] = self.shift_log_channel_select.values[0].id
         except KeyError:
             settings["roblox"]["shift_module"] = {"channel": self.shift_log_channel_select.values[0].id}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
 
         await interaction.response.send_message(
             embed=discord.Embed(
@@ -286,7 +286,7 @@ class RobloxShiftConfig(View):
             settings["roblox"]["shift_module"]["on_duty_role"] = self.on_duty_role_select.values[0].id
         except KeyError:
             settings["roblox"]["shift_module"]["on_duty_role"] = {"role": self.on_duty_role_select.values[0].id}
-        await self.bot.settings.update({"_id": interaction.guild.id}, settings)
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
 
         await interaction.response.send_message(
             embed=discord.Embed(
