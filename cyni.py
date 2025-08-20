@@ -341,7 +341,7 @@ up_time = time.time()
 async def staff_check(bot,guild,member):
     if member.guild_permissions.administrator:
         return True
-    guild_settings = await bot.settings.get(guild.id)
+    guild_settings = await bot.settings.find_by_id(guild.id)
     if guild_settings:
         if "staff_roles" in guild_settings["basic_settings"].keys():
             if guild_settings["basic_settings"]["staff_roles"] != []:
@@ -357,7 +357,7 @@ async def staff_check(bot,guild,member):
 async def management_check(bot,guild,member):
     if member.guild_permissions.administrator:
         return True
-    guild_settings = await bot.settings.get(guild.id)
+    guild_settings = await bot.settings.find_by_id(guild.id)
     if guild_settings:
         if "management_roles" in guild_settings["basic_settings"].keys():
             if guild_settings["basic_settings"]["management_roles"] != []:
@@ -382,7 +382,7 @@ async def roblox_staff_check(bot, guild, member):
     if member.guild_permissions.administrator:
         return True
 
-    guild_settings = await bot.settings.get(guild.id)
+    guild_settings = await bot.settings.find_by_id(guild.id)
     if guild_settings and "roblox" in guild_settings:
         if "staff_roles" in guild_settings["roblox"]:
             roblox_staff_roles = guild_settings["roblox"]["staff_roles"]
@@ -401,7 +401,7 @@ async def roblox_management_check(bot, guild, member):
     if member.guild_permissions.administrator:
         return True
 
-    guild_settings = await bot.settings.get(guild.id)
+    guild_settings = await bot.settings.find_by_id(guild.id)
     if guild_settings and "roblox" in guild_settings:
         if "management_roles" in guild_settings["roblox"]:
             roblox_management_roles = guild_settings["roblox"]["management_roles"]
