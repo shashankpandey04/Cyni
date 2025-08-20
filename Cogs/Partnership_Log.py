@@ -38,7 +38,7 @@ class Partnership_Log(commands.Cog):
     @app_commands.describe(invite="Discord Invite Link")
     @commands.guild_only()
     @premium_check()
-    async def log(self, ctx, title: str, *, description: str, invite: str, representative: discord.Member, image: str = None):
+    async def log(self, ctx, title: str, *, description: str, invite: str, representative: discord.Member, role: discord.Role, image: str = None):
         """
         Log a partnership.
         """
@@ -107,28 +107,39 @@ class Partnership_Log(commands.Cog):
             })
             description = re.sub(r'\\n', '\n', description)
             formatted_description = (
-                f"{description}\n\n"
-                f"Discord Invite: https://discord.gg/{invite}\n"
-                f"Representative: {representative.mention}"
+                f"**Description:**\n{description}\n\n"
+                f"**Discord Invite:** [Click Here](https://discord.gg/{invite})\n"
+                f"-# **Representative:** {representative.mention}\n"
             )
             embed = discord.Embed(
-                title = title,
-                description = formatted_description,
-                color = BLANK_COLOR
+                title=f"🤝 Partnership Logged: {title}",
+                description=formatted_description,
+                color=BLANK_COLOR
             ).set_footer(
-                text = f"Partnership ID: {partnership_id} | Logged by {ctx.author}",
+                text=f"Partnership ID: {partnership_id} | Logged by {ctx.author}",
+                icon_url=ctx.author.avatar.url if ctx.author.avatar else None
+            ).set_thumbnail(
+                url=ctx.guild.icon.url if ctx.guild.icon else None
             )
             if image:
-                embed.set_image(url = image)
+                embed.set_image(url=image)
             await log_channel.send(embed = embed)
             try:
-                await representative.add_roles(partner_role, reason = "Partnership Logged")
+                if role:
+                    await representative.add_roles(role, reason = "Partnership Logged")
+                else:
+                    await representative.add_roles(partner_role, reason = "Partnership Logged")
             except:
                 pass
             await ctx.send(
                 embed = discord.Embed(
                     title = "Partnership Logged",
-                    description = "The partnership has been logged",
+                    description = (
+                        f"We have successfully logged the partnership with ID: {partnership_id}",
+                        f"> **Discord Invite:** [Click Here](https://discord.gg/{invite})",
+                        f"> **Representative:** {representative.mention}\n"
+                        f"-# Logged By: {ctx.author.mention}"
+                    ),
                     color = GREEN_COLOR
                 ).set_footer(
                     text = f"Logged by {ctx.author}",
