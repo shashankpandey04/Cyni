@@ -406,9 +406,9 @@ def generate_embed(
             )
 
     if premium:
-        embed.set_footer(text=f"{footer} | CYNI Premium", icon_url=guild.icon.url if guild.icon else None)
+        embed.set_footer(text=f"{footer if footer else ''}", icon_url=guild.icon.url if guild.icon else None)
     else:
-        embed.set_footer(text=f"{footer} | By Cyni", icon_url=guild.icon.url if guild.icon else None)
+        embed.set_footer(text=f"{footer if footer else ''} | By Cyni", icon_url=guild.icon.url if guild.icon else None)
 
     if timestamp:
         embed.timestamp = datetime.utcnow()

@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+import asyncio
+import aiohttp
 import typing
 
 from discord.ext.commands import Context
@@ -146,3 +147,83 @@ async def shift_type_autocomplete(
                 value="default"
             ),
         ]
+
+async def punishment_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> typing.List[app_commands.Choice[str]]:
+    bot = interaction.client
+    Data = await bot.punishment_types.find_by_id(interaction.guild.id)
+    default_punishments = ["Warning", "Kick", "Ban", "BOLO"]
+    enabled_punishments = None
+    if Data is None:
+        return [
+            app_commands.Choice(name=item, value=item)
+            for item in default_punishments
+        ]
+        enabled_punishments = Data.get("default_punishments", [])
+    else:
+        ndt = []
+        for item in Data["types"]:
+            if item not in default_punishments:
+                ndt.append(item)
+        enabled_defaults = {
+            p["name"].lower()
+            for p in enabled_punishments
+            if p.get("enabled", False)
+        }
+        filtered_punishments = [
+            name.capitalize() for name in ["warning", "kick", "ban", "bolo"] if name in enabled_defaults
+        ]
+        return [
+            app_commands.Choice(
+                name=(
+                    item_identifier := item if isinstance(item, str) else item["name"]
+                ),
+                value=item_identifier,
+            )
+            for item in ndt + filtered_punishments
+        ]
+
+
+
+last_request_time = {}
+
+async def fetch_roblox_users(query: str):
+    url = f"https://apis.roblox.com/search-api/omni-search?verticalType=user&searchQuery={query}&pageToken=&globalSessionId=547118cc-0912-4080-ad3d-df835d0f9f5a&sessionId=547118cc-0912-4080-ad3d-df835d0f9f5a"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                return []
+            data = await resp.json()
+            try:
+                return data["searchResults"][0]["contents"]
+            except (KeyError, IndexError):
+                return []
+
+
+async def username_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> typing.List[app_commands.Choice[str]]:
+    if len(current) < 4:
+        return [app_commands.Choice(name="Type at least 4 characters", value="")]
+
+    user_id = interaction.user.id
+    now = asyncio.get_event_loop().time()
+    if user_id in last_request_time and now - last_request_time[user_id] < 1.0:
+        return []
+    last_request_time[user_id] = now
+
+    results = await fetch_roblox_users(current)
+    choices = []
+    for user in results[:10]:
+        username = user.get("username")
+        display_name = user.get("displayName", username)
+        if username:
+            choices.append(
+                app_commands.Choice(
+                    name=f"{display_name} (@{username})",
+                    value=username
+                )
+            )
+
+    return choices

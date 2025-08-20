@@ -6,7 +6,7 @@ from discord import app_commands
 from cyni import is_roblox_management, is_roblox_staff
 from utils.utils import log_command_usage
 from utils.pagination import Pagination
-
+from utils.autocompletes import punishment_autocomplete, username_autocomplete
 class RobloxPunishments(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -28,7 +28,13 @@ class RobloxPunishments(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def log_punishment(self, ctx, roblox: str = None, user: discord.User = None):
+    @app_commands.describe(
+        username="The Roblox username to log punishments for",
+        reason="The reason for the punishment"
+    )
+    @app_commands.autocomplete(punishment=punishment_autocomplete)
+    @app_commands.autocomplete(username=username_autocomplete)
+    async def log_punishment(self, ctx, username: str, punishment: str, reason: str):
         """
         View Roblox punishments for a user.
         """
@@ -40,16 +46,10 @@ class RobloxPunishments(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def view_punishments(self, ctx, roblox: str = None, user: discord.User = None):
+    @app_commands.describe(username="The Roblox username to view punishments for")
+    @app_commands.autocomplete(username=username_autocomplete)
+    async def view_punishments(self, ctx, username: str = None):
         """View a user's Roblox punishments."""
-        if not roblox and not user:
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Error",
-                    description="You must provide either a Roblox username or a Discord user.",
-                    color=RED_COLOR
-                )
-            )
         pass
 
     @punishment.command(
@@ -58,7 +58,7 @@ class RobloxPunishments(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def manage(self, ctx, punishment_id: int = None):
+    async def manage(self, ctx, id: str):
         """
         Manage Roblox punishments.
         """

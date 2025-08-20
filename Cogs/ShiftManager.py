@@ -52,40 +52,48 @@ class ShiftManager(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    @app_commands.autocomplete(type=shift_type_autocomplete)
-    async def manage(self, ctx, type: str):
+    @app_commands.autocomplete(shift=shift_type_autocomplete)
+    async def manage(self, ctx, shift: str):
         """
         Manage shifts.
         """
-        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
-        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
-        if type not in filtered_shift_types:
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Invalid Shift Type",
-                    description="Please make sure you have selected a valid shift type.",
-                    color=RED_COLOR
+        try:
+            shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+            filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+            if shift not in filtered_shift_types:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Invalid Shift Type",
+                        description="Please make sure you have selected a valid shift type.",
+                        color=RED_COLOR
+                    )
                 )
+            
+            active_shift = await self.bot.shift_logs.find(
+                {
+                    "guild_id": ctx.guild.id,
+                    "user_id": ctx.author.id,
+                    "type": shift.lower(),
+                    "end_epoch": 0
+                }
+            )
+            past_shifts = await self.bot.shift_logs.find(
+                {
+                    "guild_id": ctx.guild.id,
+                    "user_id": ctx.author.id,
+                    "type": shift.lower(),
+                    "end_epoch": {"$ne": 0}
+                }
             )
 
-    @shift.command(
-        name="view",
-        aliases=["v"],
-    )
-    @commands.guild_only()
-    @is_roblox_staff()
-    @app_commands.autocomplete(type=shift_type_autocomplete)
-    async def view(self, ctx, type: str):
-        """
-        View shifts.
-        """
-        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
-        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
-        if type not in filtered_shift_types:
-            return await ctx.send(
+            view = ShiftManagerView(self.bot, ctx, shift, active_shift, past_shifts)
+            await ctx.send(view=view)
+            
+        except Exception as e:
+            await ctx.send(
                 embed=discord.Embed(
-                    title="Invalid Shift Type",
-                    description="Please make sure you have selected a valid shift type.",
+                    title="Error",
+                    description=f"An error occurred while processing your request: ```{str(e)}```",
                     color=RED_COLOR
                 )
             )
@@ -96,22 +104,58 @@ class ShiftManager(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    @app_commands.autocomplete(type=shift_type_autocomplete)
-    async def active(self, ctx, type: str):
+    @app_commands.autocomplete(shift=shift_type_autocomplete)
+    async def active(self, ctx, shift: str):
         """
         View active shifts.
         """
-        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
-        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
-        if type not in filtered_shift_types:
-            return await ctx.send(
+        try:
+            shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+            filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+            if shift not in filtered_shift_types:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Invalid Shift Type",
+                        description="Please make sure you have selected a valid shift type.",
+                        color=RED_COLOR
+                    )
+                )
+
+            active_shifts = await self.bot.shift_logs.find(
+                {
+                    "guild_id": ctx.guild.id,
+                    "user_id": ctx.author.id,
+                    "type": shift.lower(),
+                    "end_epoch": 0
+                }
+            )
+
+            embed = discord.Embed(
+                title=f"{self.bot.emoji.get("folder")} Active Shifts",
+                color=BLANK_COLOR
+            )
+            embed.description = ""
+            if active_shifts:
+                for i in active_shifts:
+                    embed.description += (
+                        f"> **User:** <@{i['user_id']}> (`{i['user_id']}`)\n"
+                        f"> **Start Time:** <t:{i['start_epoch']}:F>\n"
+                        f"> **Shift Type:** {i['type'].capitalize()}\n"
+                        f"> **Elapsed Time:** <t:{i['start_epoch']}:R>\n\n"
+                    )
+            else:
+                embed.description = "No active shifts found."
+
+            await ctx.send(embed=embed)
+            return
+        except Exception as e:
+            await ctx.send(
                 embed=discord.Embed(
-                    title="Invalid Shift Type",
-                    description="Please make sure you have selected a valid shift type.",
+                    title="Error",
+                    description=f"An error occurred while processing your request: ```{str(e)}```",
                     color=RED_COLOR
                 )
             )
-
 
     @shift.command(
         name="history",
@@ -119,17 +163,60 @@ class ShiftManager(commands.Cog):
     )
     @commands.guild_only()
     @is_roblox_staff()
-    async def history(self, ctx, type: str):
+    @app_commands.autocomplete(shift=shift_type_autocomplete)
+    async def history(self, ctx, shift: str, user: discord.User = None):
         """
         View shift history.
         """
-        shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
-        filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
-        if type not in filtered_shift_types:
-            return await ctx.send(
+        try:
+            if user is None:
+                user = ctx.author
+            shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+            filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+            if shift not in filtered_shift_types:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Invalid Shift Type",
+                        description="Please make sure you have selected a valid shift type.",
+                        color=RED_COLOR
+                    )
+                )
+
+            history = await self.bot.shift_logs.find(
+                {
+                    "guild_id": ctx.guild.id,
+                    "user_id": user.id if user else ctx.author.id,
+                    "type": shift.lower(),
+                    "end_epoch": {"$ne": 0}
+                }
+            )
+
+            embed = discord.Embed(
+                title=f"{self.bot.emoji.get("folder")} Shift History",
+                color=BLANK_COLOR
+            )
+            embed.description = ""
+            if history:
+                for shift in history:
+                    total_duration_seconds = shift.get('duration', 0)
+                    hours, remainder = divmod(total_duration_seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    total_duration = f"{hours}h {minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+                    embed.description += (
+                        f"> **Shift Type:** {shift['type'].capitalize()}\n"
+                        f"> **Start Time:** <t:{shift['start_epoch']}:F>\n"
+                        f"> **End Time:** <t:{shift['end_epoch']}:F>\n"
+                        f"> **Duration:** {total_duration}\n\n"
+                    )
+            else:
+                embed.description = "> **No shift history found.**"
+
+            await ctx.send(embed=embed)
+        except Exception as e:
+            await ctx.send(
                 embed=discord.Embed(
-                    title="Invalid Shift Type",
-                    description="Please make sure you have selected a valid shift type.",
+                    title="Error",
+                    description=f"An error occurred while processing your request: ```{str(e)}```",
                     color=RED_COLOR
                 )
             )

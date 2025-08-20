@@ -47,7 +47,7 @@ class Document:
         
         await self.db.insert_one(document)
 
-    async def update(self, query, update):
+    async def update(self, query, update, upsert=False):
         """
         Update a document in the database.
         :param query (dict): The query to find the document.
@@ -57,9 +57,9 @@ class Document:
             raise TypeError('query must be a dictionary')
         if not await self.db.find_one(query):
             await self.db.insert_one(query)
-        await self.db.update_one(query, {'$set': update})
+        await self.db.update_one(query, update, upsert=upsert)
 
-    async def update_one(self, query, update):
+    async def update_one(self, query, update, upsert=False):
         """
         Update a document in the database.
         :param query (dict): The query to find the document.
@@ -67,11 +67,11 @@ class Document:
         """
         if not isinstance(query, collections.abc.Mapping):
             raise TypeError('query must be a dictionary')
-        
-        if not await self.db.find_one(query):
-            await self.db.insert_one(query)
-        
-        await self.db.update_one(query, {'$set': update})
+
+        if not await self.db.find_one(query) and upsert:
+            await self.db.insert_one({**query, **update.get("$set", {})})
+
+        await self.db.update_one(query, update, upsert=upsert) 
     
     async def find_by_id(self, id):
         """

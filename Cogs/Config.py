@@ -143,10 +143,10 @@ class Config(commands.Cog):
                 description=(
                     "> **Staff Configuration**\n"
                     "This setting allows you to configure the staff & management roles and permissions to access Roblox-related commands.\n\n"
-                    # "> **Shifts Configuration**\n"
-                    # "This setting allows you to configure the shifts and scheduling for your Roblox staff.\n\n"
-                    # "> **Punishments Configuration**\n"
-                    # "This setting allows you to configure the punishments for your Roblox staff.\n\n"
+                    "> **Shifts Configuration**\n"
+                    "This setting allows you to configure the shifts and scheduling for your Roblox staff.\n\n"
+                    "> **Punishments Configuration**\n"
+                    "This setting allows you to configure the punishments for your Roblox staff.\n\n"
                 )
             )
 

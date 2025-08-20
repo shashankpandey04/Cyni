@@ -187,6 +187,8 @@ class Bot(commands.AutoShardedBot):
         self.terminated_accounts = Document(self.db, 'terminated_accounts')
         self.emoji = EmojiController(self)
         self.logger = logging.getLogger()
+        self.shift_logs = Document(self.db, 'shift_logs')
+        self.punishment_types = Document(self.db, 'punishment_types')
         await self.emoji.prefetch_emojis()
 
         orig_request = self.http.request

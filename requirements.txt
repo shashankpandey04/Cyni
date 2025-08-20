@@ -1,5 +1,5 @@
 aiohttp
-discord
+git+https://github.com/Rapptz/discord.py
 flask
 flask-login
 flask-session
