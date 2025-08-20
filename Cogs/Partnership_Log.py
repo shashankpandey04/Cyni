@@ -28,7 +28,7 @@ class Partnership_Log(commands.Cog):
             "category": "Partnership"
         }
     )
-    @is_management()
+    @is_staff()
     @app_commands.describe(
         title="Partnership Log Title",
         description="Write the description & for new line use \\n\\n",
