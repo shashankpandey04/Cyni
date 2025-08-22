@@ -63,7 +63,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-_version = "8.1.1"
+_version = "1.0"
 class Bot(commands.AutoShardedBot):
     
     RATE_LIMIT_WINDOW = 10  # seconds

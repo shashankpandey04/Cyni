@@ -190,7 +190,7 @@ class RobloxPunishments(commands.Cog):
     @is_roblox_staff()
     @app_commands.describe(username="The Roblox username to view punishments for")
     @app_commands.autocomplete(username=username_autocomplete)
-    async def view_punishments(self, ctx, username: str = None):
+    async def view_punishments(self, ctx, username: str):
         """View a user's Roblox punishments."""
         try:
             await ctx.typing()
