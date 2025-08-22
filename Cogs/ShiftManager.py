@@ -105,7 +105,6 @@ class ShiftManager(commands.Cog):
             active_shifts = await self.bot.shift_logs.find(
                 {
                     "guild_id": ctx.guild.id,
-                    "user_id": ctx.author.id,
                     "type": shift.lower(),
                     "end_epoch": 0
                 }
