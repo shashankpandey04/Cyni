@@ -74,9 +74,15 @@ class Activity(commands.Cog):
         staff_activity = await self.bot.staff_activity.find_by_id(guild_id)
         if not staff_activity:
             return await ctx.send("No activity data.")
-        
-        await self.bot.staff_activity.delete(guild_id)
-        await ctx.send("Activity data reset.")
+
+        await self.bot.staff_activity.delete_many({"_id": guild_id})
+        await ctx.send(
+            embed=discord.Embed(
+                title="Activity Data Reset",
+                description="All activity data has been reset.",
+                color=0x2F3136
+            )
+        )
 
     @activity.command(
         name="stats",
