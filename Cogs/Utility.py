@@ -81,7 +81,24 @@ class Utility(commands.Cog):
         """
         Get information about the bot.
         """
-        pass
+        embed = discord.Embed(
+            title="Cyni",
+            description=f"A multipurpose Discord bot.\n**{self.bot.emoji.get('latency')}  Uptime:** <t:{int(up_time)}:R>\n**Version:** `v{_version}`",
+            color=BLANK_COLOR
+        )
+        embed.set_author(
+            name=f"{ctx.author}",
+            icon_url=ctx.author.avatar.url
+        )
+        embed.set_footer(
+            text="Cyni Systems!",
+            icon_url=self.bot.user.avatar.url
+        )
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Invite", url=f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot",row=0))
+        view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm",row=0))
+        view.add_item(discord.ui.Button(label="Dashboard", url="https://cyni.quprdigital.tk",row=1))
+        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="afk",
