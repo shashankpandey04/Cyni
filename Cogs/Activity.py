@@ -53,7 +53,7 @@ class Activity(commands.Cog):
                     f"**#{idx}** {user.mention}\n"
                     f"> **{member['messages']}** messages\n\n"
                 )
-            await ctx.send(embed=embed)
+        await ctx.send(embed=embed)
 
     @activity.command(
         name="reset",
