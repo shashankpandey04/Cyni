@@ -150,7 +150,7 @@ class LoggingChannels(View):
             inline=True
         ).add_field(
             name="Alert Channel",
-            value=f"> ERM will send alerts to this channel if a user fails the Discord checks.\n> **Current Channel:** <#{discord_checks.get('channel_id', 'None')}>",
+            value=f"> CYNI will send alerts to this channel if a user fails the Discord checks.\n> **Current Channel:** <#{discord_checks.get('channel_id', 'None')}>",
             inline=True
         ).add_field(
             name="Alert Message",
