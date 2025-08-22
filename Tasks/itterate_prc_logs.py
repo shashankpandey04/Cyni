@@ -1,20 +1,114 @@
+from collections import defaultdict
 import discord
+import re
 from discord.ext import tasks
 import asyncio
 import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
-import logging
+
+from flask import logging
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from utils.prc_api import ServerKillLogs, ServerJoinLogs, ResponseFailed
+    
+_guild_cache = {}
+_member_search_cache = defaultdict(dict)
+_cache_timeout = 300
+
+async def get_cached_member_by_username(guild, username):
+    """Get member by username with caching"""
+    now = time.time()
+    cache_key = f"{guild.id}_{username.lower()}"
+
+    if cache_key in _member_search_cache[guild.id]:
+        member_obj, cached_time = _member_search_cache[guild.id][cache_key]
+        if now - cached_time < _cache_timeout:
+            return member_obj
+
+    pattern = re.compile(re.escape(username), re.IGNORECASE)
+    member = None
+
+    for m in guild.members:
+        if (
+            pattern.search(m.name)
+            or pattern.search(m.display_name)
+            or (hasattr(m, "global_name") and m.global_name and pattern.search(m.global_name))
+        ):
+            member = m
+            break
+
+    if not member:
+        try:
+            members = await guild.query_members(query=username, limit=1)
+            member = members[0] if members else None
+        except discord.HTTPException:
+            member = None
+
+    _member_search_cache[guild.id][cache_key] = (member, now)
+    return member
+
+async def handle_discord_check_batch(bot, guild, players_not_in_discord, alert_channel, alert_message, kick_after=0):
+    """Handle batch of players not in Discord"""
+    if not players_not_in_discord:
+        return
+    
+    try:
+        usernames = [player.username for player in players_not_in_discord]
+        command = f":pm {', '.join(usernames)} {alert_message}"
+
+        await bot.prc_api.run_command(guild.id, command)
+
+        if not hasattr(bot, 'discord_check_counter'):
+            bot.discord_check_counter = {}
+        
+        players_to_kick = []
+        for player in players_not_in_discord:
+            key = f"{guild.id}_{player.username}"
+            if key not in bot.discord_check_counter:
+                bot.discord_check_counter[key] = 1
+            else:
+                bot.discord_check_counter[key] += 1
+
+            if bot.discord_check_counter[key] >= kick_after and kick_after > 0:
+                players_to_kick.append(player)
+                bot.discord_check_counter.pop(key)
+
+        if players_to_kick and alert_channel is not None:
+            await send_batch_warning_embed(players_to_kick, alert_channel, bot)
+
+    except Exception as e:
+        bot.logger.error(f"Error in handle_discord_check_batch: {e}")
+        
+async def send_batch_warning_embed(players, alert_channel, bot):
+    """Send warning embed for multiple players"""
+    try:
+        player_list = []
+        for player in players:
+            player_list.append(f"[{player.username}](https://roblox.com/users/{player.id}/profile)")
+        
+        embed = discord.Embed(
+            title="Discord Check Warning",
+            description=f"""
+            > The following players have been kicked from the server for not joining the Discord server after multiple warnings:
+            
+            {chr(10).join([f"> • {player}" for player in player_list])}
+            """,
+            color=BLANK_COLOR,
+        )
+
+        await alert_channel.send(embed=embed)
+    except discord.HTTPException as e:
+        bot.logger.error(f"Failed to send batch embed: {e}")
+    except Exception as e:
+        bot.logger.error(f"Error in send_batch_warning_embed: {e}", exc_info=True)
 
 class PRCLogsProcessor:
     """Automated PRC logs processor that sends kill logs and join/leave logs to configured channels."""
     
     def __init__(self, bot):
         self.bot = bot
-        self.logger = logging.getLogger(__name__)
+        self.logger = bot.logger
         self.last_kill_log_timestamp = {}
         self.last_join_log_timestamp = {}
         self.username_cache = {}
@@ -164,10 +258,9 @@ class PRCLogsProcessor:
             self.logger.error(f"Error parsing player info: {e}")
             return player_info, player_info
 
-    async def process_join_logs(self, guild_id: int, join_logs_channel_id: int):
+    async def process_join_logs(self, guild_id: int, join_logs_channel_id: int, join_logs: List[ServerJoinLogs]):
         """Process and send join/leave logs for a guild."""
         try:
-            join_logs: List[ServerJoinLogs] = await self.bot.prc_api._fetch_server_join_logs(guild_id)
             
             if not join_logs:
                 return
@@ -241,6 +334,67 @@ class PRCLogsProcessor:
         except Exception as e:
             self.logger.error(f"Unexpected error processing join logs for guild {guild_id}: {e}")
 
+
+    async def process_discord_checks(bot, items, guild_id):
+        """
+        This function will process Discord checks for PRC servers.
+        """
+        try:
+            settings = items["ERLC"].get("discord_checks", {})
+            if not settings:
+                return
+
+            if not settings.get("enabled", False):
+                return
+            
+            message = settings.get("message", "Please join the Private Server Communication channel.")
+            channel_id = settings.get("channel_id", 0)
+            channel = None
+            if channel_id != 0:
+                channel = await bot.get_channel(channel_id)
+                if not channel:
+                    bot.logger.error(f"Channel {channel_id} not found in guild {guild_id}.")
+                    return
+
+            guild = await bot.get_guild(guild_id)
+            if not guild:
+                return
+
+            try:
+                players = await bot.prc_api.get_server_players(guild_id)
+                if not players:
+                    bot.logger.info(f"No players found in guild {guild_id}")
+                    return
+
+            except Exception as e:
+                bot.logger.error(f"Failed to fetch server data for guild {guild_id}: {e}")
+                return
+            
+            not_in_discord = []
+            
+            for player in players:
+                member = await get_cached_member_by_username(guild, player.username)
+                if not member:
+                    if player.permission is None or player.permission.lower() not in ["server administrator", "server owner", "server moderator"]:
+                        not_in_discord.append(player)
+                #======WILL BE IMPLEMENTED IN NEXT UPDATE======
+                # else:
+                #     callsign_valid = await handle_callsign_check(guild, player.callsign, items, member)
+                #     if not callsign_valid:
+                #         callsign_violations.append(player)
+            try:
+                kick_after = settings.get("kick_after", 0)
+            except Exception as e:
+                bot.logger.error(f"Error getting kick_after setting for guild {guild_id}: {e}")
+                kick_after = 0
+
+            if not_in_discord:
+                await handle_discord_check_batch(bot, guild, not_in_discord, channel, message, kick_after)
+
+        except Exception as e:
+            bot.logger.error(f"Error processing guild {guild_id}: {e}", exc_info=True)
+            return
+
     @tasks.loop(minutes=1, reconnect=True)
     async def process_prc_logs(self):
         """Main task loop to process PRC logs for all configured guilds."""
@@ -259,10 +413,14 @@ class PRCLogsProcessor:
                 kill_logs_channel = erlc_config.get('kill_logs_channel')
                 if kill_logs_channel:
                     await self.process_kill_logs(guild_id, kill_logs_channel)
-
+                join_logs: List[ServerJoinLogs] = await self.bot.prc_api._fetch_server_join_logs(guild_id)
                 join_logs_channel = erlc_config.get('join_logs_channel')
                 if join_logs_channel:
-                    await self.process_join_logs(guild_id, join_logs_channel)
+                    await self.process_join_logs(guild_id, join_logs_channel, join_logs)
+
+                discord_checks_channel = erlc_config.get('discord_checks_channel')
+                if discord_checks_channel:
+                    await self.process_discord_checks(guild_id, discord_checks_channel)
 
                 await asyncio.sleep(0.5)
 

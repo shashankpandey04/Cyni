@@ -193,6 +193,7 @@ class Bot(commands.AutoShardedBot):
         self.roblox = roblox.Client()
         self.punishments = Document(self.db, 'punishments')
         self.deleted_shifts = Document(self.db, 'deleted_shifts')
+        self.roblox_oauth = Document(self.db, 'roblox_oauth')
         await self.emoji.prefetch_emojis()
 
         orig_request = self.http.request
@@ -284,7 +285,6 @@ bot = Bot(
     command_prefix=get_prefix,
     case_insensitive=True,
     intents=intents,
-    help_command=None,
     allowed_mentions=discord.AllowedMentions(everyone=False, roles=True, users=True),
 )
 

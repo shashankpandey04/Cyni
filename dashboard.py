@@ -18,6 +18,7 @@ from DashboardModules.WelcomeModule import welcome_route
 from DashboardModules.AutoModModule import automod
 from DashboardModules.TicketModule import ticket_module
 from DashboardModules.loaModule import loa_route
+from DashboardModules.RobloxLink import roblox_link_route
 
 from utils.site_utils import *
 
@@ -49,6 +50,7 @@ app.register_blueprint(welcome_route)
 app.register_blueprint(automod)
 app.register_blueprint(ticket_module)
 app.register_blueprint(loa_route)
+app.register_blueprint(roblox_link_route)
 
 login_manager = LoginManager(app)
 login_manager.init_app(app)
@@ -139,6 +141,10 @@ def format_datetime(timestamp):
 @app.route("/", methods=["GET", "POST"])
 def index():
     return render_template("index.html")
+
+@app.route("/support")
+def support():
+    return redirect("https://discord.gg/J96XEbGNDm")
 
 @app.route("/login")
 def login():

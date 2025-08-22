@@ -10,11 +10,10 @@ from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 from utils.pagination import Pagination
 import random
-
+from utils.basic_pager import BasicPager
 
 OWNER = 1201129677457215558
 LOGGING_CHANNEL = 1257705346525560885
-
 
 class Utility(commands.Cog):
     def __init__(self, bot):
@@ -82,25 +81,7 @@ class Utility(commands.Cog):
         """
         Get information about the bot.
         """
-        latency = round(self.bot.latency * 1000)
-        embed = discord.Embed(
-            title="Cyni",
-            description=f"A multipurpose Discord bot.\n**{self.bot.emoji.get('latency')}  Uptime:** <t:{int(up_time)}:R>\n**Version:** `v{_version}`",
-            color=BLANK_COLOR
-        )
-        embed.set_author(
-            name=f"{ctx.author}",
-            icon_url=ctx.author.avatar.url
-        )
-        embed.set_footer(
-            text="Cyni Systems!",
-            icon_url=self.bot.user.avatar.url
-        )
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(label="Invite", url=f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot",row=0))
-        view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm",row=0))
-        view.add_item(discord.ui.Button(label="Dashboard", url="https://cyni.quprdigital.tk",row=1))
-        await ctx.send(embed=embed, view=view)
+        pass
 
     @commands.hybrid_command(
         name="afk",
@@ -290,11 +271,18 @@ class Utility(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(
-        name="serverinfo",
+    @commands.hybrid_group(
+        name="server",
         extras={
             "category": "General"
         }
+    )
+    @commands.guild_only()
+    async def server(self, ctx):
+        pass
+
+    @server.command(
+        name="info"
     )
     @commands.guild_only()
     @premium_check()
@@ -330,6 +318,18 @@ class Utility(commands.Cog):
         else:
             await ctx.send(embed=embed)
 
+    # @server.command(
+    #     name="settings"
+    # )
+    # @commands.guild_only()
+    # @premium_check()
+    # async def server_settings(self, ctx: commands.Context):
+    #     """
+    #     Get the server's settings.
+    #     """
+    #     pass
+
+
     @commands.hybrid_command(
         name="vote",
         extras={
@@ -344,32 +344,27 @@ class Utility(commands.Cog):
         """
         await ctx.send("[Top.gg](https://top.gg/bot/1136945734399295538/vote)")
 
-    @commands.hybrid_command(
-        name="help",
-        extras={
-            "category": "General"
-        }
-    )
-    @commands.guild_only()
-    @premium_check()
-    async def help(self, ctx):
-        """
-        Get help with the bot.
-        """
-        embed = discord.Embed(
-            title="Cyni Help",
-            description=(
-                "This is the help command for Cyni. Use the buttons below to navigate through the help sections.\n" \
-                "**Activity Commands:** Get help with activity commands.\n"
-                "**Giveaway Commands:** Get help with giveaway commands.\n"
-                "**Infraction Commands:** Get help with infraction commands.\n"
-                "**Partnership Commands:** Get help with partnership releated commands.\n"
-                "Please contact Support Server if you need further assistance.\n" \
-            ),
-            color=BLANK_COLOR
-        )
-        view = HelpView()
-        await ctx.send(embed=embed, view=view)
+    # @commands.hybrid_command(
+    #     name="help",
+    #     extras={
+    #         "category": "General"
+    #     }
+    # )
+    # @commands.guild_only()
+    # @premium_check()
+    # async def help(self, ctx):
+    #     """
+    #     Get help with the bot.
+    #     """
+    #     embed = discord.Embed(
+    #         title="Join the support server",
+    #         description="If you need help, feel free to join our support server!",
+    #         color=BLANK_COLOR
+    #     )
+    #     embed.set_footer(text="Support Server")
+    #     view = discord.ui.View()
+    #     view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm"))
+    #     await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="dashboard",
@@ -533,34 +528,5 @@ class Utility(commands.Cog):
             await ctx.channel.purge(limit=1)
             await ctx.send(message)
 
-    
 async def setup(bot):
     await bot.add_cog(Utility(bot=bot))
-
-class HelpView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=300)
-    
-    @discord.ui.button(label="Activity Commands", custom_id="activity_commands", row=0)
-    async def activity_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from utils.embeds import activity_commands_embed
-        await interaction.response.send_message(embed=activity_commands_embed, ephemeral=True)
-    
-    @discord.ui.button(label="Giveaway Commands", custom_id="giveaway_commands", row=0)
-    async def giveaway_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from utils.embeds import giveaway_commands_embed
-        await interaction.response.send_message(embed=giveaway_commands_embed, ephemeral=True)
-    
-    @discord.ui.button(label="Infraction Commands", custom_id="infraction_commands", row=1)
-    async def infraction_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from utils.embeds import infraction_commands_embed
-        await interaction.response.send_message(embed=infraction_commands_embed, ephemeral=True)
-    
-    @discord.ui.button(label="Partnership Commands", custom_id="partnership_commands", row=1)
-    async def partnership_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from utils.embeds import partnership_commands_embed
-        await interaction.response.send_message(embed=partnership_commands_embed, ephemeral=True)
-
-    @discord.ui.button(label="Support Server", custom_id="support_server", row=1)
-    async def support_server(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(f"Here is the link to our support server: {button.url}", ephemeral=True)
