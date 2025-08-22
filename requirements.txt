@@ -19,4 +19,5 @@ markdown
 # joblib
 # scikit-learn
 # numpy
+python-jose
 snowflake-id
