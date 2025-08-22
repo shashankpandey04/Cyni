@@ -216,22 +216,26 @@ class RobloxShiftConfig(View):
         self.ctx = ctx
         self.sett = sett
 
+        self.shift_log_channel = self.sett["roblox"]["shift_module"].get("channel") if self.sett.get("roblox") and self.sett["roblox"].get("shift_module") else None
+
         self.shift_log_channel_select = ChannelSelect(
             placeholder="Select the shift log channel",
             channel_types=[discord.ChannelType.text],
             row=0,
             max_values=1,
             min_values=0,
-            default_values=[discord.Object(id=self.sett["roblox"]["shift_module"].get("channel"))] if self.sett["roblox"]["shift_module"].get("channel") else []
+            default_values=[discord.Object(id=self.shift_log_channel)] if self.shift_log_channel else []
         )
         self.add_item(self.shift_log_channel_select)
         self.shift_log_channel_select.callback = self.shift_log_channel_callback
+
+        self.on_duty_role = self.sett["roblox"]["shift_module"].get("on_duty_role") if self.sett.get("roblox") and self.sett["roblox"].get("shift_module") else None
 
         self.on_duty_role_select = RoleSelect(
             placeholder="Select the on-duty role",
             min_values=0,
             row=1,
-            default_values=[discord.Object(id=self.sett["roblox"]["shift_module"].get("on_duty_role"))] if self.sett["roblox"]["shift_module"].get("on_duty_role") else []
+            default_values=[discord.Object(id=self.on_duty_role)] if self.on_duty_role else []
         )
         self.add_item(self.on_duty_role_select)
         self.on_duty_role_select.callback = self.on_duty_role_callback
