@@ -25,6 +25,7 @@ from decouple import config
 
 from Views.Tickets import TicketView
 from menu import LOARequest
+from roblox import client as roblox
 
 # from Models.modai import ModerationModel
 
@@ -189,6 +190,9 @@ class Bot(commands.AutoShardedBot):
         self.logger = logging.getLogger()
         self.shift_logs = Document(self.db, 'shift_logs')
         self.punishment_types = Document(self.db, 'punishment_types')
+        self.roblox = roblox.Client()
+        self.punishments = Document(self.db, 'punishments')
+        self.deleted_shifts = Document(self.db, 'deleted_shifts')
         await self.emoji.prefetch_emojis()
 
         orig_request = self.http.request
@@ -219,7 +223,7 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.Applications","Cogs.ShiftManager","Cogs.RobloxPunishments"]
+        UNLOAD_EXTENSIONS = ["Cogs.Applications"]
         DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube", "Cogs.Verify"]
 
 

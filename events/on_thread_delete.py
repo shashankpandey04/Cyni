@@ -48,8 +48,9 @@ class OnThreadDelete(commands.Cog):
                     {"name": "Created At", "value": created_at, "inline": True}
                 ]
             )
-            await guild_log_channel.send(embed=embed)
-    
-        
+            logger = self.bot.get_cog("ThrottledLogger")
+            await logger.log_embed(guild_log_channel, embed)
+
+
 async def setup(bot):
     await bot.add_cog(OnThreadDelete(bot))

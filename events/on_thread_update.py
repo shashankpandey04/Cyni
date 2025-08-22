@@ -60,7 +60,8 @@ class OnThreadUpdate(commands.Cog):
                 footer=f"Thread ID: {after.id}",
                 fields=fields
             )
-            await guild_log_channel.send(embed=embed)
-        
+            logger = self.bot.get_cog("ThrottledLogger")
+            await logger.log_embed(guild_log_channel, embed)
+
 async def setup(bot):
     await bot.add_cog(OnThreadUpdate(bot))

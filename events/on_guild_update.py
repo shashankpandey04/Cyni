@@ -21,7 +21,8 @@ class OnGuildUpdate(commands.Cog):
     async def _send_log_embed(self, channel, embed):
         """Send embed to log channel with error handling."""
         try:
-            await channel.send(embed=embed)
+            logger = self.bot.get_cog("ThrottledLogger")
+            await logger.log_embed(channel, embed)
         except (discord.Forbidden, discord.HTTPException) as e:
             print(f"Failed to send vanity protection log: {e}")
 

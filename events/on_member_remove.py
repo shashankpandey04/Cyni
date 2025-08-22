@@ -44,7 +44,8 @@ class OnMemberRemove(commands.Cog):
                 {"name": "Username", "value": f"{member.name}#{member.discriminator}", "inline": True}
             ]
         )
-        await guild_log_channel.send(embed=embed)
+        logger = self.bot.get_cog("ThrottledLogger")
+        await logger.log_embed(guild_log_channel, embed)
 
 async def setup(bot):
     await bot.add_cog(OnMemberRemove(bot))

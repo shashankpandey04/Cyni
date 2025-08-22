@@ -21,7 +21,8 @@ class OnMemberBan(commands.Cog):
     async def _send_log_embed(self, channel, embed):
         """Send an embed to the log channel with error handling."""
         try:
-            await channel.send(embed=embed)
+            logger = self.bot.get_cog("ThrottledLogger")
+            await logger.log_embed(channel, embed)
         except discord.Forbidden:
             pass
         except Exception as e:

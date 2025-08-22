@@ -4,31 +4,12 @@ import time
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from discord import app_commands
-from cyni import is_roblox_management, is_roblox_staff
+from cyni import is_roblox_management, is_roblox_staff, roblox_management_check
 from utils.utils import log_command_usage
 from utils.autocompletes import shift_type_autocomplete
 from utils.pagination import Pagination
 from Views.ShiftManager import *
-
-    # shift_types = data["shift_types"]
-
-    # if shift_types and len(shift_types) != 0:
-    #     return [
-    #         app_commands.Choice(
-    #             name=shift_type.get("shift_name", "Unknown"),
-    #             value=shift_type.get("shift_name", "Unknown")
-    #         )
-    #         for shift_type in shift_types
-    #     ]
-    # else:
-    #     return [
-    #         app_commands.Choice(
-    #             name="Default",
-    #             value="default"
-    #         ),
-    #     ]
-
-
+from utils.basic_pager import BasicPager
 
 
 class ShiftManager(commands.Cog):
@@ -220,6 +201,119 @@ class ShiftManager(commands.Cog):
                     color=RED_COLOR
                 )
             )
+
+    @shift.command(
+        name="leaderboard",
+        description="View the shift leaderboard."
+    )
+    @commands.guild_only()
+    @is_roblox_staff()
+    @app_commands.autocomplete(shift=shift_type_autocomplete)
+    async def leaderboard(self, ctx, shift: str):
+        """
+        View the shift leaderboard.
+        """
+        try:
+            leaderboard_data = await self.bot.shift_logs.aggregate([
+                {
+                    "$match": {
+                        "guild_id": ctx.guild.id,
+                        "end_epoch": {"$ne": 0},
+                        "type": shift.lower()
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$user_id",
+                        "total_duration": {"$sum": "$duration"}
+                    }
+                },
+                {
+                    "$sort": {"total_duration": -1}
+                },
+                {
+                    "$limit": 10
+                }
+            ])
+
+            embeds = []
+            embed = discord.Embed(
+                title=f"{self.bot.emoji.get('trophy')} Shift Leaderboard",
+                color=BLANK_COLOR
+            )
+            embed.description = ""
+            if leaderboard_data:
+                for i, entry in enumerate(leaderboard_data, start=1):
+                    user = await self.bot.fetch_user(entry["_id"])
+                    total_duration = entry["total_duration"]
+                    hours, remainder = divmod(total_duration, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    total_duration_str = f"{hours}h {minutes}m {seconds}s" if total_duration > 0 else "Not Applicable"
+                    embed.description += (
+                        f"> **#{i} {user.name}** (`{user.id}`)\n"
+                        f"> **Total Duration:** {total_duration_str}\n\n"
+                    )
+                    
+                    if i % 25 == 0:
+                        embeds.append(embed)
+                        embed = discord.Embed(
+                            title=f"{self.bot.emoji.get('trophy')} Shift Leaderboard (Continued)",
+                            color=BLANK_COLOR
+                        )
+                        embed.description = ""
+                
+                # Append the last embed if it has content
+                if embed.description:
+                    embeds.append(embed)
+            else:
+                embed.description = "> **No shift data found.**"
+                embeds.append(embed)
+
+            pager = BasicPager(
+                user_id=ctx.author.id,
+                embeds=embeds
+            )
+            await ctx.send(embed=embeds[0], view=pager)
+
+        except Exception as e:
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while processing your request: ```{str(e)}```",
+                    color=RED_COLOR
+                )
+            )
+
+    @shift.command(
+        name="reset",
+        description="Reset the shift leaderboard."
+    )
+    @commands.guild_only()
+    @is_roblox_management()
+    @app_commands.autocomplete(shift=shift_type_autocomplete)
+    async def reset(self, ctx, shift: str):
+        """
+        Reset the shift leaderboard.
+        """
+        try:
+            view = ShiftLeaderBoardMenu(self.bot, ctx, shift)
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Shift Leaderboard Reset",
+                    description="The shift leaderboard has been reset.",
+                    color=BLANK_COLOR
+                ),
+                view=view
+            )
+        except Exception as e:
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while processing your request: ```{str(e)}```",
+                    color=RED_COLOR
+                )
+            )
+
 
 async def setup(bot):
     await bot.add_cog(ShiftManager(bot))

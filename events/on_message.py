@@ -8,6 +8,7 @@ import re
 from datetime import timedelta, datetime, timezone
 # import asyncio  # Removed unused import
 import time
+from bson import Int64
 
 class OnMessage(commands.Cog):
     def __init__(self, bot):
@@ -312,11 +313,8 @@ class OnMessage(commands.Cog):
             return False
             
         try:
-            del afk_users[message.author.id]
-            
             afk_data = await self.bot.afk.find_by_id(message.author.id)
-            await self.bot.afk.delete_by_id({"_id": message.author.id})
-            
+    
             if message.author.display_name.startswith("[AFK]"):
                 new_nick = message.author.display_name.replace("[AFK]", "").strip()
                 await message.author.edit(nick=new_nick)
@@ -335,9 +333,8 @@ class OnMessage(commands.Cog):
                     welcome_msg += f"\n*...and {mentions_count - 5} more mentions*"
             
             await message.channel.send(welcome_msg, delete_after=15)
-            
-            if message.author.id in self.afk_mentions:
-                del self.afk_mentions[message.author.id]
+            await self.bot.afk.delete_by_id(message.author.id)
+            del afk_users[message.author.id]
                 
         except discord.Forbidden:
             pass
@@ -571,7 +568,8 @@ class OnMessage(commands.Cog):
                     text=f"CYNI AI Moderation System",
                     icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None
                 )
-                await message.channel.send(embed=embed)
+                logger = self.bot.get_cog("ThrottledLogger")
+                await logger.log_embed(message.channel, embed)
 
         except Exception as e:
             logging.error(f"Error in AI moderation: {e}")
@@ -588,14 +586,11 @@ class OnMessage(commands.Cog):
             if not message.guild:
                 return
 
-            if await self._handle_ping_command(message):
-                return
+            await self._handle_ping_command(message)
 
-            if await self._handle_n_word_filter(message):
-                return
+            #await self._handle_n_word_filter(message)
 
-            if await self._handle_afk_removal(message):
-                return
+            await self._handle_afk_removal(message)
 
             await self._handle_afk_mentions(message)
 
@@ -606,15 +601,12 @@ class OnMessage(commands.Cog):
             # premium = self.bot.premium.find_by_id(message.guild.id)
             # if premium and self.bot.is_premium:
             #     await self._handle_ai_moderation(message, settings)
-            
-            if await self._handle_automod_spam_detection(message, settings):
-                pass
-            
-            if await self._handle_automod_keywords(message, settings):
-                pass
-            
-            if await self._handle_automod_links(message, settings):
-                pass
+
+            await self._handle_automod_spam_detection(message, settings)
+
+            await self._handle_automod_keywords(message, settings)
+
+            await self._handle_automod_links(message, settings)
 
             await self._handle_anti_ping(message, settings)
 

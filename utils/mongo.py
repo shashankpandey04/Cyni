@@ -91,12 +91,30 @@ class Document:
         """
         return await self.find_by_id(id)
 
+    async def aggregate(self, pipeline):
+        """
+        Aggregate documents in the collection.
+        :param pipeline (list): The aggregation pipeline.
+        :return (list): The aggregated documents.
+        """
+        return await self.db.aggregate(pipeline).to_list(None)
+
     async def delete_by_id(self, id):
         """
         Delete a document by its ID.
         :param id (str): The ID of the document.
         """
         await self.db.delete_one({'_id': id})
+
+    async def delete_one(self, query):
+        """
+        Delete a document from the database.
+        :param query (dict): The query to find the document to delete.
+        """
+        if not isinstance(query, collections.abc.Mapping):
+            raise TypeError('query must be a dictionary')
+
+        await self.db.delete_one(query)
 
     async def insert(self, document):
         """
@@ -111,6 +129,22 @@ class Document:
         
         await self.db.insert_one(document)
 
+    async def insert_many(self, documents):
+        """
+        Insert multiple documents into the database.
+        :param documents (list): The documents to insert.
+        """
+        if not isinstance(documents, collections.abc.Iterable):
+            raise TypeError('documents must be an iterable')
+
+        for doc in documents:
+            if not isinstance(doc, collections.abc.Mapping):
+                raise TypeError('each document must be a mapping')
+
+            if not doc["_id"]:
+                raise ValueError('each document must have an _id field')
+
+        await self.db.insert_many(documents)
 
     async def upsert(self, document):
         """

@@ -48,7 +48,8 @@ class OnGuildRoleCreate(commands.Cog):
                         {"name": "Role Permissions", "value": ", ".join([perm for perm, value in role.permissions if value]), "inline": False}
                     ]
                 )
-                await guild_log_channel.send(embed=embed)
+                logger = self.bot.get_cog("ThrottledLogger")
+                await logger.log_embed(guild_log_channel, embed)
         except discord.Forbidden:
             pass
         except Exception as e:

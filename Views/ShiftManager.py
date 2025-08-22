@@ -135,6 +135,15 @@ class ShiftManagerContainer(discord.ui.Container):
                     }
                 }
             )
+            oid = await self.bot.shift_logs.find_one(
+                {
+                    "guild_id": interaction.guild.id,
+                    "user_id": interaction.user.id,
+                    "type": self.shift_type.lower(),
+                    "end_epoch": 0
+                }
+            )
+            self.bot.dispatch("shift_break", oid["_id"], "end", timestamp)
             success_message = "Break ended! You are now back on duty."
         else:
             doc = {
@@ -194,6 +203,14 @@ class ShiftManagerContainer(discord.ui.Container):
                     "$push": {"breaks": new_break}
                 }
             )
+            oid = await self.bot.shift_logs.find_one(
+                {
+                    "guild_id": interaction.guild.id,
+                    "user_id": interaction.user.id,
+                    "type": self.shift_type.lower(),
+                    "end_epoch": 0
+                }
+            )
         except Exception as e:
             return await interaction.response.send_message(
                 embed=discord.Embed(
@@ -203,7 +220,7 @@ class ShiftManagerContainer(discord.ui.Container):
                 ),
                 ephemeral=True,
             )
-
+        self.bot.dispatch("shift_break", oid["_id"], "start", timestamp)
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=f"{self.bot.emoji.get('shiftbreak')} Break Started",
@@ -234,9 +251,48 @@ class ShiftManagerContainer(discord.ui.Container):
                 }
             )
 
+            self.shift_data = await self.bot.shift_logs.find_one(
+                {
+                    "guild_id": interaction.guild.id,
+                    "user_id": interaction.user.id,
+                    "type": self.shift_type.lower(),
+                    "end_epoch": 0
+                }
+            )
+
         start_time = self.shift_data.get('start_epoch', timestamp) if self.shift_data else timestamp
-        duration = timestamp - start_time
+        end_time = timestamp
+
+        # Calculate total shift duration
+        total_duration = end_time - start_time
+
+        # Calculate total break time
+        total_break_time = 0
+        if self.shift_data and "breaks" in self.shift_data:
+            for b in self.shift_data["breaks"]:
+                if isinstance(b, dict):
+                    break_start = b.get("start_epoch")
+                    break_end = b.get("end_epoch")
+                    
+                    # Only process breaks that have both start and end times
+                    if break_start is not None and break_end is not None:
+                        # Clip break to shift boundaries
+                        effective_start = max(start_time, break_start)
+                        effective_end = min(end_time, break_end)
+                        
+                        # Only subtract if the break actually overlaps with the shift
+                        if effective_end > effective_start:
+                            total_break_time += (effective_end - effective_start)
+
+        # Calculate working duration (total shift time minus break time)
+        duration = max(total_duration - total_break_time, 0)
         
+        print(f"Total shift: {total_duration}s, Break time: {total_break_time}s, Working time: {duration}s")
+        
+        hours = duration // 3600
+        minutes = (duration % 3600) // 60
+        seconds = duration % 60
+
         await self.bot.shift_logs.update_one(
             {
                 "guild_id": interaction.guild.id,
@@ -251,6 +307,7 @@ class ShiftManagerContainer(discord.ui.Container):
                 }
             }
         )
+        
         doc_id = await self.bot.shift_logs.find_one(
             {
                 "guild_id": interaction.guild.id,
@@ -259,12 +316,14 @@ class ShiftManagerContainer(discord.ui.Container):
                 "end_epoch": timestamp
             }
         )
-
+        
+        print(doc_id["duration"])
         self.bot.dispatch("shift_end", doc_id["_id"])
+        
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=f"{self.bot.emoji.get('offshift')} Shift Ended",
-                description=f"Your shift has been ended. Duration: {duration // 3600}h {(duration % 3600) // 60}m",
+                description=f"Your shift has been ended. Duration: {hours}h {minutes}m {seconds}s",
                 color=discord.Color.green(),
             ),
             ephemeral=True,
@@ -359,3 +418,59 @@ class ShiftManagerView(discord.ui.LayoutView):
         # Create and add the container
         self.container = ShiftManagerContainer(bot, ctx, status, shift_type, shift_data, past_shifts, break_count)
         self.add_item(self.container)
+
+class ShiftDeleteConfirm(discord.ui.View):
+    def __init__(self, bot, ctx, shift_type):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.ctx = ctx
+        self.shift_type = shift_type
+
+        self.confirm_button = discord.ui.Button(
+            label="Confirm",
+            style=discord.ButtonStyle.danger
+        )
+        self.add_item(self.confirm_button)
+        self.confirm_button.callback = self.confirm_button_callback
+
+    async def confirm_button_callback(self, interaction: discord.Interaction):
+        # Take all shift_logs and add into deleted_shifts
+        deleted_shifts = await self.bot.shift_logs.find(
+            {"guild_id": interaction.guild.id, "type": self.shift_type}
+        )
+        if deleted_shifts:
+            await self.bot.deleted_shifts.insert_many(deleted_shifts)
+        await self.bot.shift_logs.delete_many({"guild_id": interaction.guild.id, "type": self.shift_type})
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Shift Deleted",
+                description=f"The shift of type `{self.shift_type}` has been deleted.",
+                color=discord.Color.green()
+            ),
+            ephemeral=True
+        )
+
+class ShiftLeaderBoardMenu(discord.ui.View):
+    def __init__(self, bot, ctx, shift_type: str):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.ctx = ctx
+        self.shift_type = shift_type
+
+        self.reset_leaderboard_button = discord.ui.Button(
+            label="Reset Leaderboard",
+            style=discord.ButtonStyle.danger
+        )
+        self.add_item(self.reset_leaderboard_button)
+        self.reset_leaderboard_button.callback = self.reset_leaderboard
+
+    async def reset_leaderboard(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Are you sure you want to reset the leaderboard?",
+                description="This action cannot be undone.",
+                color=discord.Color.red()
+            ),
+            ephemeral=True,
+            view=ShiftDeleteConfirm(self.bot, self.ctx, self.shift_type)
+        )

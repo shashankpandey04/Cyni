@@ -86,19 +86,19 @@ class RobloxManagement(View):
         self.roblox_staff_roles_button.callback = self.roblox_staff_roles_callback
         self.add_item(self.roblox_staff_roles_button)
 
-        # self.roblox_shift_config_button = Button(
-        #     label="Configure Roblox Shift Settings",
-        #     style=discord.ButtonStyle.secondary
-        # )
-        # self.roblox_shift_config_button.callback = self.roblox_shift_config_callback
-        # self.add_item(self.roblox_shift_config_button)
+        self.roblox_shift_config_button = Button(
+            label="Configure Roblox Shift Settings",
+            style=discord.ButtonStyle.secondary
+        )
+        self.roblox_shift_config_button.callback = self.roblox_shift_config_callback
+        self.add_item(self.roblox_shift_config_button)
 
-        # self.roblox_punishment_button = Button(
-        #     label="Configure Roblox Punishment Settings",
-        #     style=discord.ButtonStyle.secondary
-        # )
-        # self.roblox_punishment_button.callback = self.roblox_punishment_callback
-        # self.add_item(self.roblox_punishment_button)
+        self.roblox_punishment_button = Button(
+            label="Configure Roblox Punishment Settings",
+            style=discord.ButtonStyle.secondary
+        )
+        self.roblox_punishment_button.callback = self.roblox_punishment_callback
+        self.add_item(self.roblox_punishment_button)
 
     async def roblox_staff_roles_callback(self, interaction: discord.Interaction):
         """
@@ -115,31 +115,46 @@ class RobloxManagement(View):
             ephemeral=True
         )
 
-    # async def roblox_shift_config_callback(self, interaction: discord.Interaction):
-    #     """
-    #     Opens the Roblox shift configuration modal.
-    #     """
-    #     await interaction.response.send_message(
-    #         embed=discord.Embed(
-    #             title="Roblox Shift Configuration",
-    #             description="Configure the Roblox shift settings for your server.",
-    #             color=BLANK_COLOR
-    #         ),
-    #         view=RobloxShiftConfig(self.bot, self.ctx, self.sett),
-    #         ephemeral=True
-    #     )
+    async def roblox_shift_config_callback(self, interaction: discord.Interaction):
+        """
+        Opens the Roblox shift configuration modal.
+        """
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Roblox Shift Configuration",
+                description=(
+                    f"**Shift Log Channel**\n"
+                    f"> Select the channel where shift logs will be sent.\n\n"
+                    f"**On-Duty Role**\n"
+                    f"> Select the role that will be assigned to users when they start a shift.\n\n"
+                    f"**On-Break Role**\n"
+                    f"> Select the role that will be assigned to users when they go on break."
+                ),
+                color=BLANK_COLOR
+            ),
+            view=RobloxShiftConfig(self.bot, self.ctx, self.sett),
+            ephemeral=True
+        )
 
-    # async def roblox_punishment_callback(self, interaction: discord.Interaction):
-    #     """
-    #     Opens the Roblox punishment configuration modal.
-    #     """
-    #     await interaction.response.send_message(
-    #         embed=discord.Embed(
-    #             title="Roblox Punishment Configuration",
-    #             description="Configure the Roblox punishment settings for your server.",
-    #             color=BLANK_COLOR
-    #         )
-    #     )
+    async def roblox_punishment_callback(self, interaction: discord.Interaction):
+        """
+        Opens the Roblox punishment configuration modal.
+        """
+        view = RobloxSPunishmentConfig(self.bot, self.ctx, self.sett)
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Roblox Punishment Configuration",
+                description=(
+                    f"**Toggle Roblox Punishments**\n"
+                    f"> Enable or disable punishments logging for Roblox staff members.\n\n"
+                    f"**Punishments Log Channel**\n"
+                    f"> Select the channel where punishments will be logged."
+                ),
+                color=BLANK_COLOR
+            ),
+            view=view,
+            ephemeral=True
+        )
 
 class OnBreakRoleConfig(View):
     def __init__(self, bot, ctx, sett):
@@ -331,3 +346,196 @@ class RobloxShiftConfig(View):
     #             color=BLANK_COLOR
     #         )
     #     )
+
+
+class RobloxSPunishmentConfig(View):
+    def __init__(self, bot, ctx, sett):
+        super().__init__()
+        self.bot = bot
+        self.ctx = ctx
+        self.sett = sett
+        try:
+            self.punishment_enabled = self.sett["roblox"]["punishments"].get("enabled", False)
+        except KeyError:
+            self.punishment_enabled = False
+        self.punishment_toggle = Select(
+            placeholder="Select the punishment toggle",
+            options=[
+                discord.SelectOption(
+                    label="Enabled",
+                    value="true",
+                    default=self.punishment_enabled
+                ),
+                discord.SelectOption(
+                    label="Disabled",
+                    value="false",
+                    default=not self.punishment_enabled
+                )
+            ],
+            row=0
+        )
+        self.add_item(self.punishment_toggle)
+        self.punishment_toggle.callback = self.punishment_toggle_callback
+
+        try:
+            self.punishment_log_channel = self.sett["roblox"]["punishments"].get("channel")
+        except KeyError:
+            self.punishment_log_channel = None
+
+        self.punishment_log_channel_select = ChannelSelect(
+            placeholder="Select the punishment log channel",
+            channel_types=[discord.ChannelType.text],
+            row=1,
+            max_values=1,
+            min_values=0,
+            default_values=[discord.Object(id=self.punishment_log_channel)] if self.punishment_log_channel else []
+        )
+        self.add_item(self.punishment_log_channel_select)
+        self.punishment_log_channel_select.callback = self.punishment_log_channel_callback
+
+    async def punishment_toggle_callback(self, interaction: discord.Interaction):
+        """
+        Toggles the punishment setting.
+        """
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="You cannot configure this setting.",
+                    color=discord.Color.red()
+                ),
+                ephemeral=True
+            )
+
+        self.punishment_enabled = self.punishment_toggle.values[0] == "true"
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        try:
+            settings["roblox"]["punishments"]["enabled"] = self.punishment_enabled
+        except KeyError:
+            settings["roblox"]["punishments"] = {"enabled": self.punishment_enabled}
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Success",
+                description="The Roblox punishment setting has been updated.",
+                color=GREEN_COLOR
+            ),
+            ephemeral=True
+        )
+
+
+    async def punishment_log_channel_callback(self, interaction: discord.Interaction):
+        """
+        Sets the punishment log channel.
+        """
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="You cannot configure this setting.",
+                    color=discord.Color.red()
+                ),
+                ephemeral=True
+            )
+
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        try:
+            settings["roblox"]["punishments"]["channel"] = self.punishment_log_channel_select.values[0].id
+        except KeyError:
+            settings["roblox"]["punishments"] = {"channel": self.punishment_log_channel_select.values[0].id}
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Success",
+                description="The Roblox punishment log channel has been added to your server.",
+                color=GREEN_COLOR
+            ),
+            ephemeral=True
+        )
+
+class ReasonChangeModal(discord.ui.Modal):
+    def __init__(self, bot, punishment_id):
+        super().__init__(title="Change Punishment Reason")
+        self.bot = bot
+        self.punishment_id = punishment_id
+        self.reason = None
+        
+        self.reason_input = discord.ui.TextInput(
+            label="New Reason",
+            placeholder="Enter the new reason here...",
+            required=True,
+            custom_id="reason"
+        )
+        self.add_item(self.reason_input)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        self.reason = self.reason_input.value
+        
+        await self.bot.punishments.update_one(
+            {
+                "snowflake": self.punishment_id,
+                "guild_id": interaction.guild.id
+            },
+            {
+                "$set": {
+                    "reason": self.reason
+                }
+            }
+        )
+        
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Success",
+                description="The punishment reason has been updated.",
+                color=discord.Color.green()
+            ),
+            ephemeral=True
+        )
+        
+        self.stop()
+
+
+class PunishmentManage(View):
+    def __init__(self, bot, ctx, snowflake):
+        super().__init__()
+        self.bot = bot
+        self.ctx = ctx
+        self.punishment_id = snowflake
+
+        self.change_reason_button = Button(
+            label="Change Reason",
+            style=discord.ButtonStyle.secondary
+        )
+        self.add_item(self.change_reason_button)
+        self.change_reason_button.callback = self.change_reason_callback
+
+        self.delete_button = Button(
+            label="Delete Punishment",
+            style=discord.ButtonStyle.danger
+        )
+        self.add_item(self.delete_button)
+        self.delete_button.callback = self.delete_button_callback
+
+    async def change_reason_callback(self, interaction: discord.Interaction):
+        modal = ReasonChangeModal(self.bot, self.punishment_id)
+        await interaction.response.send_modal(modal)
+        await modal.wait()
+
+    async def delete_button_callback(self, interaction: discord.Interaction):
+
+        await self.bot.punishments.delete_one(
+            {
+                "snowflake": self.punishment_id,
+                "guild_id": interaction.guild.id
+            }
+        )
+        await interaction.message.edit(
+            embed=discord.Embed(
+                title="Success",
+                description="The punishment has been deleted.",
+                color=GREEN_COLOR
+            ),
+            view=None
+        )

@@ -115,20 +115,29 @@ class Utility(commands.Cog):
         """
         Set your status as AFK.
         """
-        await ctx.send(f"`{ctx.author}` is now AFK. Reason: {reason}")
         try:
-            await ctx.author.edit(nick=f"[AFK] {ctx.author.display_name}")
+            try:
+                await ctx.author.edit(nick=f"[AFK] {ctx.author.display_name}")
+            except Exception as e:
+                pass
+            afk_users[ctx.author.id] = reason
+            await self.bot.afk.insert_one(
+                {
+                    "_id": ctx.author.id,
+                    "reason": reason,
+                    "pings": [],
+                    "timestamp": discord_time(ctx.message.created_at)
+                }
+            )
+            await ctx.send(f"`{ctx.author}` is now AFK. Reason: `{reason}`")
         except Exception as e:
-            pass
-        afk_users[ctx.author.id] = reason
-        await self.bot.afk.insert(
-            {
-                "_id": ctx.author.id,
-                "reason": reason,
-                "pings": [],
-                "timestamp": discord_time(ctx.message.created_at)
-            }
-        )
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while setting AFK status: ```{e}```",
+                    color=discord.Color.red()
+                )
+            )
 
 
     @commands.hybrid_command(

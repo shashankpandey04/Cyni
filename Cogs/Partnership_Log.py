@@ -112,8 +112,8 @@ class Partnership_Log(commands.Cog):
                 f"-# **Representative:** {representative.mention}\n"
             )
             embed = discord.Embed(
-                title=f"🤝 Partnership Logged: {title}",
-                description=formatted_description,
+                title=f"{self.bot.emoji.get('partnership')} Partnership Logged",
+                description=f"**Title:** {title}\n\n{formatted_description}",
                 color=BLANK_COLOR
             ).set_footer(
                 text=f"Partnership ID: {partnership_id} | Logged by {ctx.author}",

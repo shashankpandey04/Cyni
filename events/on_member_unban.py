@@ -45,7 +45,8 @@ class OnMemberUnBan(commands.Cog):
                     {"name": "Moderator", "value": f"{entry.user.mention} (`{entry.user.id}`)", "inline": True}
                 ]
             )
-            await guild_log_channel.send(embed=embed)
+            logger = self.bot.get_cog("ThrottledLogger")
+            await logger.log_embed(guild_log_channel, embed)
 
 async def setup(bot):
     await bot.add_cog(OnMemberUnBan(bot))

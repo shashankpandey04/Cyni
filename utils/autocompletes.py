@@ -153,7 +153,7 @@ async def punishment_autocomplete(
 ) -> typing.List[app_commands.Choice[str]]:
     bot = interaction.client
     Data = await bot.punishment_types.find_by_id(interaction.guild.id)
-    default_punishments = ["Warning", "Kick", "Ban", "BOLO"]
+    default_punishments = ["Warning", "Kick", "Ban", "Bolo"]
     enabled_punishments = None
     if Data is None:
         return [
@@ -201,9 +201,25 @@ async def fetch_roblox_users(query: str):
                 return []
 
 
+username_cache = {}
+
 async def username_autocomplete(
     interaction: discord.Interaction, current: str
 ) -> typing.List[app_commands.Choice[str]]:
+    guild_id = interaction.guild.id
+    if guild_id not in username_cache:
+        username_cache[guild_id] = []
+
+    if not current:
+        # Return cached usernames if no input is provided
+        return [
+            app_commands.Choice(
+                name=f"{user['display_name']} (@{user['username']})",
+                value=user['username']
+            )
+            for user in username_cache[guild_id]
+        ]
+
     if len(current) < 4:
         return [app_commands.Choice(name="Type at least 4 characters", value="")]
 
@@ -225,5 +241,12 @@ async def username_autocomplete(
                     value=username
                 )
             )
+            # Add to cache
+            if len(username_cache[guild_id]) >= 25:
+                username_cache[guild_id].pop(0)
+            username_cache[guild_id].append({
+                "username": username,
+                "display_name": display_name
+            })
 
     return choices

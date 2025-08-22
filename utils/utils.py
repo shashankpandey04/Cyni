@@ -7,8 +7,7 @@ import re
 import uuid
 from utils.constants import BLANK_COLOR
 import requests
-
-from Database.Mongo import mongo_db
+from snowflake import SnowflakeGenerator
 
 async def get_prefix(bot, message):
     """
@@ -414,3 +413,5 @@ def generate_embed(
         embed.timestamp = datetime.utcnow()
 
     return embed
+
+snowflake_generator = SnowflakeGenerator(192)

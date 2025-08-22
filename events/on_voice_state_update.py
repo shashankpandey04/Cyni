@@ -34,7 +34,7 @@ class OnVoiceStateUpdate(commands.Cog):
         guild_log_channel = guild.get_channel(sett["moderation_module"]["audit_log"])
         if not guild_log_channel:
             return
-
+        logger = self.bot.get_cog("ThrottledLogger")
         action_time = discord_time(datetime.datetime.now())
         if before.channel is None and after.channel is not None:
             embed = generate_embed(
@@ -48,7 +48,7 @@ class OnVoiceStateUpdate(commands.Cog):
                     {"name": "Joined At", "value": action_time, "inline": True}
                 ]
             )
-            await guild_log_channel.send(embed=embed)
+            await logger.log_embed(guild_log_channel, embed)
 
         elif before.channel is not None and after.channel is None:
             embed = generate_embed(
@@ -62,7 +62,7 @@ class OnVoiceStateUpdate(commands.Cog):
                     {"name": "Left At", "value": action_time, "inline": True}
                 ]
             )
-            await guild_log_channel.send(embed=embed)
+            await logger.log_embed(guild_log_channel, embed)
 
 async def setup(bot):
     await bot.add_cog(OnVoiceStateUpdate(bot))

@@ -67,8 +67,9 @@ class OnMessageEdit(commands.Cog):
                 ]
             )
 
-            await guild_log_channel.send(embed=embed)
-            
+            logger = self.bot.get_cog("ThrottledLogger")
+            await logger.log_embed(guild_log_channel, embed)
+
         except Exception as e:
             print(f"Error in on_message_edit event: {str(e)}")
 

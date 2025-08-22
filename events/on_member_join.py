@@ -81,14 +81,16 @@ class OnMemberJoin(commands.Cog):
         try:
             alert_channel = guild.get_channel(alert_channel_id)
             if alert_channel:
-                await alert_channel.send(embed=embed)
+                logger = self.bot.get_cog("ThrottledLogger")
+                await logger.log_embed(alert_channel, embed)
         except Exception as e:
             print(f"Error sending AutoMod alert: {e}")
 
     async def _send_log_embed(self, channel, embed):
         """Send an embed to the log channel with error handling."""
         try:
-            await channel.send(embed=embed)
+            logger = self.bot.get_cog("ThrottledLogger")
+            await logger.log_embed(channel, embed)
         except discord.Forbidden:
             pass
         except Exception as e:
@@ -98,7 +100,8 @@ class OnMemberJoin(commands.Cog):
         """Send a welcome message with error handling."""
         try:
             if embed:
-                await channel.send(embed=embed)
+                logger = self.bot.get_cog("ThrottledLogger")
+                await logger.log_embed(channel, embed)
             elif content:
                 await channel.send(content)
         except discord.Forbidden:

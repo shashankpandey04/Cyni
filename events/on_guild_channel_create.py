@@ -53,7 +53,8 @@ class OnGuildChannelCreate(commands.Cog):
                         {"name": "Category", "value": str(channel.category) if channel.category else "None", "inline": False}
                     ]
                 )
-                await guild_log_channel.send(embed=embed)
+                logger = self.bot.get_cog("ThrottledLogger")
+                await logger.log_embed(guild_log_channel, embed)
         except Exception as e:
             pass
 
