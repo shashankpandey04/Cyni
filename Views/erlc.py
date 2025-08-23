@@ -60,12 +60,28 @@ class LoggingChannels(View):
             row=2
         )
 
+        self.kick_ban_log_channel_button = discord.ui.Button(
+            label="Kick/Ban Auto Logging",
+            style=discord.ButtonStyle.secondary,
+            row=2
+        )
+
+        self.command_log_channel_button = discord.ui.Button(
+            label="Command Auto Logging",
+            style=discord.ButtonStyle.secondary,
+            row=2
+        )
+
         self.add_item(self.kill_logs_channel)
         self.add_item(self.join_logs_channel)
         self.add_item(self.discord_check_log_button)
+        self.add_item(self.kick_ban_log_channel_button)
+        self.add_item(self.command_log_channel_button)
         self.kill_logs_channel.callback = self.kill_logs_channel_callback
         self.join_logs_channel.callback = self.join_logs_channel_callback
         self.discord_check_log_button.callback = self.discord_check_log_channel_callback
+        self.kick_ban_log_channel_button.callback = self.kick_ban_log_channel_callback
+        self.command_log_channel_button.callback = self.command_log_channel_callback
 
     async def kill_logs_channel_callback(self, interaction: discord.Interaction):
         channel_id = self.kill_logs_channel.values[0].id if self.kill_logs_channel.values else None
@@ -163,6 +179,113 @@ class LoggingChannels(View):
         )
         view = ERLCDiscordChecksConfiguration(self.bot, interaction.user.id, self.sett)
         await interaction.response.send_message(view=view, ephemeral=True, embed=embed)
+
+    async def kick_ban_log_channel_callback(self, interaction: discord.Interaction):
+        setting = await self.bot.settings.find_by_id(interaction.guild.id)
+        kick_ban_log_channel = setting.get("erlc", {}).get("kick_ban_log_channel", {})
+        embed = discord.Embed(
+            title="ERLC Command Log Channel",
+            description="This channel will log all ERLC command usage.",
+            color=BLANK_COLOR
+        ).set_author(
+            name=interaction.guild.name,
+            icon_url=interaction.guild.icon.url if interaction.guild.icon else "",
+        ).add_field(
+            name="Current Channel",
+            value=f"> **Current Channel:** <#{kick_ban_log_channel}>" if kick_ban_log_channel else "> **Current Channel:** None",
+            inline=True
+        )
+        view = KickBanCommandLogChannel(self.bot, interaction.user.id, self.sett)
+        await interaction.response.send_message(view=view, ephemeral=True, embed=embed)
+
+    async def command_log_channel_callback(self, interaction: discord.Interaction):
+        setting = await self.bot.settings.find_by_id(interaction.guild.id)
+        erlc_command_log_channel = setting.get("erlc", {}).get("command_log_channel", {})
+        embed = discord.Embed(
+            title="ERLC Command Log Channel",
+            description="This channel will log all ERLC command usage.",
+            color=BLANK_COLOR
+        ).set_author(
+            name=interaction.guild.name,
+            icon_url=interaction.guild.icon.url if interaction.guild.icon else "",
+        ).add_field(
+            name="Current Channel",
+            value=f"> **Current Channel:** <#{erlc_command_log_channel}>" if erlc_command_log_channel else "> **Current Channel:** None",
+            inline=True
+        )
+        view = ERLCCommandLogChannel(self.bot, interaction.user.id, self.sett)
+        await interaction.response.send_message(view=view, ephemeral=True, embed=embed)
+
+class ERLCCommandLogChannel(discord.ui.View):
+    def __init__(self, bot: commands.Bot, user_id: int, sett: dict):
+        super().__init__(timeout=900.0)
+        self.bot = bot
+        self.sett = sett
+        self.user_id = user_id
+
+        self.command_log_channel = sett.get("erlc", {}).get("command_log_channel", 0)
+
+        self.channel_select = discord.ui.ChannelSelect(
+            placeholder="Select Command Log Channel",
+            channel_types=[discord.ChannelType.text],
+            default_values=[discord.Object(id=self.command_log_channel)] if self.command_log_channel else None,
+            row=0,
+            max_values=1,
+        )
+        self.channel_select.callback = self.channel_select_callback
+        self.add_item(self.channel_select)
+
+    async def channel_select_callback(self, interaction: discord.Interaction):
+        """Callback for the channel select menu."""
+        self.command_log_channel = self.channel_select.values[0].id
+        await self.bot.settings.update_one(
+            {"_id": interaction.guild.id},
+            {"$set": {"erlc.command_log_channel": self.command_log_channel}}
+        )
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Command Log Channel Updated",
+                description=f"Command log channel has been updated to <#{self.command_log_channel}>.",
+                color=discord.Color.green()
+            ),
+            ephemeral=True
+        )
+
+class KickBanCommandLogChannel(discord.ui.View):
+    def __init__(self, bot: commands.Bot, user_id: int, sett: dict):
+        super().__init__(timeout=900.0)
+        self.bot = bot
+        self.sett = sett
+        self.user_id = user_id
+
+        self.command_log_channel = sett.get("erlc", {}).get("kick_ban_log_channel", 0)
+
+        self.channel_select = discord.ui.ChannelSelect(
+            placeholder="Select Kick/Ban Log Channel",
+            channel_types=[discord.ChannelType.text],
+            default_values=[discord.Object(id=self.command_log_channel)] if self.command_log_channel else None,
+            row=0,
+            max_values=1,
+        )
+        self.channel_select.callback = self.channel_select_callback
+        self.add_item(self.channel_select)
+
+    async def channel_select_callback(self, interaction: discord.Interaction):
+        """Callback for the channel select menu."""
+        self.command_log_channel = self.channel_select.values[0].id
+        await self.bot.settings.update_one(
+            {"_id": interaction.guild.id},
+            {"$set": {"erlc.kick_ban_log_channel": self.command_log_channel}}
+        )
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Kick/Ban Log Channel Updated",
+                description=f"Kick/Ban log channel has been updated to <#{self.command_log_channel}>.",
+                color=discord.Color.green()
+            ),
+            ephemeral=True
+        )
+
 
 class ERLCDiscordChecksConfiguration(discord.ui.View):
     def __init__(self, bot: commands.Bot, user_id: int, sett: dict):

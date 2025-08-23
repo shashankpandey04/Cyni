@@ -1,6 +1,8 @@
+import copy
 import discord
 from discord.ext import commands
 import logging
+import roblox
 
 # from numpy import block
 from cyni import afk_users
@@ -9,6 +11,9 @@ from datetime import timedelta, datetime, timezone
 # import asyncio  # Removed unused import
 import time
 from bson import Int64
+
+from utils.constants import RED_COLOR
+from utils.utils import get_prefix, snowflake_generator
 
 class OnMessage(commands.Cog):
     def __init__(self, bot):
@@ -175,7 +180,7 @@ class OnMessage(commands.Cog):
                     title="🚨 AutoMod: Prohibited Keywords",
                     description=f"**User:** {message.author.mention}\n**Action:** {action}\n**Channel:** {message.channel.mention}",
                     color=0xff4444,
-                    timestamp=datetime.utcnow()
+                    timestamp=datetime.now()
                 )
                 embed.add_field(name="Triggered Keywords", value=", ".join(triggered_keywords), inline=False)
                 embed.add_field(name="Message Content", value=message.content[:1000] + ("..." if len(message.content) > 1000 else ""), inline=False)
@@ -574,21 +579,590 @@ class OnMessage(commands.Cog):
         except Exception as e:
             logging.error(f"Error in AI moderation: {e}")
 
+    async def _handle_erlc_logging(self, message):
+        """
+        Handle ERLC logging for messages.
+        """
+        settings = await self.bot.settings.find_by_id(message.guild.id)
+        if not settings:
+            return
+        remote_command_channel_id = settings.get("erlc", {}).get("kick_ban_log_channel")
+        #self.bot.logger.info(f"Logging ERLC actions to channel: {remote_command_channel_id}")
+        channel = self.bot.get_channel(remote_command_channel_id)
+        if (
+            channel and remote_command_channel_id
+        ):
+            for embed in message.embeds:
+                if not embed.description or not embed.title:
+                    continue
+
+                if "Player Kicked" in embed.title:
+                    action_type = "Kick"
+                elif "Player Banned" in embed.title:
+                    action_type = "Ban"
+                else:
+                    continue
+                #self.bot.logger.info(f"Processing ERLC embed for action: {action_type}")
+
+                raw_content = embed.description
+
+                if ("kicked" not in raw_content and action_type == "Kick") or (
+                    "banned" not in raw_content and action_type == "Ban"
+                ):
+                    continue
+
+                try:
+                    if action_type == "Kick":
+                        user_info, command_info = raw_content.split("kicked ", 1)
+                    else:
+                        user_info, command_info = raw_content.split("banned ", 1)
+
+                    user_info = user_info.strip()
+                    command_info = command_info.strip()
+                    roblox_user = (
+                        user_info.split(":")[0]
+                        .replace("[", "")
+                        .replace("]", "")
+                        .strip()
+                    )
+                    profile_link = user_info.split("(")[1].split(")")[0].strip()
+                    roblox_id_str = profile_link.split("/")[-2]
+
+                    if not roblox_id_str.isdigit():
+                        self.bot.logger.error(
+                            f"Extracted Roblox ID is not a number: {roblox_id_str}"
+                        )
+                        raise ValueError(
+                            f"Extracted Roblox ID is not a number: {roblox_id_str}"
+                        )
+
+                    roblox_id = int(roblox_id_str)
+                    #self.bot.logger.info(f"Extracted Roblox ID: {roblox_id}")
+
+                    reason = command_info.split("`")[1].strip()
+                    #self.bot.logger.info(f"Extracted reason: {reason}")
+                except (IndexError, ValueError):
+                    continue
+
+                discord_user = 0
+                document = await self.bot.roblox_oauth.find_one(
+                    {"roblox_user_id": roblox_id}
+                )
+                if document:
+                    discord_user = document["discord_user_id"]
+
+                if discord_user == 0:
+                    await message.add_reaction("❌")
+                    return await message.add_reaction("🔗")
+
+                user = message.guild.get_member(discord_user)
+                if not user:
+                    try:
+                        user = await message.guild.fetch_member(discord_user)
+                    except Exception as e:
+                        await message.add_reaction("❌")
+                        return await message.add_reaction("🔍")
+
+                new_message = copy.copy(message)
+                new_message.author = user
+                prefix = (await get_prefix(self.bot, message))[-1]
+                reason_info = command_info.split("`")[1].strip()
+                split_index = reason_info.find(" ")
+                if split_index != -1:
+                    violator_user = reason_info[:split_index].strip()
+                    reason = reason_info[split_index:].strip()
+                else:
+                    await message.add_reaction("❌")
+                    return await message.add_reaction(
+                        "📃"
+                    )
+                if reason.endswith("- Player Not In Game"):
+                    reason = reason[: -len("- Player Not In Game")]
+                if not reason:
+                    await message.add_reaction("❌")
+                    return await message.add_reaction(
+                        "📃"
+                    )
+                #self.bot.logger.info(f"Logging ERLC action: {action_type} for user: {violator_user}")
+                new_message.content = (
+                    f"{prefix}punishments log {violator_user} {action_type} {reason}"
+                )
+                #self.bot.logger.info(f"Processed command: {new_message.content}")
+                await self.bot.process_commands(new_message)
+        
+    async def _check_shift_status(self, message, shift):
+        status = "offduty"
+        break_count = 0
+        shift_data = None
+        
+        active_shift = await self.bot.shift_logs.find(
+            {
+                "guild_id": message.guild.id,
+                "user_id": message.author.id,
+                "type": shift.lower(),
+                "end_epoch": 0
+            }
+        )
+        if active_shift:
+            shift_data = active_shift[0] if len(active_shift) > 0 else {}
+            
+            if shift_data:
+                status = "onduty"
+                breaks = shift_data.get("breaks", [])
+                break_count = len(breaks)
+
+                # Check if any break is currently active
+                if breaks:
+                    for b in breaks:
+                        if isinstance(b, dict):
+                            if b.get("end_epoch", 0) == 0:
+                                status = "onbreak"
+                                break
+                        elif isinstance(b, list) and len(b) > 1:
+                            if len(b) < 2 or b[1] == 0:
+                                status = "onbreak"
+                                break
+            return status
+
+    async def _start_shift_callback(self, message, shift_type):
+        timestamp = int(datetime.now().timestamp())
+
+        active_shift = await self.bot.shift_logs.find(
+            {
+                "guild_id": message.guild.id,
+                "user_id": message.author.id,
+                "type": shift_type.lower(),
+                "end_epoch": 0
+            }
+        )
+        shift_data = None
+        if active_shift:
+            shift_data = active_shift[0] if len(active_shift) > 0 else {}
+            
+        status = await self._check_shift_status(message, shift_type)
+
+        if status == "onbreak":
+            await self.bot.shift_logs.update_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": message.author.id,
+                    "type": shift_type.lower(),
+                    "end_epoch": 0
+                },
+                {
+                    "$set": {
+                        f"breaks.{len(shift_data.get('breaks', [])) - 1}.end_epoch": timestamp
+                    }
+                }
+            )
+            oid = await self.bot.shift_logs.find_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": message.author.id,
+                    "type": shift_type.lower(),
+                    "end_epoch": 0
+                }
+            )
+            self.bot.dispatch("shift_break", oid["_id"], "end", timestamp)
+            success_message = "Break ended! You are now back on duty."
+        else:
+            doc = {
+                "guild_id": message.guild.id,
+                "user_id": message.author.id,
+                "username": message.author.name,
+                "nickname": message.author.nick if message.author.nick else message.author.name,
+                "type": shift_type.lower(),
+                "start_epoch": timestamp,
+                "end_epoch": 0,
+                "breaks": [],
+                "added_time": 0,
+                "removed_time": 0,
+                "moderations": [],
+                "duration": 0
+            }
+            await self.bot.shift_logs.insert_one(doc)
+            success_message = "Shift started successfully!"
+            doc_id = await self.bot.shift_logs.find_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": message.author.id,
+                    "type": shift_type.lower(),
+                    "start_epoch": timestamp
+                }
+            )
+            self.bot.dispatch("shift_start", doc_id["_id"])
+
+        await message.channel.send(
+            content=f"{message.author.mention} {success_message}",
+            embed=discord.Embed(
+                title=f"{self.bot.emoji.get('onshift')} Shift Action",
+                description=success_message,
+                color=discord.Color.green()
+            )
+        )
+        return await message.add_reaction("✅")
+
+    async def _end_shift_callback(self, message, shift_type):
+        timestamp = int(datetime.now().timestamp())
+
+        shift_data = await self.bot.shift_logs.find_one(
+            {
+                "guild_id": message.guild.id,
+                "user_id": message.author.id,
+                "type": shift_type.lower(),
+                "end_epoch": 0
+            }
+        )
+
+        if shift_data and shift_data.get("status") == "onbreak":
+            await self.bot.shift_logs.update_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": message.author.id,
+                    "type": shift_type.lower(),
+                    "end_epoch": 0
+                },
+                {
+                    "$set": {
+                        f"breaks.{len(shift_data.get('breaks', [])) - 1}.end_epoch": timestamp
+                    }
+                }
+            )
+
+            shift_data = await self.bot.shift_logs.find_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": message.author.id,
+                    "type": shift_type.lower(),
+                    "end_epoch": 0
+                }
+            )
+
+        start_time = shift_data.get('start_epoch', timestamp) if shift_data else timestamp
+        end_time = timestamp
+
+        total_duration = end_time - start_time
+
+        total_break_time = 0
+        if shift_data and "breaks" in shift_data:
+            for b in shift_data["breaks"]:
+                if isinstance(b, dict):
+                    break_start = b.get("start_epoch")
+                    break_end = b.get("end_epoch")
+                    
+                    if break_start is not None and break_end is not None:
+                        effective_start = max(start_time, break_start)
+                        effective_end = min(end_time, break_end)
+                        
+                        if effective_end > effective_start:
+                            total_break_time += (effective_end - effective_start)
+
+        duration = max(total_duration - total_break_time, 0)
+        
+        #print(f"Total shift: {total_duration}s, Break time: {total_break_time}s, Working time: {duration}s")
+        
+        hours = duration // 3600
+        minutes = (duration % 3600) // 60
+        seconds = duration % 60
+
+        await self.bot.shift_logs.update_one(
+            {
+                "guild_id": message.guild.id,
+                "user_id": message.author.id,
+                "type": shift_type.lower(),
+                "end_epoch": 0,
+            },
+            {
+                "$set": {
+                    "end_epoch": timestamp,
+                    "duration": duration
+                }
+            }
+        )
+        
+        doc_id = await self.bot.shift_logs.find_one(
+            {
+                "guild_id": message.guild.id,
+                "user_id": message.author.id,
+                "type": shift_type.lower(),
+                "end_epoch": timestamp
+            }
+        )
+        
+        self.bot.dispatch("shift_end", doc_id["_id"])
+        
+        await message.channel.send(
+            content=f"{message.author.mention} Shift ended.",
+            embed=discord.Embed(
+                title=f"{self.bot.emoji.get('onshift')} Shift Action",
+                description=f"Shift ended. Duration: {hours}h {minutes}m {seconds}s",
+                color=discord.Color.red()
+            )
+        )
+        return await message.add_reaction("✅")
+
+    async def _start_break_callback(self, message, shift_type):
+        timestamp = int(datetime.now().timestamp())
+        
+        new_break = {
+            "start_epoch": timestamp,
+            "end_epoch": 0
+        }
+
+        try:
+            await self.bot.shift_logs.update_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": message.author.id,
+                    "type": shift_type.lower(),
+                    "end_epoch": 0
+                },
+                {
+                    "$push": {"breaks": new_break}
+                }
+            )
+            oid = await self.bot.shift_logs.find_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": message.author.id,
+                    "type": shift_type.lower(),
+                    "end_epoch": 0
+                }
+            )
+        except Exception as e:
+            return await message.channel.send(
+                content=f"{message.author.mention} There was an error starting your break.",
+                embed=discord.Embed(
+                    title=f"{self.bot.emoji.get('error')} Error",
+                    description="There was an error starting your break.",
+                    color=discord.Color.red(),
+                )
+            )
+        self.bot.dispatch("shift_break", oid["_id"], "start", timestamp)
+        await message.channel.send(
+            embed=discord.Embed(
+                title=f"{self.bot.emoji.get('shiftbreak')} Break Started",
+                description="You are now on break.",
+                color=discord.Color.from_rgb(255, 255, 0),
+            )
+        )
+        return await message.add_reaction("✅")
+
+    async def _log_erlc_punishment(self, username: str, punishment: str, reason: str, message: discord.Message):
+        """
+        View Roblox punishments for a user.
+        """
+        try:
+            await message.channel.typing()
+            if punishment not in ["Warning", "Kick", "Ban", "Bolo"]:
+                return await message.channel.send(
+                    embed=discord.Embed(
+                        title="Invalid Punishment",
+                        description=(
+                            f"> The punishment `{punishment}` is not a valid punishment type.\n"
+                            f"> Please choose from the following: `Warning`, `Kick`, `Ban`, `Bolo`."
+                        ),
+                        color=RED_COLOR
+                    )
+                )
+            
+            setting = await self.bot.settings.find_by_id(message.guild.id)
+            if setting is None:
+                return await message.channel.send(
+                    embed=discord.Embed(
+                        title="Missing Settings",
+                        description="Please configure the settings for this server.",
+                        color=discord.Color.red()
+                    )
+                )
+
+            if not setting.get("roblox", {}).get("punishments"):
+                return await message.channel.send(
+                    embed=discord.Embed(
+                        title="Missing Punishments",
+                        description="Please configure the punishments for this server.",
+                        color=discord.Color.red()
+                    )
+                )
+            
+            punishment_doc = setting["roblox"]["punishments"]
+            if not punishment_doc.get("enabled", False):
+                return await message.channel.send(
+                    embed=discord.Embed(
+                        title="Punishments Disabled",
+                        description="Roblox punishments are not enabled for this server.",
+                        color=discord.Color.red()
+                    )
+                )
+
+            channel_id = punishment_doc.get("channel")
+            if not channel_id:
+                return await message.channel.send(
+                    embed=discord.Embed(
+                        title="Missing Channel",
+                        description="Please configure the punishment log channel for this server.",
+                        color=discord.Color.red()
+                    )
+                )
+
+            roblox_user = await self.bot.roblox.get_user_by_username(username)
+            if roblox_user is None:
+                return await message.channel.send(
+                    embed=discord.Embed(
+                        title="Player Not Found",
+                        description=(
+                            f"> There was an issue while finding the Roblox User: `{username}`. "
+                            f"> Please make sure you have entered correct username."
+                        ),
+                        color=RED_COLOR
+                    )
+                )
+            
+            roblox_player = await self.bot.roblox.get_user(roblox_user.id)
+            thumbnails = await self.bot.roblox.thumbnails.get_user_avatar_thumbnails(
+                [roblox_player], type=roblox.thumbnails.AvatarThumbnailType.headshot
+            )
+            if not thumbnails or not thumbnails[0]:
+                return await message.channel.send(
+                    embed=discord.Embed(
+                        title="Thumbnail Error",
+                        description="Could not retrieve the user's avatar thumbnail.",
+                        color=RED_COLOR
+                    )
+                )
+            thumbnail = thumbnails[0].image_url
+
+            timestamp = datetime.now().timestamp()
+
+            doc = {
+                "moderator_id": message.author.id,
+                "moderator_name": message.author.name,
+                "user_id": roblox_player.id,
+                "user_name": roblox_player.name,
+                "guild_id": message.guild.id,
+                "reason": reason,
+                "type": punishment.lower(),
+                "timestamp": timestamp,
+                "snowflake": next(snowflake_generator),
+            }
+
+            await self.bot.punishments.insert_one(doc)
+
+            warning = await self.bot.punishments.find_one(
+                {
+                    "guild_id": message.guild.id,
+                    "user_id": roblox_player.id,
+                    "type": punishment.lower(),
+                    "timestamp": timestamp,
+                    "moderator_id": message.author.id,
+                }
+            )
+            self.bot.dispatch("punishment", warning["_id"], message.author, thumbnail)
+
+            await message.add_reaction("✅")
+
+        except Exception as e:
+            self.bot.logger.error(f"Error logging punishment: {e}")
+
+    async def _handle_command_logs(self, message):
+        settings = await self.bot.settings.find_by_id(message.guild.id)
+        if not settings:
+            return
+        remote_command_channel_id = settings.get("erlc", {}).get("command_log_channel")
+        #self.bot.logger.info(f"Logging ERLC actions to channel: {remote_command_channel_id}")
+        channel = self.bot.get_channel(remote_command_channel_id)
+        if (
+            channel and remote_command_channel_id
+        ):
+            for embed in message.embeds:
+                if not embed.description or not embed.title:
+                    continue
+
+                if "used the command" in embed.description and ":log" in embed.description:
+                    try:
+                        user_info, _ = embed.description.split("used the command", 1)
+                        user_info = user_info.strip()
+                        profile_link = user_info.split("(")[1].split(")")[0].strip()
+                        roblox_id_str = profile_link.split("/")[-2]
+
+                        if not roblox_id_str.isdigit():
+                            #self.bot.logger.error(f"Extracted Roblox ID is not a number: {roblox_id_str}")
+                            raise ValueError(f"Extracted Roblox ID is not a number: {roblox_id_str}")
+
+                        roblox_id = int(roblox_id_str)
+                        #self.bot.logger.info(f"Extracted Roblox ID: {roblox_id}")
+
+                        document = await self.bot.roblox_oauth.find_one({"roblox_user_id": roblox_id})
+                        if not document:
+                            await message.add_reaction("❌")
+                            return await message.add_reaction("🔗")
+
+                        discord_user_id = document["discord_user_id"]
+                        user = message.guild.get_member(discord_user_id)
+                        if not user:
+                            try:
+                                user = await message.guild.fetch_member(discord_user_id)
+                            except Exception:
+                                await message.add_reaction("❌")
+                                return await message.add_reaction("🔍")
+
+                        new_message = copy.copy(message)
+                        new_message.author = user
+                        shift_type = None
+                        if "shift" in embed.description:
+                            shift_type = "Default"
+                            if "shift start" in embed.description:
+                                await self._start_shift_callback(new_message, shift_type)
+                            elif "shift break" in embed.description:
+                                await self._start_break_callback(new_message, shift_type)
+                            elif "shift end" in embed.description:
+                                await self._end_shift_callback(new_message, shift_type)
+                        elif "punishments log" in embed.description:
+                            try:
+                                command_parts = embed.description.split(":log punishments log ", 1)[1].strip().split()
+                                if len(command_parts) >= 3:
+                                    username = command_parts[0]
+                                    punishment = command_parts[1]
+                                    reason = " ".join(command_parts[2:])
+                                    reason = reason.replace("`", "")
+                                    await self._log_erlc_punishment(username=username, punishment=punishment, reason=reason, message=new_message)
+                                else:
+                                    await message.add_reaction("❌")
+                                    return await message.channel.send(
+                                        embed=discord.Embed(
+                                            title="Invalid Command Format",
+                                            description="The punishment log command is missing required arguments.",
+                                            color=discord.Color.red()
+                                        )
+                                    )
+                            except Exception as e:
+                                logging.error(f"Error processing punishment log command: {e}")
+                                await message.add_reaction("❌")
+                        else:
+                            await message.add_reaction("❌")
+                            return await message.add_reaction("🔄")
+
+                    except (IndexError, ValueError) as e:
+                        self.bot.logger.error(f"Error processing shift start command: {e}")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """
         Handle all message events with optimized processing.
         """
         try:
-            if message.author == self.bot.user or message.author.bot:
+            if message.author == self.bot.user:
                 return
-                
+
             if not message.guild:
                 return
 
-            await self._handle_ping_command(message)
+            if message.webhook_id:
+                await self._handle_erlc_logging(message)
+                await self._handle_command_logs(message)
+                return
 
-            #await self._handle_n_word_filter(message)
+            await self._handle_ping_command(message)
 
             await self._handle_afk_removal(message)
 
@@ -597,10 +1171,6 @@ class OnMessage(commands.Cog):
             settings = await self.bot.settings.find_by_id(message.guild.id)
             if not settings:
                 return
-            
-            # premium = self.bot.premium.find_by_id(message.guild.id)
-            # if premium and self.bot.is_premium:
-            #     await self._handle_ai_moderation(message, settings)
 
             await self._handle_automod_spam_detection(message, settings)
 

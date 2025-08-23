@@ -1,16 +1,14 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from flask import ctx
 from cyni import afk_users
 from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
 from cyni import up_time, is_staff, _version, premium_check
 from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
-from utils.pagination import Pagination
+import roblox
 import random
-from utils.basic_pager import BasicPager
 
 OWNER = 1201129677457215558
 LOGGING_CHANNEL = 1257705346525560885
@@ -82,22 +80,23 @@ class Utility(commands.Cog):
         Get information about the bot.
         """
         embed = discord.Embed(
-            title="Cyni",
-            description=f"A multipurpose Discord bot.\n**{self.bot.emoji.get('latency')}  Uptime:** <t:{int(up_time)}:R>\n**Version:** `v{_version}`",
+            description=(
+                f"Cyni is a multifunctional Discord bot designed to enhance your server\nmanagement experience with a variety of features including moderation,\nutility commands, and entertainment options.\n"
+                f"**Version:** `v{_version}-stable`\n"
+                f"**CyniLib:** `v1.0.1`\n> (Cyni uses custom forked version of discord.py which enhances performance and adds new features.)\n"
+                f"**DB:** `MongoDB`"
+            ),
             color=BLANK_COLOR
         )
         embed.set_author(
-            name=f"{ctx.author}",
-            icon_url=ctx.author.avatar.url
-        )
-        embed.set_footer(
-            text="Cyni Systems!",
+            name=f"About CYNI",
             icon_url=self.bot.user.avatar.url
+        ).set_thumbnail(
+            url=self.bot.user.avatar.url
         )
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Invite", url=f"https://discord.com/oauth2/authorize?client_id={self.bot.user.id}&permissions=8&scope=bot",row=0))
         view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm",row=0))
-        view.add_item(discord.ui.Button(label="Dashboard", url="https://cyni.quprdigital.tk",row=1))
         await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
@@ -382,6 +381,61 @@ class Utility(commands.Cog):
     #     view = discord.ui.View()
     #     view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm"))
     #     await ctx.send(embed=embed, view=view)
+
+    @commands.hybrid_command(
+        name="link",
+        extras={
+            "category": "Roblox"
+        }
+    )
+    @premium_check()
+    async def link(self, ctx):
+        """
+        Get the user's Roblox profile link.
+        """
+        user_id = ctx.author.id
+        roblox_user = await self.bot.roblox_oauth.find_one(
+            {
+                "discord_user_id": user_id
+            }
+        )
+        if roblox_user:
+            roblox_id = roblox_user.get("roblox_user_id") if roblox_user else None
+            roblox_player = await self.bot.roblox.get_user(roblox_id)
+            thumbnails = await self.bot.roblox.thumbnails.get_user_avatar_thumbnails(
+                [roblox_player], type=roblox.thumbnails.AvatarThumbnailType.headshot
+            )
+            if not thumbnails or not thumbnails[0]:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Roblox API Error",
+                        description="Could not retrieve the user's avatar thumbnail.",
+                        color=RED_COLOR
+                    )
+                )
+            thumbnail = thumbnails[0].image_url
+            embed = discord.Embed(
+                title="Roblox Profile",
+                description=(
+                    f"**Name:** {roblox_player.name}\n"
+                    f"**Display Name:** {roblox_player.display_name}\n"
+                    f"**ID:** {roblox_player.id}\n"
+                ),
+                color=BLANK_COLOR
+            )
+            embed.set_thumbnail(url=thumbnail)
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label="View Profile", url=f"https://www.roblox.com/users/{roblox_id}/profile"))
+            await ctx.send(embed=embed, view=view)
+        else:
+            embed = discord.Embed(
+                title="Account Not Linked",
+                description="> Please link your Roblox account to access\nfeatures like ER:LC Remote Commands, and more.",
+                color=RED_COLOR
+            )
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label="Link Account", url="https://cyni.quprdigital.tk/api/verify/roblox/v1/link"))
+            await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="dashboard",

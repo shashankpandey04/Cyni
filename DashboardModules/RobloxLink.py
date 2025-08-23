@@ -83,7 +83,7 @@ def roblox_response():
         "avatar": profile.get("picture"),
     }
 
-    mongo_db.roblox_links.update_one(
+    mongo_db.roblox_oauth.update_one(
         {"discord_user_id": user_id},
         {"$set": roblox_info},
         upsert=True
