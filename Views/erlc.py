@@ -476,7 +476,7 @@ class ERLCDiscordChecksConfiguration(discord.ui.View):
         if await modal.wait():
             return
 
-        alert_message = modal.value.value
+        alert_message = modal.value
         if not alert_message:
             await interaction.followup.send(
                 embed=discord.Embed(
