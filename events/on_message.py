@@ -490,7 +490,7 @@ class OnMessage(commands.Cog):
 
     async def _handle_ai_moderation(self, message, settings):
         """Handle AI moderation tasks."""
-        if not settings.get("moderation_module", {}).get("ai_moderation", {}).get("enabled", False):
+        if not settings.get("automod_module", {}).get("ai_automod", {}).get("enabled", False):
             return
 
         try:
@@ -574,7 +574,73 @@ class OnMessage(commands.Cog):
                     icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None
                 )
                 logger = self.bot.get_cog("ThrottledLogger")
-                await logger.log_embed(message.channel, embed)
+                alert_channel = self.bot.get_channel(settings.get("automod_module", {}).get("ai_automod", {}).get("alert_channel"))
+                await logger.log_embed(alert_channel, embed)
+
+                action = settings.get("automod_module", {}).get("ai_automod", {}).get("action")
+                if action == "delete":
+                    await message.delete()
+                if action == "mute":
+                    total_warnings = await self.bot.warnings.find(
+                        {
+                            'guild_id': message.guild.id
+                        }
+                    )
+                    total_warnings = len(total_warnings)
+
+                    doc = {
+                        'guild_id': message.guild.id,
+                        'user_id': message.author.id,
+                        'reason': f"AI Moderation `{message.content}`",
+                        'moderator_id': self.bot.user.id,
+                        'timestamp': datetime.now().timestamp(),
+                        'case_id': total_warnings + 1,
+                        'active': True,
+                        'void': False,
+                        'type': 'mute',
+                    }
+                    mute_duration = settings.get("automod_module", {}).get("ai_automod", {}).get("mute_duration", 60)
+                    embed = discord.Embed(
+                        title="You have been muted",
+                        description=f"You have been muted for {mute_duration} seconds.",
+                        color=discord.Color.orange()
+                    )
+                    await message.channel.send(
+                        embed=embed
+                    )
+                    await self.bot.warnings.insert_one(doc)
+                elif action == "kick":
+                    total_warnings = await self.bot.warnings.find(
+                        {
+                            'guild_id': message.guild.id
+                        }
+                    )
+                    total_warnings = len(total_warnings)
+
+                    doc = {
+                        'guild_id': message.guild.id,
+                        'user_id': message.author.id,
+                        'reason': f"AI Moderation `{message.content}`",
+                        'moderator_id': self.bot.user.id,
+                        'timestamp': datetime.now().timestamp(),
+                        'case_id': total_warnings + 1,
+                        'active': True,
+                        'void': False,
+                        'type': 'kick',
+                    }
+                    await self.bot.warnings.insert_one(doc)
+                    await message.author.kick(reason="AI Moderation")
+                    await message.channel.send(
+                        content=f"**Case #{total_warnings + 1}**: {message.author.mention} has been kicked by AI moderation.",
+                    )
+                    await message.author.send(
+                        embed=discord.Embed(
+                            title="You have been kicked",
+                            description=f"You have been kicked from {message.guild.name} for {doc['reason']}",
+                            color=discord.Color.red()
+                        )
+                    )
+
 
         except Exception as e:
             logging.error(f"Error in AI moderation: {e}")
@@ -1171,6 +1237,8 @@ class OnMessage(commands.Cog):
             settings = await self.bot.settings.find_by_id(message.guild.id)
             if not settings:
                 return
+
+            await self._handle_ai_moderation(message, settings)
 
             await self._handle_automod_spam_detection(message, settings)
 

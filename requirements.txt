@@ -16,8 +16,8 @@ roblox
 fastapi
 uvicorn
 markdown
-# joblib
-# scikit-learn
-# numpy
+joblib
+scikit-learn
+numpy
 python-jose
 snowflake-id

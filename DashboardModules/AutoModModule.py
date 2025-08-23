@@ -65,6 +65,9 @@ def automod_settings(guild_id):
             elif ('spam_enabled' in request.form and request.form.get('spam_enabled')) or \
                  (request.form.get('spam_alert_channel') and request.form.get('spam_alert_channel').strip()):
                 action_type = 'spam_detection'
+            elif ('ai_automod_enabled' in request.form and request.form.get('ai_automod_enabled')) or \
+                 (request.form.get('ai_automod_alert_channel') and request.form.get('ai_automod_alert_channel').strip()):
+                action_type = 'ai_automod'
             elif ('keyword_enabled' in request.form and request.form.get('keyword_enabled')) or \
                  (request.form.get('keyword_alert_channel') and request.form.get('keyword_alert_channel').strip()):
                 action_type = 'custom_keyword'
@@ -86,6 +89,8 @@ def automod_settings(guild_id):
             _handle_custom_keyword_update(guild_id, request.form, automod_settings)
         elif action_type == 'link_blocking':
             _handle_link_blocking_update(guild_id, request.form, automod_settings)
+        elif action_type == 'ai_automod':
+            _handle_ai_automod_update(guild_id, request.form)
         elif action_type == 'exemptions':
             _handle_exemptions_update(guild_id, request.form)
         elif action_type == 'vanity_protection':
@@ -209,6 +214,29 @@ def _handle_spam_detection_update(guild_id, form_data):
             "automod_module.spam_detection.action": action,
             "automod_module.spam_detection.mute_duration": mute_duration,
             "automod_module.spam_detection.alert_channel": alert_channel
+        }},
+        upsert=True
+    )
+    flash("Spam detection settings updated successfully", "success")
+
+def _handle_ai_automod_update(guild_id, form_data):
+    """Handle AI moderation settings update"""
+    enabled = 'ai_automod_enabled' in form_data
+    action = form_data.get('ai_automod_action', 'mute')
+    mute_duration = int(form_data.get('ai_automod_mute_duration', 10))
+    alert_channel = form_data.get('ai_automod_alert_channel')
+    if alert_channel:
+        alert_channel = int(alert_channel)
+    
+    # Update settings in database
+    mongo_db["settings"].update_one(
+        {"_id": guild_id},
+        {"$set": {
+            "automod_module.enabled": True,
+            "automod_module.ai_automod.enabled": enabled,
+            "automod_module.ai_automod.action": action,
+            "automod_module.ai_automod.mute_duration": mute_duration,
+            "automod_module.ai_automod.alert_channel": alert_channel
         }},
         upsert=True
     )

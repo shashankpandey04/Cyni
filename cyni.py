@@ -27,7 +27,7 @@ from Views.Tickets import TicketView
 from menu import LOARequest
 from roblox import client as roblox
 
-# from Models.modai import ModerationModel
+from Models.modai import ModerationModel
 
 # Custom exceptions for premium checks
 class PremiumCheckError(commands.CheckFailure):
@@ -63,7 +63,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-_version = "1.0"
+_version = "1.0.2"
 class Bot(commands.AutoShardedBot):
     
     RATE_LIMIT_WINDOW = 10  # seconds
@@ -194,6 +194,8 @@ class Bot(commands.AutoShardedBot):
         self.punishments = Document(self.db, 'punishments')
         self.deleted_shifts = Document(self.db, 'deleted_shifts')
         self.roblox_oauth = Document(self.db, 'roblox_oauth')
+        self.erlc_sessions_embed = Document(self.db, 'erlc_sessions_embed')
+        self.modai = ModerationModel()
         await self.emoji.prefetch_emojis()
 
         orig_request = self.http.request
@@ -224,7 +226,7 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.Applications"]
+        UNLOAD_EXTENSIONS = ["Cogs.Applications", "Cogs.Sessions"]
         DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube", "Cogs.Verify"]
 
 
