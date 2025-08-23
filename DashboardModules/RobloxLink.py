@@ -77,14 +77,14 @@ def roblox_response():
 
     profile = jwt.get_unverified_claims(id_token)
     roblox_info = {
-        "roblox_user_id": profile.get("sub"),
+        "roblox_user_id": int(profile.get("sub")),
         "username": profile.get("preferred_username"),
         "displayName": profile.get("name"),
         "avatar": profile.get("picture"),
     }
 
     mongo_db.roblox_oauth.update_one(
-        {"discord_user_id": user_id},
+        {"discord_user_id": int(user_id)},
         {"$set": roblox_info},
         upsert=True
     )
