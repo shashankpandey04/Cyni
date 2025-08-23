@@ -608,6 +608,10 @@ class OnMessage(commands.Cog):
                     await message.channel.send(
                         embed=embed
                     )
+                    try:
+                        await message.author.edit(timed_out_until=discord.utils.utcnow() + timedelta(minutes=mute_duration), reason="AI Moderation")
+                    except discord.Forbidden:
+                        await message.channel.send("I cannot mute this user.")
                     await self.bot.warnings.insert_one(doc)
                 elif action == "kick":
                     total_warnings = await self.bot.warnings.find(
