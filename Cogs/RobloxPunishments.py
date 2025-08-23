@@ -50,7 +50,7 @@ class RobloxPunishments(commands.Cog):
         """
         try:
             await ctx.typing()
-            if punishment not in ["Warning", "Kick", "Ban", "Bolo"]:
+            if punishment.lower() not in ["warning", "kick", "ban", "bolo"]:
                 return await ctx.send(
                     embed=discord.Embed(
                         title="Invalid Punishment",
