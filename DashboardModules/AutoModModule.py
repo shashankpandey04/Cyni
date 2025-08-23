@@ -40,7 +40,7 @@ def automod_settings(guild_id):
         return redirect(url_for("guild", guild_id=guild_id))
 
     has_perm = check_permissions(guild_id, session["user_id"])
-    if has_perm is False:
+    if not has_perm:
         flash("You need Management Roles to access this page.", "error")
         return redirect(url_for("dashboard"))
 

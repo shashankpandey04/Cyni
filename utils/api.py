@@ -58,7 +58,7 @@ async def validate_authorization(bot, token: str):
 class APIRoutes:
 
     RATE_LIMIT_WINDOW = 1
-    RATE_LIMIT_THRESHOLD = 10
+    RATE_LIMIT_THRESHOLD = 20
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
