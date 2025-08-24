@@ -129,9 +129,9 @@ class Giveaway(commands.Cog):
             description = re.sub(r'\\n', '\n', description)
             formatted_description = (
                 f"{description}\n\n"
-                f"Ends At: <t:{end_time_epoch}:F>\n"
-                f"Total Winner: {total_winner}\n"
-                f"Host: {host.mention}"
+                f"> Ends At: <t:{end_time_epoch}:F>\n"
+                f"> Total Winner: {total_winner}\n"
+                f"> Host: {host.mention}"
             )
 
             view = discord.ui.View()
@@ -140,7 +140,8 @@ class Giveaway(commands.Cog):
                 description=formatted_description,
                 color=BLANK_COLOR
             )
-            
+            embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else "")
+
             msg = await ctx.send(embed=embed)
             message_id = msg.id
             channel_id = msg.channel.id
@@ -241,7 +242,10 @@ class Giveaway(commands.Cog):
         for giveaway in active_giveaways:
             embed.add_field(
                 name=f"{giveaway['title']} - {giveaway['message_id']}",
-                value=f"Hosted by <@{giveaway['host']}>\nEnds at <t:{giveaway['duration_epoch']}:F>",
+                value=(
+                    f"> Hosted by <@{giveaway['host']}>"
+                    f"> Ends at <t:{giveaway['duration_epoch']}:F>",
+                ),
                 inline=False
             )
         await ctx.send(embed=embed)
@@ -266,10 +270,9 @@ class Giveaway(commands.Cog):
             participants = giveaway["participants"]
             participants.append(user.id)
             
-            # Use update_one instead of update
             await self.bot.giveaways.update_one(
                 {"message_id": message_id}, 
-                {"participants": participants}
+                {"$addToSet": {"participants": user.id}}
             )
             
             await reaction.message.channel.send(f"{user.mention} has entered the giveaway!", delete_after=2)
@@ -296,8 +299,8 @@ class Giveaway(commands.Cog):
             
             # Use update_one instead of update
             await self.bot.giveaways.update_one(
-                {"message_id": message_id}, 
-                {"participants": participants}
+                {"message_id": message_id},
+                {"$pull": {"participants": user.id}}
             )
             
             await reaction.message.channel.send(f"{user.mention} has left the giveaway!", delete_after=2)

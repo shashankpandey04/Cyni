@@ -63,23 +63,28 @@ def automod_settings(guild_id):
                (request.form.get('raid_alert_channel') and request.form.get('raid_alert_channel').strip()):
                 action_type = 'raid_detection'
             elif ('spam_enabled' in request.form and request.form.get('spam_enabled')) or \
-                 (request.form.get('spam_alert_channel') and request.form.get('spam_alert_channel').strip()):
+             (request.form.get('spam_alert_channel') and request.form.get('spam_alert_channel').strip()):
                 action_type = 'spam_detection'
             elif ('ai_automod_enabled' in request.form and request.form.get('ai_automod_enabled')) or \
-                 (request.form.get('ai_automod_alert_channel') and request.form.get('ai_automod_alert_channel').strip()):
+             (request.form.get('ai_automod_alert_channel') and request.form.get('ai_automod_alert_channel').strip()):
                 action_type = 'ai_automod'
             elif ('keyword_enabled' in request.form and request.form.get('keyword_enabled')) or \
-                 (request.form.get('keyword_alert_channel') and request.form.get('keyword_alert_channel').strip()):
+             (request.form.get('keyword_alert_channel') and request.form.get('keyword_alert_channel').strip()):
                 action_type = 'custom_keyword'
             elif ('link_enabled' in request.form and request.form.get('link_enabled')) or \
-                 (request.form.get('link_alert_channel') and request.form.get('link_alert_channel').strip()):
+             (request.form.get('link_alert_channel') and request.form.get('link_alert_channel').strip()):
                 action_type = 'link_blocking'
             elif request.form.getlist('exempt_roles') or request.form.getlist('exempt_channels'):
                 action_type = 'exemptions'
             elif ('vanity_enabled' in request.form and request.form.get('vanity_enabled')) or \
-                 request.form.getlist('vanity_exempt_roles') or \
-                 (request.form.get('vanity_exempt_users') and request.form.get('vanity_exempt_users').strip()):
+             request.form.getlist('vanity_exempt_roles') or \
+             (request.form.get('vanity_exempt_users') and request.form.get('vanity_exempt_users').strip()):
                 action_type = 'vanity_protection'
+
+        # Ensure action_type is explicitly set to avoid unintended updates
+        if not action_type:
+            flash('No valid action type detected. Please check your input.', 'error')
+            return redirect(url_for('automod.automod_settings', guild_id=guild_id))
 
         if action_type == 'raid_detection':
             _handle_raid_detection_update(guild_id, request.form)
@@ -97,8 +102,8 @@ def automod_settings(guild_id):
             if not is_premium:
                 flash('Vanity protection is only available for premium servers.', 'warning')
                 return redirect(url_for('automod.automod_settings', guild_id=guild_id))
-            # Only guild owner can modify vanity protection settings
-            if guild.owner_id != int(session["user_id"]):
+                # Only guild owner can modify vanity protection settings
+            if guild["owner_id"] != int(session["user_id"]):
                 flash("Only the guild owner can modify vanity protection settings.", "danger")
                 return redirect(url_for('automod.automod_settings', guild_id=guild_id))
             _handle_vanity_protection_update(guild_id, request.form)
@@ -240,7 +245,7 @@ def _handle_ai_automod_update(guild_id, form_data):
         }},
         upsert=True
     )
-    flash("Spam detection settings updated successfully", "success")
+    flash("AI moderation settings updated successfully", "success")
 
 def _handle_custom_keyword_update(guild_id, form_data, automod_settings):
     """Handle custom keyword settings update"""
