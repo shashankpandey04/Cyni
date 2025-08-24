@@ -194,19 +194,44 @@ class Giveaway(commands.Cog):
         Roll a giveaway.
         """
         message_id = int(message_id)
-        giveaway = await self.bot.giveaways.find_one({"message_id": message_id})
+        giveaway = await self.bot.giveaways.find_one(
+            {
+                "message_id": message_id
+            }
+        )
         if giveaway is None:
-            await ctx.send("<:declined:1268849944455024671> Giveaway not found.")
-            return
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Giveaway Not Found",
+                    description="<:declined:1268849944455024671> Giveaway not found.",
+                    color=discord.Color.red()
+                )
+            )
         if datetime.now().timestamp() < giveaway["duration_epoch"]:
-            await ctx.send("<:giveaway:1268849874233725000> Giveaway is still active.")
-            return
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Giveaway Still Active",
+                    description="<:giveaway:1268849874233725000> Giveaway is still active.",
+                    color=discord.Color.yellow()
+                )
+            )
         participants = giveaway["participants"]
         if len(participants) < giveaway["total_winner"]:
-            await ctx.send("<:declined:1268849944455024671>  Not enough participants.")
-            return
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Not Enough Participants",
+                    description="<:declined:1268849944455024671> Not enough participants.",
+                    color=discord.Color.red()
+                )
+            )
         winners = random.sample(participants, giveaway["total_winner"])
-        await ctx.send(f"<:giveaway:1268849874233725000> Congratulations to {', '.join([f'<@{winner}>' for winner in winners])} for winning the {giveaway['title']} giveaway!\nHosted by <@{giveaway['host']}>")
+        await ctx.send(
+            embed=discord.Embed(
+                title="Giveaway Winners",
+                description=f"<:giveaway:1268849874233725000> Congratulations to {', '.join([f'<@{winner}>' for winner in winners])} for winning the {giveaway['title']} giveaway!\nHosted by <@{giveaway['host']}>",
+                color=discord.Color.green()
+            )
+        )
         msg = await ctx.fetch_message(message_id)
         embed = msg.embeds[0]
         embed.description += f"\n\nWinner(s): {', '.join([f'<@{winner}>' for winner in winners])}"

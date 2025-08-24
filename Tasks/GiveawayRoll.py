@@ -3,6 +3,8 @@ from discord.ext import tasks
 import random
 from datetime import datetime
 
+from utils.constants import BLANK_COLOR
+
 @tasks.loop(minutes=1, reconnect=True)
 async def giveaway_roll(bot):
     """
@@ -29,7 +31,6 @@ async def giveaway_roll(bot):
             message_id = giveaway.get("message_id")
             channel_id = int(giveaway.get("channel_id", 0))
             
-            # If channel_id isn't in giveaway data, try to find the message in all channels
             if channel_id == 0:
                 message = None
                 for channel in guild.text_channels:
@@ -51,10 +52,9 @@ async def giveaway_roll(bot):
                     continue
             
             if not message:
-                # Mark as completed even if message wasn't found to avoid continuous processing
                 await bot.giveaways.update_one(
                     {"message_id": message_id},
-                    {"completed": True, "error": "Message not found"}
+                    {"$set": {"completed": True, "error": "Message not found"}}
                 )
                 continue
             
@@ -84,30 +84,55 @@ async def giveaway_roll(bot):
                         except discord.HTTPException:
                             pass
                 
-                # Send announcement in the channel
                 host_id = giveaway.get("host")
                 title = giveaway.get("title", "Giveaway")
                 
-                announcement = (
-                    f"<:giveaway:1268849874233725000> Congratulations to {', '.join(winners_mentions)} "
-                    f"for winning the **{title}** giveaway!\n"
-                    f"Hosted by <@{host_id}>"
+                embed = discord.Embed(
+                    title=f"<:giveaway:1268849874233725000> {title}",
+                    description=(
+                        f"Congratulations to {', '.join(winners_mentions)} "
+                        f"for winning the **{title}** giveaway!\n"
+                        f"Hosted by <@{host_id}>"
+                    ),
+                    color=BLANK_COLOR
                 )
-                await channel.send(announcement)
+                await channel.send(
+                    content=f"{', '.join(winners_mentions)}",
+                    embed=embed
+                )
             else:
-                # No participants or winners
-                await channel.send(f"<:declined:1268849944455024671> No one participated in the **{giveaway.get('title', 'Giveaway')}** giveaway or not enough participants.")
+                await channel.send(
+                    embed=discord.Embed(
+                        title="Giveaway Ended",
+                        description=(
+                            f"> No one participated in the **{giveaway.get('title', 'Giveaway')}** "
+                            f"> Please make sure to participate next time!"
+                        ),
+                        color=discord.Color.red()
+                    )
+                )
             
             # Mark giveaway as completed in database
+            # await bot.giveaways.update_one(
+            #     {"message_id": message_id},
+            #     {
+            #         "completed": True,
+            #         "winners": winners if participants and total_winners > 0 else [],
+            #         "end_time": current_time
+            #     }
+            # )
             await bot.giveaways.update_one(
                 {"message_id": message_id},
                 {
-                    "completed": True,
-                    "winners": winners if participants and total_winners > 0 else [],
-                    "end_time": current_time
+                    "$set": {
+                        "completed": True,
+                        "winners": winners if participants and total_winners > 0 else [],
+                        "end_time": current_time
+                    }
                 }
             )
-            
+            bot.logger.info(f"Processed giveaway {giveaway.get('message_id')}")
+
         except Exception as e:
             print(f"Error processing giveaway {giveaway.get('message_id')}: {e}")
             # Mark as errored to prevent endless retries
