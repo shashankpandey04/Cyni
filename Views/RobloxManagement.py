@@ -156,7 +156,7 @@ class RobloxManagement(View):
             ephemeral=True
         )
 
-class OnBreakRoleConfig(View):
+class RobloxOnBreakRoleConfig(View):
     def __init__(self, bot, ctx, sett):
         super().__init__()
         self.bot = bot
@@ -193,18 +193,17 @@ class OnBreakRoleConfig(View):
             )
 
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-
-        try:
-            settings["roblox"]["shift_module"]["on_break_role"] = self.on_break_role_select.values[0].id
-        except KeyError:
-            settings["roblox"]["shift_module"] = {"on_break_role": self.on_break_role_select.values[0].id}
+        if "roblox" not in settings:
+            settings["roblox"] = {}
+        if "shift_module" not in settings["roblox"]:
+            settings["roblox"]["shift_module"] = {}
+        settings["roblox"]["shift_module"]["on_break_role"] = self.on_break_role_select.values[0].id
         await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
 
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="Roblox On-Break Role Configuration",
-                description="Configure the Roblox on-break role for your server.",
-                color=BLANK_COLOR
+                description="The Roblox on-break role has been updated successfully.",
+                color=GREEN_COLOR
             ),
             ephemeral=True
         )
@@ -271,17 +270,17 @@ class RobloxShiftConfig(View):
             )
 
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        try:
-            settings["roblox"]["shift_module"]["channel"] = self.shift_log_channel_select.values[0].id
-        except KeyError:
-            settings["roblox"]["shift_module"] = {"channel": self.shift_log_channel_select.values[0].id}
+        if "roblox" not in settings:
+            settings["roblox"] = {}
+        if "shift_module" not in settings["roblox"]:
+            settings["roblox"]["shift_module"] = {}
+        settings["roblox"]["shift_module"]["channel"] = self.shift_log_channel_select.values[0].id
         await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
 
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="Roblox Shift Log Channel Configuration",
-                description="Configure the Roblox shift log channel for your server.",
-                color=BLANK_COLOR
+                description="Shift log channel has been updated successfully.",
+                color=GREEN_COLOR
             ),
             ephemeral=True
         )
@@ -301,17 +300,17 @@ class RobloxShiftConfig(View):
             )
 
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        try:
-            settings["roblox"]["shift_module"]["on_duty_role"] = self.on_duty_role_select.values[0].id
-        except KeyError:
-            settings["roblox"]["shift_module"]["on_duty_role"] = {"role": self.on_duty_role_select.values[0].id}
+        if "roblox" not in settings:
+            settings["roblox"] = {}
+        if "shift_module" not in settings["roblox"]:
+            settings["roblox"]["shift_module"] = {}
+        settings["roblox"]["shift_module"]["on_duty_role"] = self.on_duty_role_select.values[0].id
         await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
 
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="Roblox On-Duty Role Configuration",
-                description="Configure the Roblox on-duty role for your server.",
-                color=BLANK_COLOR
+                description="The Roblox on-duty role has been updated successfully.",
+                color=GREEN_COLOR
             ),
             ephemeral=True
         )
@@ -336,7 +335,7 @@ class RobloxShiftConfig(View):
                 color=BLANK_COLOR
             ),
             ephemeral=True,
-            view=OnBreakRoleConfig(self.bot, self.ctx, self.sett)
+            view=RobloxOnBreakRoleConfig(self.bot, self.ctx, self.sett)
         )
 
     # async def shift_types_callback(self, interaction: discord.Interaction):
