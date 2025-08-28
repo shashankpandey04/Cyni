@@ -50,7 +50,7 @@ class TicketButton(discord.ui.Button):
 
     async def _check_existing_ticket(self, user_id: int) -> dict:
         """Check if user already has an open ticket in this category."""
-        return await db.tickets.find_one({
+        return db.tickets.find_one({
             "guild_id": self.guild.id,
             "user_id": user_id,
             "category_id": self.category_id,
@@ -75,7 +75,7 @@ class TicketButton(discord.ui.Button):
 
     async def _generate_ticket_id(self) -> str:
         """Generate a unique ticket ID."""
-        ticket_count = await db.tickets.count_documents({"guild_id": self.guild.id})
+        ticket_count = db.tickets.count_documents({"guild_id": self.guild.id})
         ticket_id = ticket_count + 1
         return str(ticket_id).zfill(3)
 
@@ -156,7 +156,7 @@ class TicketButton(discord.ui.Button):
             
             ticket_data = self._create_ticket_data(interaction.user, ticket_channel)
             
-            await db.tickets.insert_one(ticket_data)
+            db.tickets.insert_one(ticket_data)
             
             welcome_embed = self._create_welcome_embed(interaction.user, self.category.get("wl_embed"))
             
@@ -230,7 +230,7 @@ class TicketActionView(discord.ui.View):
             )
         
         # Update database
-        await db.tickets.update_one(
+        db.tickets.update_one(
             {"_id": self.ticket_data["_id"]},
             {"$set": {"claimed_by": interaction.user.id, "claimed_at": datetime.datetime.now().timestamp()}}
         )
@@ -262,7 +262,7 @@ class TicketActionView(discord.ui.View):
                 ephemeral=True
             )
         
-        await db.tickets.update_one(
+        db.tickets.update_one(
             {"_id": self.ticket_data["_id"]},
             {"$set": {"status": "closed"}}
         )
@@ -331,7 +331,7 @@ class TicketDeleteView(discord.ui.View):
             "created_at": datetime.datetime.now().timestamp()
         }
         
-        await db.ticket_transcripts.insert_one(transcript_data)
+        db.ticket_transcripts.insert_one(transcript_data)
         return transcript_id
 
     async def _send_transcript_notification(self, transcript_id: str, closed_by: discord.Member):

@@ -2,6 +2,11 @@ import discord
 from cyni import is_staff
 from discord.ext import commands
 import datetime
+import uuid
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # ticket_data = {
 #     "_id": str(uuid.uuid4()),
@@ -25,6 +30,71 @@ import datetime
 class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+
+    async def _collect_messages(self, channel: discord.TextChannel) -> list:
+        """Collect all messages from the ticket channel."""
+        messages = []
+        async for message in channel.history(limit=None, oldest_first=True):
+            if message.content or message.embeds:
+                messages.append({
+                    "author_id": message.author.id,
+                    "author_name": message.author.name,
+                    "content": message.content,
+                    "created_at": message.created_at.timestamp(),
+                    "attachments": [
+                        {"url": attachment.url, "filename": attachment.filename} 
+                        for attachment in message.attachments
+                    ]
+                })
+        return messages
+
+    async def _create_transcript(self, messages: list, closed_by: discord.Member, ticket_data: dict, reason: str) -> str:
+        """Create and save transcript to database."""
+        transcript_id = str(uuid.uuid4())
+        transcript_data = {
+            "_id": transcript_id,
+            "ticket_id": ticket_data["_id"],
+            "guild_id": ticket_data["guild_id"],
+            "user_id": ticket_data["user_id"],
+            "username": ticket_data["username"],
+            "category_name": ticket_data["category_name"],
+            "messages": messages,
+            "closed_by": closed_by.id,
+            "closed_by_name": closed_by.name,
+            "created_at": datetime.datetime.now().timestamp(),
+            "reason": reason
+        }
+        
+        await self.bot.ticket_transcripts.insert_one(transcript_data)
+        return transcript_id
+
+    async def _send_transcript_notification(self, transcript_id: str, closed_by: discord.Member, ticket_category: dict, guild: discord.Guild, reason: str, ticket_data: dict):
+        """Send transcript notification to designated channel."""
+        transcript_channel_id = ticket_category.get("transcript_channel")
+        if not transcript_channel_id:
+            return
+
+        transcript_channel = guild.get_channel(int(transcript_channel_id))
+        if not transcript_channel:
+            return
+        
+        base_url = os.getenv("BASE_URL", "https://cyni.quprdigital.tk")
+        transcript_url = f"{base_url}/transcripts/{transcript_id}"
+        
+        transcript_embed = discord.Embed(
+            title=f"Ticket Transcript: {ticket_category.get('name')}",
+            description=f"Ticket from `{ticket_data['username']}` has been closed and archived.",
+            color=0x5865F2,
+            timestamp=datetime.datetime.now()
+        )
+        transcript_embed.add_field(name="Ticket ID", value=ticket_data["_id"], inline=True)
+        transcript_embed.add_field(name="Closed By", value=closed_by.name, inline=True)
+        transcript_embed.add_field(name="View Transcript", value=f"[Click Here]({transcript_url})", inline=False)
+        transcript_embed.add_field(name="Reason", value=reason, inline=False)
+        
+        await transcript_channel.send(embed=transcript_embed)
+
 
     @commands.hybrid_group(
         name="ticket",
@@ -201,35 +271,90 @@ class Ticket(commands.Cog):
     )
     @is_staff()
     @commands.guild_only()
-    async def close(self, ctx):
+    async def close(self, ctx, reason: str):
         """Close a ticket."""
-        ticket_data = await self.bot.db.tickets.find_one(
-            {
-                "guild_id": ctx.guild.id,
-                "channel_id": ctx.channel.id,
-                "status": "open"
-            }
-        )
 
-        if not ticket_data:
-            embed = discord.Embed(
-                title="No Open Ticket",
-                description="This channel does not have an open ticket.",
-                color=discord.Color.red()
+        try:
+            ticket_channel = ctx.channel
+            ticket_category_id = ticket_channel.category.id
+            existing_ticket_category = await self.bot.ticket_categories.find_one({"discord_category": ticket_category_id})
+            if not existing_ticket_category:
+                embed = discord.Embed(
+                    title="Invalid Category",
+                    description="This ticket is not in a valid ticket category.",
+                    color=discord.Color.red()
+                )
+                return await ctx.send(embed=embed)
+            
+            if any(role.id in existing_ticket_category.get("support_roles", []) for role in ctx.author.roles) is False:
+                embed = discord.Embed(
+                    title="Insufficient Permissions",
+                    description="You do not have permission to close this ticket.",
+                    color=discord.Color.red()
+                )
+                return await ctx.send(embed=embed)
+            guild = ctx.guild
+
+            ticket_doc = await self.bot.tickets.find_one(
+                {
+                    "guild_id": ctx.guild.id,
+                    "channel_id": ctx.channel.id,
+                    "status": "open"
+                }
             )
-            return await ctx.send(embed=embed)
+            ticket_channel = guild.get_channel(ticket_doc["channel_id"])
+            if not ticket_channel:
+                embed = discord.Embed(
+                    title="Ticket Not Found",
+                    description="The ticket channel could not be found.",
+                    color=discord.Color.red()
+                )
+                return await ctx.send(embed=embed)
+            
+            try:
+                messages = await self._collect_messages(ticket_channel)
 
-        await self.bot.db.tickets.update_one(
-            {"_id": ticket_data["_id"]},
-            {"$set": {"status": "closed"}}
-        )
+                transcript_id = await self._create_transcript(messages, ctx.author, ticket_doc, reason)
 
-        embed = discord.Embed(
-            title="Ticket Closed",
-            description="The ticket has been closed.",
-            color=discord.Color.green()
-        )
-        await ctx.send(embed=embed)
+                await self._send_transcript_notification(transcript_id, ctx.author, existing_ticket_category, guild, reason, ticket_doc)
+
+                base_url = os.getenv("BASE_URL", "https://cyni.quprdigital.tk")
+                transcript_url = f"{base_url}/transcripts/{transcript_id}"
+                
+                final_embed = discord.Embed(
+                    title="Ticket Closed",
+                    description=f"This ticket has been closed by {ctx.author.mention}.",
+                    color=0xED4245,
+                    timestamp=datetime.datetime.now()
+                )
+                final_embed.add_field(
+                    name="Transcript", 
+                    value=f"[Click here to view the ticket transcript]({transcript_url})",
+                    inline=False
+                )
+
+                await ctx.send(embed=final_embed)
+
+                return await ticket_channel.delete(reason=f"Ticket deleted by {ctx.author.name}")
+
+            except Exception as e:
+                self.bot.logger.error(f"Failed to delete ticket channel: {e}")
+                await ctx.send(
+                    embed=discord.Embed(
+                        title="Error",
+                        description=f"Failed to delete ticket. Please contact an administrator. ```{e}```",
+                        color=discord.Color.red()
+                    )
+                )
+        except Exception as e:
+            self.bot.logger.error(f"Failed to close ticket: {e}")
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"Failed to close ticket. Please contact an administrator. ```{e}```",
+                    color=discord.Color.red()
+                )
+            )
 
 async def setup(bot):
     await bot.add_cog(Ticket(bot))

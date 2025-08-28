@@ -195,6 +195,8 @@ class Bot(commands.AutoShardedBot):
         self.deleted_shifts = Document(self.db, 'deleted_shifts')
         self.roblox_oauth = Document(self.db, 'roblox_oauth')
         self.erlc_sessions_embed = Document(self.db, 'erlc_sessions_embed')
+        self.tickets = Document(self.db, 'tickets')
+        self.ticket_transcripts = Document(self.db, 'ticket_transcripts')
         self.modai = ModerationModel()
         await self.emoji.prefetch_emojis()
 
