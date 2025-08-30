@@ -8,15 +8,16 @@
     <style>
         body {
             font-family: 'Google Sans', 'Roboto', 'Arial', sans-serif;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e8f0fe 100%);
+            background: linear-gradient(135deg, #1a1a1a 0%, #121212 100%);
             min-height: 100vh;
+            color: #e0e0e0;
         }
         
         .google-header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-            border-bottom: 1px solid #dadce0;
+            background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
+            border-bottom: 1px solid #333;
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
         
         .sheet-name {
@@ -46,14 +47,14 @@
         .spreadsheet-table {
             border-collapse: collapse;
             width: 100%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
         
         .spreadsheet-table th {
-            background: linear-gradient(135deg, #f1f3f4 0%, #f8f9fa 100%);
-            color: #202124;
+            background: linear-gradient(135deg, #2d2d2d 0%, #222222 100%);
+            color: #e0e0e0;
             font-weight: 600;
-            border: 1px solid #dadce0;
+            border: 1px solid #444;
             position: relative;
             font-family: 'Google Sans', sans-serif;
         }
@@ -69,14 +70,14 @@
         }
         
         .spreadsheet-table td {
-            border: 1px solid #dadce0;
-            background-color: white;
+            border: 1px solid #444;
+            background-color: #2d2d2d;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
         }
         
         .spreadsheet-table tr:hover td {
-            background-color: #f8f9ff;
+            background-color: #3d3d3d;
             box-shadow: inset 0 0 0 1px #4285f4;
         }
         
@@ -119,39 +120,39 @@
         
         /* Modern Google-style card */
         .modern-card {
-            background: white;
+            background: #2d2d2d;
             border-radius: 12px;
-            box-shadow: 0 1px 6px rgba(32,33,36,.28);
-            border: 1px solid #dadce0;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.4);
+            border: 1px solid #444;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .modern-card:hover {
-            box-shadow: 0 4px 12px rgba(32,33,36,.28);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             transform: translateY(-2px);
         }
         
         /* Enhanced rank styling */
         .rank-cell {
             font-weight: 600;
-            color: #1a73e8;
+            color: #4285f4;
         }
         
         .rank-1 { 
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            color: #856404;
+            background: linear-gradient(135deg, #6b4f00 0%, #8d6b00 100%);
+            color: #ffd700;
             font-weight: 700;
         }
         
         .rank-2 { 
-            background: linear-gradient(135deg, #e2e3e5 0%, #f8f9fa 100%);
-            color: #495057;
+            background: linear-gradient(135deg, #494949 0%, #595959 100%);
+            color: #c0c0c0;
             font-weight: 600;
         }
         
         .rank-3 { 
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
+            background: linear-gradient(135deg, #6d4c41 0%, #795548 100%);
+            color: #cd7f32;
             font-weight: 600;
         }
         
@@ -168,8 +169,8 @@
         /* Subtle grid pattern like Google Sheets */
         .sheet-container {
             background-image: 
-                linear-gradient(rgba(218,220,224,0.3) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(218,220,224,0.3) 1px, transparent 1px);
+                linear-gradient(rgba(60,60,60,0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(60,60,60,0.3) 1px, transparent 1px);
             background-size: 20px 20px;
         }
         
@@ -179,12 +180,13 @@
             top: 20px;
             right: 20px;
             z-index: 1000;
-            background: white;
+            background: #333;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid #dadce0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid #444;
             transform: translateX(400px);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #e0e0e0;
         }
         
         .notification.show {
@@ -195,7 +197,7 @@
         h2 {
             font-family: 'Google Sans', sans-serif;
             font-weight: 500;
-            color: #202124;
+            color: #e0e0e0;
         }
         
         /* Subtle hover effects for table rows */
@@ -204,16 +206,16 @@
         }
         
         .table-row-modern:hover {
-            background: linear-gradient(135deg, #f8f9ff 0%, #e8f0fe 100%);
+            background: linear-gradient(135deg, #3d3d3d 0%, #333333 100%);
         }
         
         /* Google-style icons */
         .google-icon {
-            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen sheet-container">
+<body class="bg-gray-900 text-gray-200 min-h-screen sheet-container">
     <div class="w-full max-w-6xl p-6 mx-auto">
         
         <!-- Modern Google-style Card -->
@@ -228,15 +230,15 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-2xl font-medium text-gray-800">
+                        <h2 class="text-2xl font-medium text-gray-200">
                             {{ guild.name }} - {{ shift_type }} Shift Leaderboard
                         </h2>
-                        <p class="text-sm text-gray-600 mt-1">Real-time performance tracking</p>
+                        <p class="text-sm text-gray-400 mt-1">Real-time performance tracking</p>
                     </div>
                 </div>
                 <div class="flex space-x-3">
                     <button id="refreshBtn" 
-                        class="px-4 py-2 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 flex items-center space-x-2 font-medium">
+                        class="px-4 py-2 rounded-md border border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700 transition-all duration-200 flex items-center space-x-2 font-medium">
                         <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
@@ -263,7 +265,7 @@
             </div>
 
             <!-- Enhanced Table -->
-            <div class="overflow-x-auto bg-white">
+            <div class="overflow-x-auto bg-gray-800">
                 {% if leaderboard_data %}
                 <table id="shiftTable" class="spreadsheet-table">
                     <thead>
@@ -300,7 +302,7 @@
                             <td class="px-6 py-4 rank-cell {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% endif %}">
                                 <div class="flex items-center space-x-2">
                                     {% if loop.index <= 3 %}
-                                        <svg class="w-4 h-4 {% if loop.index == 1 %}text-yellow-600{% elif loop.index == 2 %}text-gray-600{% else %}text-red-600{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                                        <svg class="w-4 h-4 {% if loop.index == 1 %}text-yellow-400{% elif loop.index == 2 %}text-gray-400{% else %}text-red-400{% endif %}" fill="currentColor" viewBox="0 0 20 20">
                                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                         </svg>
                                     {% endif %}
@@ -312,13 +314,13 @@
                                     <div class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
                                         {{ row.username[0].upper() }}
                                     </div>
-                                    <span class="font-medium text-gray-900">{{ row.username }}</span>
+                                    <span class="font-medium text-gray-200">{{ row.username }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-between">
-                                    <span class="font-medium text-gray-900">{{ row.formatted_duration }}</span>
-                                    <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <span class="font-medium text-gray-200">{{ row.formatted_duration }}</span>
+                                    <div class="w-16 h-2 bg-gray-700 rounded-full overflow-hidden ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                         <div class="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full" 
                                              style="width: {{ (100 - loop.index0 * 10) if loop.index0 < 10 else 10 }}%"></div>
                                     </div>
@@ -329,27 +331,27 @@
                     </tbody>
                 </table>
                 {% else %}
-                    <div class="text-center py-16 bg-white">
-                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="text-center py-16 bg-gray-800">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-700 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                             </svg>
                         </div>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">No shift data available yet</h3>
-                        <p class="text-gray-500">Data will appear here once shifts are logged for this type.</p>
+                        <h3 class="text-lg font-medium text-gray-200 mb-2">No shift data available yet</h3>
+                        <p class="text-gray-400">Data will appear here once shifts are logged for this type.</p>
                     </div>
                 {% endif %}
             </div>
 
             <!-- Enhanced Footer -->
-            <div class="p-6 bg-gray-50 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div class="flex items-center space-x-2 text-sm text-gray-600">
+            <div class="p-6 bg-gray-900 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
                     <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span>Last updated: <span id="lastUpdated">Just now</span></span>
                 </div>
                 <div class="flex space-x-3">
                     <a href="{{ url_for('dashboard') }}" 
-                       class="px-4 py-2 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 flex items-center space-x-2">
+                       class="px-4 py-2 text-sm border border-gray-600 rounded-md text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
@@ -433,7 +435,7 @@
             
             notification.innerHTML = `
                 ${icon}
-                <span class="text-sm font-medium text-gray-900">${message}</span>
+                <span class="text-sm font-medium text-gray-200">${message}</span>
             `;
             
             document.body.appendChild(notification);
