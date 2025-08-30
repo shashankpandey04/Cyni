@@ -361,7 +361,7 @@ class ShiftManager(commands.Cog):
             button_view = discord.ui.View()
             url_button = discord.ui.Button(
                 label="View Spreadsheet",
-                url=f"https://cyni.quprdigital.tk/spreadsheets/shifts/{ctx.guild.id}/{shift.lower()}",
+                url=f"https://cyni.quprdigital.tk/spreadsheet/shifts/{ctx.guild.id}/{shift.lower()}",
                 style=discord.ButtonStyle.url,
                 row=1
             )
