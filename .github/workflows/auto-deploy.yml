@@ -12,8 +12,8 @@ jobs:
     steps:
     - name: Make deployment GET request
       run: |
-        curl http://31.97.62.69:3000/api/deploy/1f3fcb4826fb3ce5eee507c22aedd98eb956a626622cf71c
+        curl <just add your URL>
     
     - name: Premium Bot Deployment
       run: |
-        curl http://31.97.62.69:3000/api/deploy/a2739804b6659d14f371c488c5819888210606b8a12c2b14
+        curl <just add your URL>
