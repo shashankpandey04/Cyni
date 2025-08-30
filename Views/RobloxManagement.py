@@ -2,6 +2,28 @@ import discord
 from utils.constants import BLANK_COLOR, GREEN_COLOR, RED_COLOR
 from discord.ui import Button, View, Modal, TextInput, Select, RoleSelect, ChannelSelect
 
+class CustomModal(discord.ui.Modal):
+    def __init__(self, title: str, inputs: list[tuple[str, discord.ui.TextInput]]):
+        super().__init__(title=title, timeout=300)  # 5 min timeout
+        self.values = {}  # store results
+
+        for custom_id, text_input in inputs:
+            # assign an ID for retrieval
+            text_input.custom_id = custom_id
+            self.add_item(text_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Save all inputs into self.values
+        for child in self.children:
+            if isinstance(child, discord.ui.TextInput):
+                self.values[child.custom_id] = child.value
+        await interaction.response.defer()  # acknowledge modal submit (no message sent)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+        await interaction.response.send_message(
+            f"An error occurred: {error}", ephemeral=True
+        )
+
 class ModerationRoles(View):
     def __init__(self, bot, ctx, sett):
         super().__init__()
@@ -148,7 +170,9 @@ class RobloxManagement(View):
                     f"**Toggle Roblox Punishments**\n"
                     f"> Enable or disable punishments logging for Roblox staff members.\n\n"
                     f"**Punishments Log Channel**\n"
-                    f"> Select the channel where punishments will be logged."
+                    f"> Select the channel where punishments will be logged.\n\n"
+                    f"**Default Punishments**\n"
+                    f"> Configure the default punishments for Roblox staff members."
                 ),
                 color=BLANK_COLOR
             ),
@@ -247,13 +271,13 @@ class RobloxShiftConfig(View):
         self.on_break_role_button.callback = self.on_break_role_callback
         self.add_item(self.on_break_role_button)
 
-        # self.shift_types_button = Button(
-        #     label="Configure Shift Types",
-        #     style=discord.ButtonStyle.secondary,
-        #     row=3
-        # )
-        # self.shift_types_button.callback = self.shift_types_callback
-        # self.add_item(self.shift_types_button)
+        self.shift_types_button = Button(
+            label="Configure Shift Types",
+            style=discord.ButtonStyle.secondary,
+            row=2
+        )
+        self.shift_types_button.callback = self.shift_types_callback
+        self.add_item(self.shift_types_button)
 
     async def shift_log_channel_callback(self, interaction: discord.Interaction):
         """
@@ -338,17 +362,47 @@ class RobloxShiftConfig(View):
             view=RobloxOnBreakRoleConfig(self.bot, self.ctx, self.sett)
         )
 
-    # async def shift_types_callback(self, interaction: discord.Interaction):
-    #     """
-    #     Opens the Roblox shift types configuration modal.
-    #     """
-    #     await interaction.response.send_message(
-    #         embed=discord.Embed(
-    #             title="Roblox Shift Types Configuration",
-    #             description="Configure the Roblox shift types for your server.",
-    #             color=BLANK_COLOR
-    #         )
-    #     )
+    async def shift_types_callback(self, interaction: discord.Interaction):
+        """
+        Opens the Roblox shift types configuration modal.
+        """
+        shift_types = await self.bot.shift_types.find_by_id(interaction.guild.id)
+        # {
+        #     "_id": {
+        #         "$numberLong": "1228305781938720779"
+        #     },
+        #     "test": {
+        #         "access_role": [
+        #         {
+        #             "$numberLong": "1251031163523305527"
+        #         }
+        #         ]
+        #     }
+        # }
+
+        embed = discord.Embed(
+            title="Custom Shift Types",
+            description="",
+            color=BLANK_COLOR
+        )
+        if not shift_types or len(shift_types) == 1 and "_id" in shift_types:
+            embed.description = "> No custom shift types found."
+        else:
+            for shift_name, shift_data in shift_types.items():
+                if shift_name == "_id":
+                    continue  # Skip the "_id" field
+                embed.description += f"{shift_name}\n"
+                if isinstance(shift_data, dict):  # Ensure shift_data is a dictionary
+                    access_roles = shift_data.get('access_role', [])
+                if not isinstance(access_roles, list):
+                    access_roles = [access_roles]
+                embed.description += f"> Access Roles: {', '.join([f'<@&{role_id}>' for role_id in access_roles])}\n"
+
+            view = CustomShiftTypeMenu(self.bot, self.ctx)
+            await interaction.response.send_message(
+                embed=embed,
+                view=view,
+            )
 
 
 class RobloxSPunishmentConfig(View):
@@ -395,6 +449,13 @@ class RobloxSPunishmentConfig(View):
         )
         self.add_item(self.punishment_log_channel_select)
         self.punishment_log_channel_select.callback = self.punishment_log_channel_callback
+
+        self.default_punishments_button = Button(
+            label="Configure Default Punishments",
+            style=discord.ButtonStyle.secondary,
+        )
+        self.add_item(self.default_punishments_button)
+        self.default_punishments_button.callback = self.default_punishments_callback
 
     async def punishment_toggle_callback(self, interaction: discord.Interaction):
         """
@@ -455,6 +516,19 @@ class RobloxSPunishmentConfig(View):
                 description="The Roblox punishment log channel has been added to your server.",
                 color=GREEN_COLOR
             ),
+            ephemeral=True
+        )
+
+    async def default_punishments_callback(self, interaction: discord.Interaction):
+        view = defaultPunishments(self.bot, self.sett, self.ctx.author.id)
+        embed = discord.Embed(
+            title="Default Punishments",
+            description="Configure the default punishments for Roblox staff members.",
+            color=BLANK_COLOR
+        )
+        await interaction.response.send_message(
+            embed=embed,
+            view=view,
             ephemeral=True
         )
 
@@ -542,3 +616,353 @@ class PunishmentManage(View):
             ),
             view=None
         )
+
+class defaultPunishments(discord.ui.View):
+    def __init__(self, bot, sett, user_id):
+        super().__init__()
+        self.bot = bot
+        self.sett = sett
+        self.user_id = user_id
+
+        self.default_punishments = ["warning", "kick", "ban", "bolo"]
+
+        raw_punishments = {
+            p["name"]: p.get("enabled", False)
+            for p in sett.get("default_punishments", [])
+        }
+
+        self.warning_enabled = raw_punishments.get("warning", True)
+        self.kick_enabled = raw_punishments.get("kick", True)
+        self.ban_enabled = raw_punishments.get("ban", True)
+        self.bolo_enabled = raw_punishments.get("bolo", True)
+
+        options = [
+            discord.SelectOption(label="Warning", value="Warning", default=self.warning_enabled),
+            discord.SelectOption(label="Kick", value="Kick", default=self.kick_enabled),
+            discord.SelectOption(label="Ban", value="Ban", default=self.ban_enabled),
+            discord.SelectOption(label="BOLO", value="BOLO", default=self.bolo_enabled),
+        ]
+        select = discord.ui.Select(
+            placeholder="Select a punishment",
+            options=options,
+            max_values=4,
+        )
+
+        select.callback = self.select_callback
+        self.add_item(select)
+
+    async def select_callback(self, interaction: discord.Interaction):
+
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Error",
+                    description="You are not authorized to change these settings.",
+                    color=RED_COLOR
+                ),
+                ephemeral=True
+            )
+
+        selected = [i.lower() for i in interaction.data["values"]]
+
+        setting = await self.bot.punishment_types.find_by_id(interaction.guild.id)
+        if not setting:
+            setting = {"_id": interaction.guild.id}
+
+        setting["default_punishments"] = [
+            {"name": name, "enabled": name in selected}
+            for name in self.default_punishments
+        ]
+
+        # async def punishment_autocomplete(
+        #     interaction: discord.Interaction, current: str
+        # ) -> typing.List[app_commands.Choice[str]]:
+        #     bot = interaction.client
+        #     Data = await bot.punishment_types.find_by_id(interaction.guild.id)
+        #     default_punishments = ["Warning", "Kick", "Ban", "Bolo"]
+        #     enabled_punishments = None
+        #     if Data is None:
+        #         return [
+        #             app_commands.Choice(name=item, value=item)
+        #             for item in default_punishments
+        #         ]
+        #         enabled_punishments = Data.get("default_punishments", [])
+        #     else:
+        #         ndt = []
+        #         for item in Data["types"]:
+        #             if item not in default_punishments:
+        #                 ndt.append(item)
+        #         enabled_defaults = {
+        #             p["name"].lower()
+        #             for p in enabled_punishments
+        #             if p.get("enabled", False)
+        #         }
+        #         filtered_punishments = [
+        #             name.capitalize() for name in ["warning", "kick", "ban", "bolo"] if name in enabled_defaults
+        #         ]
+        #         return [
+        #             app_commands.Choice(
+        #                 name=(
+        #                     item_identifier := item if isinstance(item, str) else item["name"]
+        #                 ),
+        #                 value=item_identifier,
+        #             )
+        #             for item in ndt + filtered_punishments
+        #         ]
+
+
+        await self.bot.punishment_types.update_one(
+            {
+                "_id": interaction.guild.id
+            },
+            {
+                "$set": {
+                    "default_punishments": setting["default_punishments"]
+                }
+            },
+            upsert=True
+        )
+
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Default Punishments Updated",
+                description="The default punishments have been updated.",
+                color=GREEN_COLOR,
+            ),
+            ephemeral=True,
+        )
+
+class CreateShiftTypeMenu(discord.ui.View):
+    def __init__(self, bot, ctx):
+        super().__init__()
+        self.bot = bot
+        self.ctx = ctx
+        self.sett = {}
+
+        self.shift_name_modal = discord.ui.Button(
+            label="Enter Shift Name",
+            style=discord.ButtonStyle.secondary
+        )
+        self.add_item(self.shift_name_modal)
+        self.shift_name_modal.callback = self.shift_name_modal_callback
+
+        self.access_role_select = discord.ui.RoleSelect(
+            placeholder="Select Access Role",
+            min_values=1,
+            max_values=5
+        )
+        self.add_item(self.access_role_select)
+        self.access_role_select.callback = self.access_role_select_callback
+
+        self.finish_button = discord.ui.Button(
+            label="Finish",
+            style=discord.ButtonStyle.primary
+        )
+        self.add_item(self.finish_button)
+        self.finish_button.callback = self.finish_button_callback
+
+    async def shift_name_modal_callback(self, interaction: discord.Interaction):
+
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Missing Permissions",
+                    description="You are not allowed to configure this shift.",
+                    color=discord.Color.red()
+                ), ephemeral=True
+            )
+
+        modal = CustomModal(
+            "Shift Name Configuration",
+            [
+                (
+                    "value",
+                    discord.ui.TextInput(
+                        label="Shift Name",
+                        placeholder="Enter the name of the shift",
+                        required=True,
+                        max_length=100
+                    )
+                )
+            ],
+        )
+
+        await interaction.response.send_modal(modal)
+        
+        if await modal.wait():
+            return
+
+        shift_name = modal.values.get("value")
+        if not shift_name:
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    title="No Alert Message Provided",
+                    description="You must provide an alert message.",
+                    color=BLANK_COLOR
+                ), ephemeral=True
+            )
+            return
+
+        self.sett["shift_name"] = shift_name
+
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(0, name="Shift Name", value=f"> {shift_name}", inline=False)
+        await interaction.message.edit(embed=embed, view=self)
+
+    async def access_role_select_callback(self, interaction: discord.Interaction):
+
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Missing Permissions",
+                    description="You are not allowed to configure this shift.",
+                    color=discord.Color.red()
+                ), ephemeral=True
+            )
+        
+        selected_roles = self.access_role_select.values
+        if not selected_roles:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Missing Information",
+                    description="Please make sure all fields are filled out.",
+                    color=BLANK_COLOR
+                ), ephemeral=True
+            )
+            return
+
+        self.sett["access_roles"] = selected_roles
+        await interaction.response.defer()
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(1, name="Access Roles", value=f"> {'<@&' + '>, <@&'.join([str(role.id) for role in selected_roles]) + '>' if selected_roles else 'N/A'}", inline=False)
+        await interaction.message.edit(embed=embed, view=self)
+
+    async def finish_button_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Missing Permissions",
+                    description="You are not allowed to configure this shift.",
+                    color=discord.Color.red()
+                ), ephemeral=True
+            )
+
+        selected_roles = self.access_role_select.values
+        if not selected_roles:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Missing Information",
+                    description="Please make sure all fields are filled out.",
+                    color=BLANK_COLOR
+                ), ephemeral=True
+            )
+            return
+
+        await self.bot.shift_types.update_one(
+            {
+            "_id": interaction.guild.id
+            },
+            {
+            "$set": {
+                f"{self.sett['shift_name']}": {
+                "access_role": [role.id for role in selected_roles]
+                }
+            }
+            },
+            upsert=True
+        )
+
+        embed = interaction.message.embeds[0]
+        embed.title = "Shift Type Created"
+        embed.description = f"Shift Name: {self.sett['shift_name']}\nAccess Roles: {', '.join([role.name for role in selected_roles])}"
+        embed.color = discord.Color.green()
+        embed.clear_fields()
+        await interaction.response.edit_message(embed=embed, view=None)
+
+class CustomShiftTypeMenu(discord.ui.View):
+    def __init__(self, bot, ctx):
+        super().__init__()
+        self.bot = bot
+        self.ctx = ctx
+
+        self.create_shift_type_button = discord.ui.Button(
+            label="Create/Edit Shift Type",
+            style=discord.ButtonStyle.secondary
+        )
+
+
+        self.delete_shift_type_button = discord.ui.Button(
+            label="Delete Shift Type",
+            style=discord.ButtonStyle.danger
+        )
+        
+        self.add_item(self.create_shift_type_button)
+        self.add_item(self.delete_shift_type_button)
+
+        self.create_shift_type_button.callback = self.create_shift_type_callback
+        self.delete_shift_type_button.callback = self.delete_shift_type_callback
+
+    async def create_shift_type_callback(self, interaction: discord.Interaction):
+        view = CreateShiftTypeMenu(self.bot, self.ctx)
+        embed = discord.Embed(
+            title="Create New Shift Type",
+            description="Please fill out the following form to create a new shift type.",
+            color=discord.Color.blue()
+        ).add_field(
+            name="Shift Name",
+            value="> N/A",
+            inline=False
+        ).add_field(
+            name="Access Roles",
+            value="> N/A",
+            inline=False
+        )
+        await interaction.response.edit_message(view=view, embed=embed)
+
+    async def delete_shift_type_callback(self, interaction: discord.Interaction):
+        modal = CustomModal(
+            "Shift Name Configuration",
+            [
+                (
+                    "value",
+                    discord.ui.TextInput(
+                        label="Shift Name",
+                        placeholder="Enter the name of the shift",
+                        required=True,
+                        max_length=100
+                    )
+                )
+            ],
+        )
+
+        await interaction.response.send_modal(modal)
+        
+        if await modal.wait():
+            return
+
+        shift_name = modal.values.get("value")
+        if not shift_name:
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    title="No Alert Message Provided",
+                    description="You must provide an alert message.",
+                    color=BLANK_COLOR
+                ), ephemeral=True
+            )
+            return
+
+        await self.bot.shift_types.delete_one(
+            {
+                "_id": interaction.guild.id,
+                f"{self.sett['shift_name']}": {
+                    "$exists": True
+                }
+            }
+        )
+
+        embed = interaction.message.embeds[0]
+        embed.title = "Shift Type Deleted"
+        embed.description = f"Shift Name: {shift_name}"
+        embed.color = discord.Color.red()
+        embed.clear_fields()
+        await interaction.response.edit_message(embed=embed, view=None)

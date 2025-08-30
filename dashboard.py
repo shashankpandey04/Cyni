@@ -20,6 +20,7 @@ from DashboardModules.TicketModule import ticket_module
 from DashboardModules.loaModule import loa_route
 from DashboardModules.RobloxLink import roblox_link_route
 from DashboardModules.Sessions import sessions_route
+from DashboardModules.Spreadsheets import spreadsheet_route
 
 from utils.site_utils import *
 
@@ -53,6 +54,7 @@ app.register_blueprint(ticket_module)
 app.register_blueprint(loa_route)
 app.register_blueprint(roblox_link_route)
 app.register_blueprint(sessions_route)
+app.register_blueprint(spreadsheet_route)
 
 login_manager = LoginManager(app)
 login_manager.init_app(app)

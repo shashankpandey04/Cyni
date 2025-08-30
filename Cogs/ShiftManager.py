@@ -4,10 +4,9 @@ import time
 
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from discord import app_commands
-from cyni import is_roblox_management, is_roblox_staff, roblox_management_check
+from cyni import is_roblox_management, is_roblox_staff, roblox_management_check, roblox_management_check
 from utils.utils import log_command_usage
 from utils.autocompletes import shift_type_autocomplete
-from utils.pagination import Pagination
 from Views.ShiftManager import *
 from utils.basic_pager import BasicPager
 
@@ -16,6 +15,29 @@ class ShiftManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+# Shift Type Doc
+# {
+#   "_id": {
+#     "$numberLong": "1228305781938720779"
+#   },
+#   "test": {
+#     "access_role": [
+#       {
+#         "$numberLong": "1236184696417816636"
+#       },
+#       {
+#         "$numberLong": "1236184610224738404"
+#       }
+#     ]
+#   },
+#   "Affiliate": {
+#     "access_role": [
+#       {
+#         "$numberLong": "1236184656261677066"
+#       }
+#     ]
+#   }
+# }
     @commands.hybrid_group(
         name="shift",
         aliases=["shifts"],
@@ -50,6 +72,18 @@ class ShiftManager(commands.Cog):
                     )
                 )
             
+            if shift != "default":
+                user_roles = [role.id for role in ctx.author.roles]
+                shift_access_roles = shift_types.get(shift, {}).get("access_role", [])
+                if not any(role in user_roles for role in shift_access_roles):
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Access Denied",
+                            description="You do not have permission to manage this shift.",
+                            color=RED_COLOR
+                        )
+                    )
+
             active_shift = await self.bot.shift_logs.find(
                 {
                     "guild_id": ctx.guild.id,
@@ -101,6 +135,18 @@ class ShiftManager(commands.Cog):
                         color=RED_COLOR
                     )
                 )
+
+            if shift != "default":
+                user_roles = [role.id for role in ctx.author.roles]
+                shift_access_roles = shift_types.get(shift, {}).get("access_role", [])
+                if not any(role in user_roles for role in shift_access_roles):
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Access Denied",
+                            description="You do not have permission to manage this shift.",
+                            color=RED_COLOR
+                        )
+                    )
 
             active_shifts = await self.bot.shift_logs.find(
                 {
@@ -162,6 +208,18 @@ class ShiftManager(commands.Cog):
                     )
                 )
 
+            if shift != "default":
+                user_roles = [role.id for role in ctx.author.roles]
+                shift_access_roles = shift_types.get(shift, {}).get("access_role", [])
+                if not any(role in user_roles for role in shift_access_roles):
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Access Denied",
+                            description="You do not have permission to manage this shift.",
+                            color=RED_COLOR
+                        )
+                    )
+                
             history = await self.bot.shift_logs.find(
                 {
                     "guild_id": ctx.guild.id,
@@ -213,6 +271,30 @@ class ShiftManager(commands.Cog):
         View the shift leaderboard.
         """
         try:
+            
+            shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+            filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+            if shift not in filtered_shift_types:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Invalid Shift Type",
+                        description="Please make sure you have selected a valid shift type.",
+                        color=RED_COLOR
+                    )
+                )
+            
+            if shift != "default":
+                user_roles = [role.id for role in ctx.author.roles]
+                shift_access_roles = shift_types.get(shift, {}).get("access_role", [])
+                if not any(role in user_roles for role in shift_access_roles):
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Access Denied",
+                            description="You do not have permission to manage this shift.",
+                            color=RED_COLOR
+                        )
+                    )
+                
             leaderboard_data = await self.bot.shift_logs.aggregate([
                 {
                     "$match": {
@@ -234,6 +316,15 @@ class ShiftManager(commands.Cog):
                     "$limit": 10
                 }
             ])
+
+            if not leaderboard_data:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="No Data",
+                        description="No shift data found for the specified shift type.",
+                        color=RED_COLOR
+                    )
+                )
 
             embeds = []
             embed = discord.Embed(
@@ -261,16 +352,24 @@ class ShiftManager(commands.Cog):
                         )
                         embed.description = ""
                 
-                # Append the last embed if it has content
                 if embed.description:
                     embeds.append(embed)
             else:
                 embed.description = "> **No shift data found.**"
                 embeds.append(embed)
 
+            button_view = discord.ui.View()
+            url_button = discord.ui.Button(
+                label="View Spreadsheet",
+                url=f"https://cyni.quprdigital.tk/spreadsheets/shifts/{ctx.guild.id}/{shift.lower()}",
+                style=discord.ButtonStyle.url,
+                row=1
+            )
+            button_view.add_item(url_button)
             pager = BasicPager(
                 user_id=ctx.author.id,
-                embeds=embeds
+                embeds=embeds,
+                view=button_view
             )
             await ctx.send(embed=embeds[0], view=pager)
 
@@ -295,6 +394,29 @@ class ShiftManager(commands.Cog):
         Reset the shift leaderboard.
         """
         try:
+            shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+            filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+            if shift not in filtered_shift_types:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Invalid Shift Type",
+                        description="Please make sure you have selected a valid shift type.",
+                        color=RED_COLOR
+                    )
+                )
+
+            if shift != "default":
+                user_roles = [role.id for role in ctx.author.roles]
+                shift_access_roles = shift_types.get(shift, {}).get("access_role", [])
+                if not any(role in user_roles for role in shift_access_roles):
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Access Denied",
+                            description="You do not have permission to manage this shift.",
+                            color=RED_COLOR
+                        )
+                    )
+
             view = ShiftLeaderBoardMenu(self.bot, ctx, shift)
             await ctx.send(
                 embed=discord.Embed(

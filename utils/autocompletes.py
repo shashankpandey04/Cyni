@@ -131,14 +131,14 @@ async def shift_type_autocomplete(
         ]
 
     shift_types = list(data.keys()) if isinstance(data, dict) else []
-
+    
     if shift_types and len(shift_types) != 0:
         return [
             app_commands.Choice(
                 name=shift_type,
                 value=shift_type
             )
-            for shift_type in shift_types
+            for shift_type in shift_types if shift_type != "_id"
         ]
     else:
         return [

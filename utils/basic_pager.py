@@ -2,11 +2,12 @@ import discord
 from discord.ext import commands
 
 class BasicPager(discord.ui.View):
-    def __init__(self, user_id: int, embeds):
+    def __init__(self, user_id: int, embeds, view=None):
         super().__init__()
         self.user_id = user_id
         self.embeds = embeds
         self.current = 0
+        self.view = view #Just in case I want to inherit a view
 
         # Create pager buttons
         self.first_button = discord.ui.Button(label="⏮️", style=discord.ButtonStyle.secondary, row=0)
@@ -27,6 +28,10 @@ class BasicPager(discord.ui.View):
         self.add_item(self.last_button)
 
         self.update_buttons()
+
+        if self.view:
+            for item in self.view.children:
+                self.add_item(item)
 
     def update_buttons(self):
         # Disable buttons at bounds
