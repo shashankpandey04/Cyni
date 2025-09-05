@@ -590,20 +590,20 @@ class ServerManagement(discord.ui.View):
         self.enable_disable_select.callback = self.enable_disable_callback
         self.add_item(self.enable_disable_select)
 
-        try:
-            app_channel = self.sett["server_management"]["application_channel"]
-        except KeyError:
-            app_channel = 0
-        self.application_channel_select = discord.ui.ChannelSelect(
-            placeholder="Application Results Channel",
-            row=1,
-            min_values=1,
-            max_values=1,
-            default_values=[discord.Object(id=app_channel)] if app_channel else [],
-            channel_types=[discord.ChannelType.text]
-        )
-        self.application_channel_select.callback = self.application_channel_callback
-        self.add_item(self.application_channel_select)
+        # try:
+        #     app_channel = self.sett["server_management"]["application_channel"]
+        # except KeyError:
+        #     app_channel = 0
+        # self.application_channel_select = discord.ui.ChannelSelect(
+        #     placeholder="Application Results Channel",
+        #     row=1,
+        #     min_values=1,
+        #     max_values=1,
+        #     default_values=[discord.Object(id=app_channel)] if app_channel else [],
+        #     channel_types=[discord.ChannelType.text]
+        # )
+        # self.application_channel_select.callback = self.application_channel_callback
+        # self.add_item(self.application_channel_select)
 
         try:
             cyni_log_channel = self.sett["server_management"]["cyni_log_channel"]
@@ -611,7 +611,7 @@ class ServerManagement(discord.ui.View):
             cyni_log_channel = 0
         self.cyni_log_channel_select = discord.ui.ChannelSelect(
             placeholder="Cyni Logging Channel",
-            row=2,
+            row=1,
             min_values=1,
             max_values=1,
             default_values=[discord.Object(id=cyni_log_channel)] if cyni_log_channel else [],
@@ -626,7 +626,7 @@ class ServerManagement(discord.ui.View):
             suggestion_channel = 0
         self.suggestion_channel_select = discord.ui.ChannelSelect(
             placeholder="Suggestion Channel",
-            row=3,
+            row=2,
             min_values=1,
             max_values=1,
             default_values=[discord.Object(id=suggestion_channel)] if suggestion_channel else [],
@@ -634,6 +634,13 @@ class ServerManagement(discord.ui.View):
         )
         self.suggestion_channel_select.callback = self.suggestion_channel_callback
         self.add_item(self.suggestion_channel_select)
+
+        self.message_quota_button = discord.ui.Button(
+            label="Configure Message Quota",
+            style=discord.ButtonStyle.primary
+        )
+        self.message_quota_button.callback = self.message_quota_callback
+        self.add_item(self.message_quota_button)
 
     async def enable_disable_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:
@@ -652,21 +659,21 @@ class ServerManagement(discord.ui.View):
         settings = await self.bot.settings.find_by_id(interaction.guild.id)
         await interaction.response.send_message(f"Server Management Module {'Enabled' if settings.get('server_management', {}).get('enabled', False) else 'Disabled'}",ephemeral=True)
 
-    async def application_channel_callback(self,interaction:discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message(
-                "You are not allowed to use this menu.", 
-                ephemeral=True
-            )
-        settings = await self.bot.settings.find_by_id(interaction.guild.id)
-        if not isinstance(settings, dict):
-            settings = {"_id": interaction.guild.id}
-        try:
-            settings["server_management"]["application_channel"] = self.application_channel_select.values[0].id
-        except KeyError:
-            settings = {"_id": interaction.guild.id, "server_management": {"application_channel": self.application_channel_select.values[0].id}}
-        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
-        await interaction.response.send_message("Application Channel Updated!",ephemeral=True)
+    # async def application_channel_callback(self,interaction:discord.Interaction):
+    #     if interaction.user.id != self.user_id:
+    #         return await interaction.response.send_message(
+    #             "You are not allowed to use this menu.", 
+    #             ephemeral=True
+    #         )
+    #     settings = await self.bot.settings.find_by_id(interaction.guild.id)
+    #     if not isinstance(settings, dict):
+    #         settings = {"_id": interaction.guild.id}
+    #     try:
+    #         settings["server_management"]["application_channel"] = self.application_channel_select.values[0].id
+    #     except KeyError:
+    #         settings = {"_id": interaction.guild.id, "server_management": {"application_channel": self.application_channel_select.values[0].id}}
+    #     await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
+    #     await interaction.response.send_message("Application Channel Updated!",ephemeral=True)
 
     async def cyni_log_channel_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:
@@ -699,6 +706,37 @@ class ServerManagement(discord.ui.View):
             settings = {"_id": interaction.guild.id, "server_management": {"suggestion_channel": self.suggestion_channel_select.values[0].id}}
         await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("Suggestion Channel Updated!",ephemeral=True)
+
+    # async def message_quota_callback(self, interaction: discord.Interaction):
+    #     if interaction.user.id != self.user_id:
+    #         return await interaction.response.send_message(
+    #             "You are not allowed to use this menu.",
+    #             ephemeral=True
+    #         )
+    #     settings = await self.bot.settings.find_by_id(interaction.guild.id)
+    #     if not isinstance(settings, dict):
+    #         settings = {"_id": interaction.guild.id}
+        
+
+class MessageQuotaView(discord.ui.View):
+    def __init__(self, user_id, bot):
+        super().__init__()
+        self.user_id = user_id
+        self.bot = bot
+        
+        self.create_quota_button = discord.ui.Button(
+            label="Create Message Quota",
+            style=discord.ButtonStyle.secondary
+        )
+        self.create_quota_button.callback = self.message_quota_callback
+        self.add_item(self.create_quota_button)
+
+        self.delete_quota_button = discord.ui.Button(
+            label="Delete Message Quota",
+            style=discord.ButtonStyle.secondary
+        )
+        self.delete_quota_button.callback = self.message_quota_callback
+        self.add_item(self.delete_quota_button)
 
 class UpVote(discord.ui.Button):
     def __init__(self, row):
@@ -928,8 +966,6 @@ class LOARequest(View):
         self.add_item(self.deny_button)
 
     async def accept_callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
 
         document = await self.bot.loa.find_by_id(ObjectId(self.schema_id))
         if not isinstance(document, dict):
@@ -997,8 +1033,6 @@ class LOARequest(View):
         await interaction.message.edit(embed=embed, view=None)
 
     async def deny_callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.user_id:
-            return await interaction.response.send_message("You are not allowed to use this menu.", ephemeral=True)
 
         document = await self.bot.loa.find_by_id(ObjectId(self.schema_id))
         if not isinstance(document, dict):

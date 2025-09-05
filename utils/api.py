@@ -58,12 +58,18 @@ async def validate_authorization(bot, token: str):
 class APIRoutes:
 
     RATE_LIMIT_WINDOW = 1
-    RATE_LIMIT_THRESHOLD = 20
+    RATE_LIMIT_THRESHOLD = 15
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.router = APIRouter()
         self.request_times = []
+
+        self.RATE_LIMIT_WINDOW = 1  # 1 second window
+        if self.bot.is_premium:
+            self.RATE_LIMIT_THRESHOLD = 30
+        else:
+            self.RATE_LIMIT_THRESHOLD = 15
 
         for attr in dir(self):
             if attr.startswith(("GET_", "POST_", "PATCH_", "DELETE_")) and not attr.startswith("_"):
