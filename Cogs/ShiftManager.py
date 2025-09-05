@@ -271,7 +271,7 @@ class ShiftManager(commands.Cog):
         View the shift leaderboard.
         """
         try:
-            
+            await ctx.typing()
             shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
             filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
             if shift not in filtered_shift_types:
