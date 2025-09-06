@@ -69,6 +69,8 @@ Session(app)
 
 bot_token = os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") or os.getenv("DEV_TOKEN")
 
+CYNI_PREMIUM_API_URL = os.getenv("CYNI_PREMIUM_API_URL")
+
 class User(UserMixin):
     def __init__(self, id):
         self.id = id
@@ -304,7 +306,7 @@ def dashboard():
     
     all_bot_guilds = {
         CYNI_API_BASE_URL: set(get_bot_guilds(CYNI_API_BASE_URL)),
-        CYNI_PREMIUM_URL: set(get_bot_guilds(CYNI_PREMIUM_URL)),
+        CYNI_PREMIUM_API_URL: set(get_bot_guilds(CYNI_PREMIUM_API_URL)),
     }
     all_bot_guilds.update({api_url: set(get_bot_guilds(api_url)) for api_url in whitelabel_bots})
     
@@ -327,8 +329,8 @@ def dashboard():
                 guild["api_url"] = CYNI_API_BASE_URL
                 user_guilds.append(guild)
                 seen_guild_ids.add(gid)
-            elif gid in all_bot_guilds[CYNI_PREMIUM_URL]:
-                guild["api_url"] = CYNI_PREMIUM_URL
+            elif gid in all_bot_guilds[CYNI_PREMIUM_API_URL]:
+                guild["api_url"] = CYNI_PREMIUM_API_URL
                 user_guilds.append(guild)
                 seen_guild_ids.add(gid)
 

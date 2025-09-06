@@ -635,12 +635,12 @@ class ServerManagement(discord.ui.View):
         self.suggestion_channel_select.callback = self.suggestion_channel_callback
         self.add_item(self.suggestion_channel_select)
 
-        self.message_quota_button = discord.ui.Button(
-            label="Configure Message Quota",
-            style=discord.ButtonStyle.primary
-        )
-        self.message_quota_button.callback = self.message_quota_callback
-        self.add_item(self.message_quota_button)
+        # self.message_quota_button = discord.ui.Button(
+        #     label="Configure Message Quota",
+        #     style=discord.ButtonStyle.primary
+        # )
+        # self.message_quota_button.callback = self.message_quota_callback
+        # self.add_item(self.message_quota_button)
 
     async def enable_disable_callback(self,interaction:discord.Interaction):
         if interaction.user.id != self.user_id:
@@ -1195,3 +1195,24 @@ class LOAConfig(discord.ui.View):
         await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
         await interaction.response.send_message("LOA Role Updated!",ephemeral=True)
         
+class CustomModal(discord.ui.Modal):
+    def __init__(self, title: str, inputs: list[tuple[str, discord.ui.TextInput]]):
+        super().__init__(title=title, timeout=300)  # 5 min timeout
+        self.values = {}  # store results
+
+        for custom_id, text_input in inputs:
+            # assign an ID for retrieval
+            text_input.custom_id = custom_id
+            self.add_item(text_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Save all inputs into self.values
+        for child in self.children:
+            if isinstance(child, discord.ui.TextInput):
+                self.values[child.custom_id] = child.value
+        await interaction.response.defer()  # acknowledge modal submit (no message sent)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+        await interaction.response.send_message(
+            f"An error occurred: {error}", ephemeral=True
+        )

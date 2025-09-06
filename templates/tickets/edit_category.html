@@ -186,6 +186,62 @@
                 <span class="text-gray-400 text-sm">Color for the embed's sidebar</span>
               </div>
             </div>
+
+            <!-- Welcome Embed Settings -->
+            <h4 class="text-lg font-medium text-white mb-4">Welcome Embed</h4>
+            
+            <div class="mb-6">
+              <label for="welcome_embed_title" class="block text-sm font-medium text-gray-300 mb-2">Embed Title</label>
+              <input 
+                type="text" 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="welcome_embed_title" 
+                name="welcome_embed_title" 
+                value="{{ category.welcome_embed.title }}">
+              <p class="mt-2 text-sm text-gray-400">Title for the welcome embed</p>
+            </div>
+            
+            <div class="mb-6">
+              <label for="welcome_embed_description" class="block text-sm font-medium text-gray-300 mb-2">Embed Description</label>
+              <textarea 
+                class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
+                id="welcome_embed_description" 
+                name="welcome_embed_description" 
+                rows="3">{{ category.welcome_embed.description }}</textarea>
+              <p class="mt-2 text-sm text-gray-400">Description text for the welcome embed</p>
+            </div>
+            
+            <div class="mb-6">
+              <label for="embed_color" class="block text-sm font-medium text-gray-300 mb-2">Embed Color</label>
+              <div class="flex items-center">
+                <input 
+                  type="color" 
+                  class="h-10 w-12 rounded mr-2 bg-transparent border-0 cursor-pointer" 
+                  id="embed_color" 
+                  name="embed_color" 
+                  value="#{{ '%06x' % category.welcome_embed.color }}">
+                <span class="text-gray-400 text-sm">Color for the embed's sidebar</span>
+              </div>
+            </div>
+
+            <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden md:col-span-2">
+              <div class="border-b border-white/20 dark:border-slate-700/30 p-5">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Channel Naming Scheme</h3>
+              </div>
+              <div class="p-5 space-y-5">
+                <div>
+                  <label for="naming_scheme" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Naming Scheme</label>
+                  <input 
+                    type="text" 
+                    class="w-full bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none" 
+                    id="naming_scheme" 
+                    name="naming_scheme" 
+                    value="{ticket_id}-{username}"
+                    x-model="formData.namingScheme">
+                  <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Use the following placeholders: {ticket_id}, {username}, {user_id}, {ticket_number}</p>
+                </div>
+              </div>
+            </div>
             
             <!-- Action Buttons -->
             <div class="flex justify-between mt-8">

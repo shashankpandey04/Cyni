@@ -3,147 +3,132 @@
 {% block title %}Ticket Management | Cyni{% endblock %}
 
 {% block content %}
-<!-- Main Layout Container - Unified scroll system -->
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pt-16">
   {% include 'sidebar.html' %}
   <div class="md:ml-64">
-    <main class="p-6 lg:p-8 max-w-4xl mx-auto">
+    <main class="p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
       
       <!-- Page Header -->
-      <div class="mb-8 flex justify-between items-center">
+      <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Ticket Management</h1>
+          <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white">Ticket Management</h1>
           <p class="text-slate-600 dark:text-slate-400">View and manage all tickets in your server</p>
         </div>
         <a href="{{ url_for('ticket_module.ticket_settings', guild_id=guild.id) }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900">
           <i class="fas fa-cog mr-2"></i> Ticket Settings
         </a>
       </div>
-      
+
       <!-- Tickets Panel -->
-      <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden mb-8">
+      <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30">
         <div class="border-b border-white/20 dark:border-slate-700/30 p-6">
           <h3 class="text-xl font-semibold text-slate-900 dark:text-white">All Tickets</h3>
           <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Manage and view tickets from your server</p>
         </div>
         <div class="p-6">
           <!-- Tab Navigation -->
-          <div class="border-b border-slate-200 dark:border-slate-700/30">
-            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" role="tablist">
-              <li class="mr-2" role="presentation">
-                <button 
-                  class="inline-block p-4 border-b-2 border-amber-500 text-amber-500 rounded-t-lg active" 
-                  id="open-tickets-tab" 
-                  data-bs-toggle="tab" 
-                  data-bs-target="#open-tickets" 
-                  type="button" 
-                  role="tab" 
-                  aria-controls="open-tickets" 
-                  aria-selected="true">
-                  <i class="fas fa-envelope-open-text mr-2"></i> Open Tickets
-                </button>
-              </li>
-              <li class="mr-2" role="presentation">
-                <button 
-                  class="inline-block p-4 border-b-2 border-transparent hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-300 rounded-t-lg" 
-                  id="closed-tickets-tab" 
-                  data-bs-toggle="tab" 
-                  data-bs-target="#closed-tickets" 
-                  type="button" 
-                  role="tab" 
-                  aria-controls="closed-tickets" 
-                  aria-selected="false">
-                  <i class="fas fa-envelope mr-2"></i> Closed Tickets
-                </button>
-              </li>
-            </ul>
-          </div>
-          
-          <!-- Tab Content -->
-          <div class="tab-content pt-6" id="ticketTabsContent">
-            <!-- Open Tickets Tab -->
-            <div class="tab-pane fade show active" id="open-tickets" role="tabpanel" aria-labelledby="open-tickets-tab">
-              {% set open_tickets = tickets|selectattr('status', 'equalto', 'open')|list %}
-              {% if open_tickets %}
-              <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                  <thead class="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-100 dark:bg-slate-800/30">
-                    <tr>
-                      <th scope="col" class="px-6 py-3 rounded-l-lg">ID</th>
-                      <th scope="col" class="px-6 py-3">User</th>
-                      <th scope="col" class="px-6 py-3">Category</th>
-                      <th scope="col" class="px-6 py-3">Created</th>
-                      <th scope="col" class="px-6 py-3 rounded-r-lg">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for ticket in open_tickets %}
-                    <tr class="border-b border-slate-200 dark:border-slate-700/30">
-                      <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ loop.index }}</td>
-                      <td class="px-6 py-4 text-slate-900 dark:text-white">{{ ticket.username }}</td>
-                      <td class="px-6 py-4 text-amber-500">{{ ticket.category_name }}</td>
-                      <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ ticket.created_at|int|datetime }}</td>
-                      <td class="px-6 py-4">
-                        <a href="{{ url_for('ticket_module.view_transcript', guild_id=guild.id, transcript_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
-                          <i class="fas fa-eye mr-2"></i> View
-                        </a>
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              {% else %}
-              <div class="bg-slate-100 dark:bg-slate-800/40 rounded-lg p-6 text-center">
-                <p class="text-slate-600 dark:text-slate-300">No open tickets found.</p>
-              </div>
-              {% endif %}
+          <div x-data="{ activeTab: 'open' }">
+            <div class="flex border-b border-slate-200 dark:border-slate-700/30">
+              <button 
+                class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+                :class="activeTab === 'open' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-600 dark:text-slate-300 hover:border-slate-300'"
+                @click="activeTab = 'open'">
+                <i class="fas fa-envelope-open-text mr-2"></i> Open Tickets
+              </button>
+              <button 
+                class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+                :class="activeTab === 'closed' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-600 dark:text-slate-300 hover:border-slate-300'"
+                @click="activeTab = 'closed'">
+                <i class="fas fa-envelope mr-2"></i> Closed Tickets
+              </button>
             </div>
-            
-            <!-- Closed Tickets Tab -->
-            <div class="tab-pane fade" id="closed-tickets" role="tabpanel" aria-labelledby="closed-tickets-tab">
-              {% set closed_tickets = tickets|selectattr('status', 'equalto', 'closed')|list %}
-              {% if closed_tickets %}
-              <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                  <thead class="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-100 dark:bg-slate-800/30">
-                    <tr>
-                      <th scope="col" class="px-6 py-3 rounded-l-lg">ID</th>
-                      <th scope="col" class="px-6 py-3">User</th>
-                      <th scope="col" class="px-6 py-3">Category</th>
-                      <th scope="col" class="px-6 py-3">Created</th>
-                      <th scope="col" class="px-6 py-3 rounded-r-lg">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for ticket in closed_tickets %}
-                    <tr class="border-b border-slate-200 dark:border-slate-700/30">
-                      <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ loop.index }}</td>
-                      <td class="px-6 py-4 text-slate-900 dark:text-white">{{ ticket.username }}</td>
-                      <td class="px-6 py-4 text-amber-500">{{ ticket.category_name }}</td>
-                      <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ ticket.created_at|int|datetime }}</td>
-                      <td class="px-6 py-4">
-                        <a href="{{ url_for('ticket_module.view_transcript', guild_id=guild.id, transcript_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
-                          <i class="fas fa-eye mr-2"></i> View
-                        </a>
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+
+            <!-- Tab Content -->
+            <div class="pt-6">
+              <!-- Open Tickets Tab -->
+              <div x-show="activeTab === 'open'" x-transition>
+                {% set open_tickets = tickets|selectattr('status', 'equalto', 'open')|list %}
+                {% if open_tickets %}
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-100 dark:bg-slate-800/30">
+                      <tr>
+                        <th class="px-6 py-3 rounded-l-lg">ID</th>
+                        <th class="px-6 py-3">User</th>
+                        <th class="px-6 py-3">Category</th>
+                        <th class="px-6 py-3">Created</th>
+                        <th class="px-6 py-3 rounded-r-lg">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for ticket in open_tickets %}
+                      <tr class="border-b border-slate-200 dark:border-slate-700/30 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ loop.index }}</td>
+                        <td class="px-6 py-4 text-slate-900 dark:text-white">{{ ticket.username }}</td>
+                        <td class="px-6 py-4 text-amber-500">{{ ticket.category_name }}</td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ ticket.created_at|int|datetime }}</td>
+                        <td class="px-6 py-4">
+                          <a href="{{ url_for('ticket_module.view_transcript', guild_id=guild.id, transcript_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                            <i class="fas fa-eye mr-2"></i> View
+                          </a>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% else %}
+                <div class="bg-slate-100 dark:bg-slate-800/40 rounded-lg p-6 text-center">
+                  <p class="text-slate-600 dark:text-slate-300">No open tickets found.</p>
+                </div>
+                {% endif %}
               </div>
-              {% else %}
-              <div class="bg-slate-100 dark:bg-slate-800/40 rounded-lg p-6 text-center">
-                <p class="text-slate-600 dark:text-slate-300">No closed tickets found.</p>
+
+              <!-- Closed Tickets Tab -->
+              <div x-show="activeTab === 'closed'" x-transition>
+                {% set closed_tickets = tickets|selectattr('status', 'equalto', 'closed')|list %}
+                {% if closed_tickets %}
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left border-collapse">
+                    <thead class="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-100 dark:bg-slate-800/30">
+                      <tr>
+                        <th class="px-6 py-3 rounded-l-lg">ID</th>
+                        <th class="px-6 py-3">User</th>
+                        <th class="px-6 py-3">Category</th>
+                        <th class="px-6 py-3">Created</th>
+                        <th class="px-6 py-3 rounded-r-lg">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for ticket in closed_tickets %}
+                      <tr class="border-b border-slate-200 dark:border-slate-700/30 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ loop.index }}</td>
+                        <td class="px-6 py-4 text-slate-900 dark:text-white">{{ ticket.username }}</td>
+                        <td class="px-6 py-4 text-amber-500">{{ ticket.category_name }}</td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ ticket.created_at|int|datetime }}</td>
+                        <td class="px-6 py-4">
+                          <a href="{{ url_for('ticket_module.view_transcript', guild_id=guild.id, transcript_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                            <i class="fas fa-eye mr-2"></i> View
+                          </a>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% else %}
+                <div class="bg-slate-100 dark:bg-slate-800/40 rounded-lg p-6 text-center">
+                  <p class="text-slate-600 dark:text-slate-300">No closed tickets found.</p>
+                </div>
+                {% endif %}
               </div>
-              {% endif %}
             </div>
           </div>
         </div>
       </div>
-      
+
       <!-- Help Section -->
-      <div class="mt-8 glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30 overflow-hidden">
+      <div class="glass-effect rounded-xl shadow-lg border border-white/20 dark:border-slate-700/30">
         <div class="p-6">
           <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Ticket Management Tips</h3>
           <ul class="space-y-3 text-slate-600 dark:text-slate-300 text-sm">

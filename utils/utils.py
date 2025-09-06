@@ -352,7 +352,7 @@ def time_converter(parameter: str) -> int:
                 number = number.replace("-", "")
                 if not number.strip()[-1].isdigit():
                     continue
-                return int(number.strip()) * multiplier
+                return int(number.strip()) * multiplier #this returns the time in seconds
 
     raise ValueError("Invalid time format")
 

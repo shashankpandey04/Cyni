@@ -1,10 +1,9 @@
 from flask import render_template, redirect, url_for, request, flash, Blueprint, session
 from flask_login import login_required, current_user
 from cyni import bot
-from pymongo import MongoClient
-import os
 from dotenv import load_dotenv
 from Database.Mongo import mongo_db
+from utils.site_utils import check_permissions, get_guild, get_guild_member, get_guild_channels, get_guild_roles
 
 load_dotenv()
 
@@ -13,17 +12,23 @@ welcome_route = Blueprint('welcome_module', __name__)
 @welcome_route.route('/dashboard/<guild_id>/settings/welcome', methods=['GET', 'POST'])
 @login_required
 def welcome(guild_id):
-    guild = bot.get_guild(int(guild_id))
+    guild_id = int(guild_id)
+    guild = get_guild(guild_id)
     if not guild:
-        flash('Guild not found', 'danger')
-        return redirect(url_for('dashboard'))
+        flash("Guild not found or you do not have access to it.", "error")
+        return redirect(url_for("dashboard"))
     
-    member = guild.get_member(int(session["user_id"]))
-    if not member or not (member.guild_permissions.manage_guild or member.guild_permissions.administrator):
-        flash('You do not have the required permissions to access this page', 'danger')
-        return redirect(url_for('dashboard'))
+    member = get_guild_member(guild_id, session["user_id"])
+    if not member:
+        flash("You do not have access to this guild.", "error")
+        return redirect(url_for("dashboard"))
+        
+    has_perm = check_permissions(guild_id, session["user_id"])
+    if has_perm is False:
+        flash("You need Management Roles to access this page.", "error")
+        return redirect(url_for("dashboard"))
     
-    guild_data = mongo_db["settings"].find_one({"_id": guild.id})
+    guild_data = mongo_db["settings"].find_one({"_id": guild['id']})
     if request.method == 'POST':
         welcome_message = request.form.get('welcome_message', '')
         welcome_channel = request.form.get('welcome_channel', '')
@@ -53,6 +58,6 @@ def welcome(guild_id):
         mongo_db["settings"].update_one({"_id": guild.id}, {"$set": {"welcome_module": welcome_module}})
         return redirect(url_for('welcome_module.welcome', guild_id=guild.id))
 
-    channels = {channel.id: channel.name for channel in guild.channels}
-    roles = {role.id: role.name for role in guild.roles}
+    channels = get_guild_channels(guild['id'])
+    roles = get_guild_roles(guild['id'])
     return render_template('welcome_module/index.html', user=current_user, guild=guild, guild_data=guild_data, channels=channels, roles=roles)

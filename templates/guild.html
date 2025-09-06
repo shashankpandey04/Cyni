@@ -87,7 +87,7 @@
           </a>
         </div>
 
-        {% set moderation_enabled = guild_data.get('moderation_module', {}).get('enabled', False) %}
+        {% set moderation_enabled = guild_data['moderation_module']['enabled'] if guild_data and 'moderation_module' in guild_data and 'enabled' in guild_data['moderation_module'] else False %}
         <div class="group relative flex flex-col min-h-[180px] flex-grow">
           <div class="absolute -inset-0.5 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
           {% if moderation_enabled %}
@@ -126,7 +126,7 @@
           {% endif %}
         </div>
 
-        {% set automod_enabled = guild_data.get('automod_module', {}).get('enabled', False) %}
+        {% set automod_enabled = guild_data['automod_module']['enabled'] if guild_data and 'automod_module' in guild_data and 'enabled' in guild_data['automod_module'] else False %}
         <div class="group relative flex flex-col min-h-[180px] flex-grow">
           <div class="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
           {% if automod_enabled %}

@@ -22,16 +22,13 @@ api_token = os.getenv("API_TOKEN", "default_api_token")
 
 headers = {"Authorization": api_token}
 
-CYNI_API_BASE_URL = os.getenv("CYNI_API_BASE_URL", "http://127.0.0.1:5000")
-CYNI_PREMIUM_URL = os.getenv("CYNI_PREMIUM_URL", "https://cyni-premium-api.x6xkh0.easypanel.host")
+CYNI_API_BASE_URL = os.getenv("CYNI_API_BASE_URL", "https://cyni-api.x6xkh0.easypanel.host")
+CYNI_PREMIUM_API_URL = os.getenv("CYNI_PREMIUM_API_URL", "https://cyni-premium-api.x6xkh0.easypanel.host")
 
 def get_api_url_for_guild(guild_id: str) -> str:
-    #wl_doc = mongo_db["whitelabel"].find_one({"_id": guild_id}, {"api_url": 1})
     premium_doc = mongo_db["premium"].find_one({"_id": guild_id})
-    #if premium_doc and wl_doc:
-        #return wl_doc.get("api_url")
     if premium_doc:
-        return CYNI_PREMIUM_URL
+        return CYNI_PREMIUM_API_URL
     else:
         return CYNI_API_BASE_URL
 
@@ -77,17 +74,18 @@ def get_guild_member(guild_id, user_id):
 def check_permissions(guild_id, user_id):
     guild = get_guild(guild_id)
     member = get_guild_member(guild_id, user_id)
-    settings = mongo_db["settings"].find_one({"_id": int(guild_id)})
-    if not guild or not member or not settings:
+    if not guild or not member:
         return False
-    return (
-        member.get("is_admin") or
-        member.get("is_manage_guild") or
-        (member.get("roles") and any(
-            role in settings.get("basic_settings", {}).get("management_roles", [])
-            for role in member.get("roles", [])
-        ))
-    )
+    settings = mongo_db["settings"].find_one({"_id": int(guild_id)})
+    has_permission = False
+    if member.get("is_admin") or member.get("is_owner") or member.get("is_manage_guild"):
+        has_permission = True
+    else:
+        user_roles = set(member.get("roles", []))
+        management_roles = set(settings.get("basic_settings", {}).get("management_roles", []))
+        if user_roles.intersection(management_roles):
+            has_permission = True
+    return has_permission
 
 def get_guild_channels(guild_id):
     api_url = get_api_url_for_guild(guild_id)
@@ -136,4 +134,36 @@ def get_guild_members(guild_id):
         return response.json()
     else:
         print(f"Error fetching members for guild {guild_id}: {response.status_code} - {response.text}")
+        return None
+    
+def get_guild_categories(guild_id):
+    api_url = get_api_url_for_guild(guild_id)
+    if not api_url:
+        print(f"API URL for guild {guild_id} not found.")
+        return None
+    response = requests.post(
+        f"{api_url}/fetch_guild_categories",
+        json={"guild_id": guild_id},
+        headers=headers
+    )
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching categories for guild {guild_id}: {response.status_code} - {response.text}")
+        return None
+    
+def get_guild_emojis(guild_id):
+    api_url = get_api_url_for_guild(guild_id)
+    if not api_url:
+        print(f"API URL for guild {guild_id} not found.")
+        return None
+    response = requests.post(
+        f"{api_url}/fetch_guild_emojis",
+        json={"guild_id": guild_id},
+        headers=headers
+    )
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching emojis for guild {guild_id}: {response.status_code} - {response.text}")
         return None

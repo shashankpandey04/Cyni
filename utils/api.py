@@ -140,7 +140,47 @@ class APIRoutes:
             raise HTTPException(status_code=404, detail="Guild not found")
         roles = {role.id: role.name for role in guild.roles}
         return roles
-    
+
+    async def POST_fetch_guild_categories(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Get a list of categories in a guild."""
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+        json_data = await request.json()
+        guild_id = json_data.get("guild_id")
+        if not guild_id:
+            raise HTTPException(status_code=400, detail="Guild ID not provided")
+        guild = self.bot.get_guild(int(guild_id))
+        if not guild:
+            raise HTTPException(status_code=404, detail="Guild not found")
+        categories = {category.id: category.name for category in guild.categories}
+        return categories
+
+    async def POST_fetch_guild_emojis(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
+    ):
+        """Get a list of emojis in a guild."""
+        if not authorization:
+            raise HTTPException(status_code=401, detail="Invalid authorization")
+        if not await validate_authorization(self.bot, authorization):
+            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
+        json_data = await request.json()
+        guild_id = json_data.get("guild_id")
+        if not guild_id:
+            raise HTTPException(status_code=400, detail="Guild ID not provided")
+        guild = self.bot.get_guild(int(guild_id))
+        if not guild:
+            raise HTTPException(status_code=404, detail="Guild not found")
+        emojis = {emoji.id: emoji.url for emoji in guild.emojis}
+        return emojis
+
     async def POST_fetch_guild_channels(
         self,
         authorization: Annotated[str | None, Header()],

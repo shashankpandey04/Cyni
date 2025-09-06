@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import time
 
-from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR, YELLOW_COLOR
 from discord import app_commands
 from cyni import is_roblox_management, is_roblox_staff, roblox_management_check, roblox_management_check
 from utils.utils import log_command_usage
@@ -236,7 +236,12 @@ class ShiftManager(commands.Cog):
             embed.description = ""
             if history:
                 for shift in history:
+                    removed_time = shift.get("removed_time", 0)
                     total_duration_seconds = shift.get('duration', 0)
+                    total_duration_seconds -= removed_time
+                    added_time = shift.get("added_time", 0)
+                    total_duration_seconds = max(0, total_duration_seconds + added_time - removed_time)
+
                     hours, remainder = divmod(total_duration_seconds, 3600)
                     minutes, seconds = divmod(remainder, 60)
                     total_duration = f"{hours}h {minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
@@ -426,6 +431,128 @@ class ShiftManager(commands.Cog):
                 ),
                 view=view
             )
+        except Exception as e:
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while processing your request: ```{str(e)}```",
+                    color=RED_COLOR
+                )
+            )
+        
+    @shift.command(
+        name="admin",
+        description="Administrative shift commands."
+    )
+    @commands.guild_only()
+    @is_roblox_management()
+    @app_commands.autocomplete(shift=shift_type_autocomplete)
+    async def admin(self, ctx, user: discord.User, shift: str,):
+        """
+        Administrative shift commands.
+        """
+        try:
+            shift_types = await self.bot.shift_types.find_by_id(ctx.guild.id)
+            filtered_shift_types = list(shift_types.keys()) if isinstance(shift_types, dict) else ["default"]
+            if shift not in filtered_shift_types:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Invalid Shift Type",
+                        description="Please make sure you have selected a valid shift type.",
+                        color=RED_COLOR
+                    )
+                )
+
+            active_shift = await self.bot.shift_logs.find(
+                {
+                    "guild_id": ctx.guild.id,
+                    "user_id": user.id,
+                    "type": shift.lower(),
+                    "end_epoch": 0
+                }
+            )
+            past_shifts = await self.bot.shift_logs.find(
+                {
+                    "guild_id": ctx.guild.id,
+                    "user_id": user.id,
+                    "type": shift.lower(),
+                    "end_epoch": {"$ne": 0}
+                }
+            )
+
+            total_shift_duration_seconds = sum(shift.get('duration', 0) for shift in past_shifts) if past_shifts else 0
+            removed_time = sum(shift.get("removed_time", 0) for shift in past_shifts) if past_shifts else 0
+            total_shift_duration_seconds -= removed_time
+            added_time = sum(shift.get("added_time", 0) for shift in past_shifts) if past_shifts else 0
+            total_shift_duration_seconds = max(0, total_shift_duration_seconds + added_time - removed_time)
+
+            hours, remainder = divmod(total_shift_duration_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            total_shift_duration = f"{hours}h {minutes}m {seconds}s" if total_shift_duration_seconds > 0 else "Not Applicable"
+
+            embed = discord.Embed(
+                title=" ",
+                color=BLANK_COLOR
+            ).add_field(
+                name="Staff Information",
+                value=(
+                    f"> **User:** {ctx.author.mention} (`{ctx.author.id}`)\n"
+                    f"> **Shift Type:** {shift.capitalize()}\n"
+                    f"> **Past Shifts:** {len(past_shifts)}\n"
+                    f"> **Total Past Duration:** {total_shift_duration}\n\n"
+                ),
+                inline=False
+            )
+
+            if active_shift:
+                if active_shift:
+                    embed.add_field(
+                        name="Current Shift",
+                        value=(
+                            f"> **Start:** <t:{int(active_shift[0]['start_epoch'])}:T>\n"
+                            f"> **Breaks Taken:** {len(active_shift[0].get('breaks', []))}\n"
+                        ),
+                        inline=False
+                    )
+            status = "offduty"
+            shift_data = None
+            
+            if active_shift:
+                shift_data = active_shift[0] if len(active_shift) > 0 else {}
+                
+                if shift_data:
+                    status = "onduty"
+                    breaks = shift_data.get("breaks", [])
+
+                    if breaks:
+                        for b in breaks:
+                            if isinstance(b, dict):
+                                if b.get("end_epoch", 0) == 0:
+                                    status = "onbreak"
+                                    break
+                            elif isinstance(b, list) and len(b) > 1:
+                                if len(b) < 2 or b[1] == 0:
+                                    status = "onbreak"
+                                    break
+                
+            embed.set_footer(text=f"Managing shifts for {user} | User ID: {user.id}")
+            embed.set_thumbnail(
+                url=user.display_avatar.url
+            )
+
+            if status == "onduty":
+                embed.color = GREEN_COLOR
+                embed.title = f"{self.bot.emoji.get('onshift')} On-Duty"
+            elif status == "onbreak":
+                embed.color = YELLOW_COLOR
+                embed.title = f"{self.bot.emoji.get('shiftbreak')} On Break"
+            else:
+                embed.color = RED_COLOR
+                embed.title = f"{self.bot.emoji.get('offshift')} Off Duty"
+
+            view = ShiftAdminView(self.bot, ctx, user, shift, active_shift, past_shifts, status)
+            await ctx.send(embed=embed, view=view)
+
         except Exception as e:
             await ctx.send(
                 embed=discord.Embed(

@@ -4,6 +4,28 @@ import uuid
 import os
 from Database.Mongo import mongo_db as db
 
+class CustomModal(discord.ui.Modal):
+    def __init__(self, title: str, inputs: list[tuple[str, discord.ui.TextInput]]):
+        super().__init__(title=title, timeout=300)  # 5 min timeout
+        self.values = {}  # store results
+
+        for custom_id, text_input in inputs:
+            # assign an ID for retrieval
+            text_input.custom_id = custom_id
+            self.add_item(text_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Save all inputs into self.values
+        for child in self.children:
+            if isinstance(child, discord.ui.TextInput):
+                self.values[child.custom_id] = child.value
+        await interaction.response.defer()  # acknowledge modal submit (no message sent)
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception) -> None:
+        await interaction.response.send_message(
+            f"An error occurred: {error}", ephemeral=True
+        )
+
 placeholders = {
     "user_id": "{user_id}", # This will be replaced with the user's ID
     "username": "{username}", # This will be replaced with the user's name
@@ -27,6 +49,13 @@ roblox_placeholders = {
     "roblox_bio": "{roblox_bio}", # This will be replaced with the Roblox bio
     "roblox_friends_count": "{roblox_friends_count}", # This will be replaced with the number of friends on Roblox
     "roblox_followers_count": "{roblox_followers_count}", # This will be replaced with the number of followers on Roblox
+}
+
+naming_schemes = {
+    "{ticket_id}": "ticket_id",
+    "{username}": "username",
+    "{user_id}": "user_id",
+    "{ticket_number}": "ticket_number",
 }
 
 class TicketButton(discord.ui.Button):
@@ -57,19 +86,43 @@ class TicketButton(discord.ui.Button):
             "status": "open"
         })
 
+    async def _get_reason(self, interaction: discord.Interaction) -> str:
+        """Get the reason for the ticket from the user if required."""
+        modal = CustomModal(
+            "Ticket Reason",
+            [
+                (
+                    "value",
+                    discord.ui.TextInput(
+                        label="Reason for Ticket",
+                        placeholder="Enter the reason for your ticket.",
+                        required=True,
+                        max_length=500
+                    )
+                )
+            ],
+        )
+        
+        await interaction.response.send_modal(modal)
+        
+        if await modal.wait():
+            return
+
+        alert_message = modal.values
+        return alert_message.get("value", "")
+
     def _create_channel_overwrites(self, user: discord.Member) -> dict:
         """Create permission overwrites for the ticket channel."""
         overwrites = {
             self.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            user: discord.PermissionOverwrite(read_messages=True, send_messages=True, embed_links=True, attach_files=True, read_message_history=True),
             self.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
         }
         
-        # Add support roles
         for role_id in self.category.get("support_roles", []):
             role = self.guild.get_role(role_id)
             if role:
-                overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_messages=True, embed_links=True, attach_files=True, read_message_history=True)
         
         return overwrites
 
@@ -81,8 +134,15 @@ class TicketButton(discord.ui.Button):
 
     async def _create_ticket_channel(self, user: discord.Member, ticket_id: str, overwrites: dict) -> discord.TextChannel:
         """Create the ticket channel."""
-        channel_name = f"ticket-{ticket_id}-{user.name}"
-        
+        naming_scheme = self.category.get("naming_scheme", "{ticket_id}-{username}")
+        from collections import defaultdict
+        channel_name = naming_scheme.format_map(defaultdict(str, {
+            "ticket_id": ticket_id,
+            "username": user.name,
+            "user_id": user.id,
+            "ticket_number": ticket_id
+        }))
+
         discord_category = None
         if self.category.get("discord_category"):
             discord_category = self.guild.get_channel(self.category.get("discord_category"))
@@ -116,26 +176,30 @@ class TicketButton(discord.ui.Button):
             "transcript": None
         }
 
-    def _create_welcome_embed(self, user: discord.Member, wl_embed: dict) -> discord.Embed:
+    def _create_welcome_embed(self, user: discord.Member, wl_embed: dict, reason: str) -> discord.Embed:
         """Create welcome embed for the ticket."""
         embed = discord.Embed(
             title=f"Ticket: {self.category.get('name')}",
-            description=f"Thank you for creating a ticket, {user.mention}!\n\nSupport will be with you shortly.",
+            description=f"Thank you for creating a ticket, {user.mention}!\n\nSupport will be with you shortly.\n\n**Reason:** ```{reason}```",
             color=0x5865F2,
         )
         if wl_embed:
             embed.title = wl_embed.get("title", embed.title)
             embed.description = wl_embed.get("description", embed.description)
             embed.color = wl_embed.get("color", embed.color)
-            embed.thumbnail = wl_embed.get("thumbnail", None)
-            embed.image = wl_embed.get("image", None)
-            embed.footer = wl_embed.get("footer", None)
+            if "thumbnail" in wl_embed:
+                embed.set_thumbnail(url=wl_embed["thumbnail"])
+            if "image" in wl_embed:
+                embed.set_image(url=wl_embed["image"])
+            if "footer" in wl_embed:
+                embed.set_footer(text=wl_embed["footer"])
             embed.timestamp = datetime.datetime.now()
+            embed.set_author(name=user.name, icon_url=user.avatar.url)
+            embed.description += f"\n\n**Reason:** ```{reason}```"
         return embed
 
     async def callback(self, interaction: discord.Interaction):
         """Main callback for ticket creation."""
-        await interaction.response.defer(ephemeral=True)
         
         existing_ticket = await self._check_existing_ticket(interaction.user.id)
         if existing_ticket:
@@ -148,6 +212,11 @@ class TicketButton(discord.ui.Button):
                 )
         
         try:
+
+            reason = await self._get_reason(interaction)
+            if reason is None:
+                return
+
             overwrites = self._create_channel_overwrites(interaction.user)
             
             ticket_id = await self._generate_ticket_id()
@@ -158,12 +227,15 @@ class TicketButton(discord.ui.Button):
             
             db.tickets.insert_one(ticket_data)
             
-            welcome_embed = self._create_welcome_embed(interaction.user, self.category.get("wl_embed"))
+            welcome_embed = self._create_welcome_embed(interaction.user, self.category.get("welcome_embed"), reason)
             
             action_view = TicketActionView(ticket_data, self.guild, self.category, self.logger)
-            
+            role_mentions = ", ".join(
+                role.mention for role_id in self.category.get("support_roles", [])
+                if (role := self.guild.get_role(role_id))
+            )
             await ticket_channel.send(
-                f"Ticket created by {interaction.user.mention}.\n\nPlease wait for a support member to assist you.",
+                content=f"{role_mentions}".strip(),
                 embed=welcome_embed,
                 view=action_view
             )
