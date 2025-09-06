@@ -197,7 +197,7 @@
                 class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
                 id="welcome_embed_title" 
                 name="welcome_embed_title" 
-                value="{{ category.welcome_embed.title }}">
+                value="{% if category.welcome_embed and 'title' in category.welcome_embed %}{{ category.welcome_embed.title }}{% endif %}">
               <p class="mt-2 text-sm text-gray-400">Title for the welcome embed</p>
             </div>
             
@@ -207,7 +207,7 @@
                 class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none transition-all" 
                 id="welcome_embed_description" 
                 name="welcome_embed_description" 
-                rows="3">{{ category.welcome_embed.description }}</textarea>
+                rows="10">{% if category.welcome_embed and 'description' in category.welcome_embed %}{{ category.welcome_embed.description }}{% endif %}</textarea>
               <p class="mt-2 text-sm text-gray-400">Description text for the welcome embed</p>
             </div>
             
@@ -219,7 +219,7 @@
                   class="h-10 w-12 rounded mr-2 bg-transparent border-0 cursor-pointer" 
                   id="embed_color" 
                   name="embed_color" 
-                  value="#{{ '%06x' % category.welcome_embed.color }}">
+                  value="{% if category.welcome_embed and 'color' in category.welcome_embed %}#{{ '%06x' % category.welcome_embed.color }}{% else %}#000000{% endif %}">
                 <span class="text-gray-400 text-sm">Color for the embed's sidebar</span>
               </div>
             </div>
@@ -236,7 +236,7 @@
                     class="w-full bg-white dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 focus:outline-none" 
                     id="naming_scheme" 
                     name="naming_scheme" 
-                    value="{ticket_id}-{username}"
+                    value="{% if 'naming_scheme' in category %}{{ category.naming_scheme }}{% else %}{% endif %}"
                     x-model="formData.namingScheme">
                   <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Use the following placeholders: {ticket_id}, {username}, {user_id}, {ticket_number}</p>
                 </div>
