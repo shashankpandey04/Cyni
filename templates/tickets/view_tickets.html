@@ -68,7 +68,7 @@
                         <td class="px-6 py-4 text-amber-500">{{ ticket.category_name }}</td>
                         <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ ticket.created_at|int|datetime }}</td>
                         <td class="px-6 py-4">
-                          <a href="{{ url_for('ticket_module.view_transcript', guild_id=guild.id, transcript_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                          <a href="{{ url_for('ticket_module.view_transcript', ticket_id=ticket._id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
                             <i class="fas fa-eye mr-2"></i> View
                           </a>
                         </td>

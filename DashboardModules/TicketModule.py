@@ -180,7 +180,7 @@ def edit_ticket_category(guild_id, category_id):
 
     category = mongo_db["ticket_categories"].find_one({"_id": category_id, "guild_id": guild_id})
     if not category:
-        flash("Ticket category not found", "danger")
+        flash(f"Ticket category {category_id} not found", "danger")
         return redirect(url_for('ticket_module.ticket_settings', guild_id=guild_id))
 
     channels = get_guild_channels(guild_id)
@@ -296,12 +296,6 @@ def send_ticket_embed(guild_id, category_id):
         flash("You need Management Roles to access this page.", "error")
         return redirect(url_for("dashboard"))
     
-    # Get the ticket category
-    category = mongo_db["ticket_categories"].find_one({"_id": category_id, "guild_id": guild_id})
-    if not category:
-        flash("Ticket category not found", "danger")
-        return redirect(url_for('ticket_module.ticket_settings', guild_id=guild_id))
-    
     # Send data to the API to create and send the embed
     data = {
         "guild_id": guild_id,
@@ -342,20 +336,9 @@ def view_tickets(guild_id):
     if not member:
         flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
-
-    has_permission = False
-    
-    categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
-    for category in categories:
-        if any(role.id in category.get("support_roles", []) for role in member.roles):
-            has_permission = True
-            break
     
     has_perm = check_permissions(guild_id, session["user_id"])
-    if has_perm:
-        has_permission = True
-    
-    if not has_permission:
+    if not has_perm:
         flash("You don't have roles required to view this category of tickets", "danger")
         return redirect(url_for('dashboard'))
     
@@ -363,9 +346,15 @@ def view_tickets(guild_id):
     
     return render_template("tickets/view_tickets.html", guild=guild, tickets=tickets)
 
-@ticket_module.route('/transcripts/<guild_id>/<transcript_id>', methods=['GET'])
-def view_transcript(guild_id, transcript_id):
-    guild_id = int(guild_id)
+@ticket_module.route('/transcripts/<ticket_id>', methods=['GET'])
+def view_transcript(ticket_id):
+
+    transcript_doc = mongo_db["ticket_transcripts"].find_one({"ticket_id": ticket_id})
+    if not transcript_doc:
+        flash(f"Transcript {ticket_id} not found", "danger")
+        return redirect(url_for('dashboard'))
+
+    guild_id = int(transcript_doc.get("guild_id"))
     guild = get_guild(guild_id)
     if not guild:
         flash("Guild not found or you do not have access to it.", "error")
@@ -376,37 +365,21 @@ def view_transcript(guild_id, transcript_id):
         flash("You do not have access to this guild.", "error")
         return redirect(url_for("dashboard"))
     
-    has_permission = False
-
-    categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
-    for category in categories:
-        if any(role.id in category.get("support_roles", []) for role in member.roles):
-            has_permission = True
-            break
-
     has_perm = check_permissions(guild_id, session["user_id"])
-    if has_perm:
-        has_permission = True
-
-    if not has_permission:
+    if not has_perm:
         flash("You don't have permission to view this transcript", "danger")
         return redirect(url_for('dashboard'))
 
-    transcript = mongo_db["ticket_transcripts"].find_one({"ticket_id": str(transcript_id), "guild_id": int(guild_id)})
-    if not transcript:
-        flash(f"Transcript {transcript_id} not found", "danger")
-        return redirect(url_for('dashboard'))
+    ticket = mongo_db["tickets"].find_one({"_id": transcript_doc.get("ticket_id")})
     
-    ticket = mongo_db["tickets"].find_one({"_id": transcript.get("ticket_id")})
-    
-    guild = bot.get_guild(transcript.get("guild_id"))
-    guild_name = guild.name if guild else "Unknown Server"
-    
-    messages = transcript.get("messages", [])
-    
+    guild = get_guild(int(transcript_doc.get("guild_id")))
+    guild_name = guild['name'] if guild else "Unknown Server"
+
+    messages = transcript_doc.get("messages", [])
+        
     return render_template(
         "tickets/transcript.html", 
-        transcript=transcript, 
+        transcript=transcript_doc, 
         ticket=ticket, 
         messages=messages, 
         guild_name=guild_name,
@@ -428,12 +401,6 @@ def view_guild_transcripts(guild_id):
         return redirect(url_for("dashboard"))
     
     has_permission = False
-
-    categories = list(mongo_db["ticket_categories"].find({"guild_id": guild_id}))
-    for category in categories:
-        if any(role.id in category.get("support_roles", []) for role in member.roles):
-            has_permission = True
-            break
 
     has_perm = check_permissions(guild_id, session["user_id"])
     if has_perm:

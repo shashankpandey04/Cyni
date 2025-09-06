@@ -206,7 +206,7 @@ class TicketButton(discord.ui.Button):
             channel_id = existing_ticket.get("channel_id")
             channel = self.guild.get_channel(channel_id)
             if channel:
-                return await interaction.followup.send(
+                return await interaction.response.send(
                     f"You already have an open ticket: {channel.mention}", 
                     ephemeral=True
                 )
@@ -364,7 +364,7 @@ class TicketDeleteView(discord.ui.View):
         
         delete_button = discord.ui.Button(
             style=discord.ButtonStyle.danger, 
-            label="Delete Ticket", 
+            label="Close & Delete Ticket", 
             custom_id=f"delete_ticket:{ticket_data['_id']}"
         )
         delete_button.callback = self._delete_callback
@@ -375,16 +375,21 @@ class TicketDeleteView(discord.ui.View):
         messages = []
         async for message in channel.history(limit=None, oldest_first=True):
             if message.content or message.embeds:
-                messages.append({
+                message_data = {
                     "author_id": message.author.id,
                     "author_name": message.author.name,
                     "content": message.content,
                     "created_at": message.created_at.timestamp(),
                     "attachments": [
-                        {"url": attachment.url, "filename": attachment.filename} 
-                        for attachment in message.attachments
+                    {"url": attachment.url, "filename": attachment.filename} 
+                    for attachment in message.attachments
                     ]
-                })
+                }
+                if message.embeds:
+                    message_data["embeds"] = [
+                    embed.to_dict() for embed in message.embeds
+                    ]
+                messages.append(message_data)
         return messages
 
     async def _create_transcript(self, messages: list, closed_by: discord.Member) -> str:
@@ -493,3 +498,134 @@ class TicketView(discord.ui.View):
             category=category,
             logger=logger
         ))
+
+
+class TicketCloseView(discord.ui.View):
+    def __init__(self, user, ticket_data, guild, category, reason):
+        super().__init__(timeout=None)
+        delete_button = discord.ui.Button(
+            style=discord.ButtonStyle.danger,
+            label="Close & Delete Ticket",
+            custom_id=f"delete_ticket:{ticket_data['_id']}"
+        )
+        delete_button.callback = self._delete_callback
+        self.add_item(delete_button)
+        self.user = user
+        self.ticket_data = ticket_data
+        self.guild = guild
+        self.category = category
+        self.reason = reason
+
+    async def _delete_callback(self, interaction: discord.Interaction):
+        """Handle ticket deletion."""
+        ticket_channel = self.guild.get_channel(self.ticket_data["channel_id"])
+        if not ticket_channel:
+            return await interaction.response.send_message(
+                "Ticket channel not found.",
+                ephemeral=True
+            )
+
+        try:
+            messages = await self._collect_messages(ticket_channel)
+
+            transcript_id = await self._create_transcript(messages, interaction.user)
+
+            await self._send_transcript_notification(transcript_id, interaction.user, self.reason, self.user, interaction.guild.name)
+
+            base_url = os.getenv("BASE_URL", "https://cyni.quprdigital.tk")
+            transcript_url = f"{base_url}/transcripts/{transcript_id}"
+
+            final_embed = discord.Embed(
+                title="Ticket Closed",
+                description=f"This ticket has been closed by {interaction.user.mention}.",
+                color=0xED4245,
+                timestamp=datetime.datetime.now()
+            )
+            final_embed.add_field(
+                name="Transcript",
+                value=f"[Click here to view the ticket transcript]({transcript_url})",
+                inline=False
+            )
+
+            await interaction.response.send_message(embed=final_embed)
+
+            await ticket_channel.delete(reason=f"Ticket deleted by {interaction.user.name}")
+
+        except Exception as e:
+            await interaction.response.send_message(
+                f"Failed to delete ticket. Please contact an administrator.```{e}```",
+                ephemeral=True
+            )
+
+    async def _collect_messages(self, channel: discord.TextChannel) -> list:
+        """Collect all messages from the ticket channel."""
+        messages = []
+        async for message in channel.history(limit=None, oldest_first=True):
+            if message.content or message.embeds:
+                message_data = {
+                    "author_id": message.author.id,
+                    "author_name": message.author.name,
+                    "content": message.content,
+                    "created_at": message.created_at.timestamp(),
+                    "attachments": [
+                        {"url": attachment.url, "filename": attachment.filename}
+                        for attachment in message.attachments
+                    ]
+                }
+                if message.embeds:
+                    message_data["embeds"] = [
+                        embed.to_dict() for embed in message.embeds
+                    ]
+                messages.append(message_data)
+        return messages
+
+    async def _create_transcript(self, messages: list, closed_by: discord.Member) -> str:
+        """Create and save transcript to database."""
+        transcript_id = str(uuid.uuid4())
+        transcript_data = {
+            "_id": transcript_id,
+            "ticket_id": self.ticket_data["_id"],
+            "guild_id": self.guild.id,
+            "user_id": self.ticket_data["user_id"],
+            "username": self.ticket_data["username"],
+            "category_name": self.category.get("name"),
+            "messages": messages,
+            "closed_by": closed_by.id,
+            "closed_by_name": closed_by.name,
+            "created_at": datetime.datetime.now().timestamp()
+        }
+
+        db.ticket_transcripts.insert_one(transcript_data)
+        return transcript_id
+
+    async def _send_transcript_notification(self, transcript_id: str, closed_by: discord.Member, reason: str, user: discord.User, guild_name: str):
+        """Send transcript notification to designated channel."""
+        transcript_channel_id = self.category.get("transcript_channel")
+        if not transcript_channel_id:
+            return
+
+        transcript_channel = self.guild.get_channel(int(transcript_channel_id))
+        if not transcript_channel:
+            return
+
+        base_url = os.getenv("BASE_URL", "https://cyni.quprdigital.tk")
+        transcript_url = f"{base_url}/transcripts/{transcript_id}"
+
+        transcript_embed = discord.Embed(
+            title=f"Ticket Transcript: {self.category.get('name')}",
+            description=f"Ticket from {self.ticket_data['username']} has been closed and archived.",
+            color=0x5865F2,
+            timestamp=datetime.datetime.now()
+        )
+        transcript_embed.add_field(name="Ticket ID", value=self.ticket_data["_id"], inline=True)
+        transcript_embed.add_field(name="Closed By", value=closed_by.name, inline=True)
+        transcript_embed.add_field(name="View Transcript", value=f"[Click Here]({transcript_url})", inline=False)
+        transcript_embed.add_field(name="Reason", value=f"```{reason}```", inline=False)
+
+        await transcript_channel.send(embed=transcript_embed)
+
+        user_embed = discord.Embed(
+            title=f"Ticket Closed {guild_name}",
+            description=f"Thanks for reaching out to us, {user.mention}!\n\nYour ticket has been closed. If you have any further questions, feel free to open a new ticket.\n\n**Reason:** ```{reason}```",
+        )
+        return await user.send(embed=user_embed)

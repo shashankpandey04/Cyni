@@ -5,6 +5,7 @@ import datetime
 import uuid
 from dotenv import load_dotenv
 import os
+from Views.Tickets import TicketCloseView
 
 load_dotenv()
 
@@ -69,7 +70,7 @@ class Ticket(commands.Cog):
         await self.bot.ticket_transcripts.insert_one(transcript_data)
         return transcript_id
 
-    async def _send_transcript_notification(self, transcript_id: str, closed_by: discord.Member, ticket_category: dict, guild: discord.Guild, reason: str, ticket_data: dict):
+    async def _send_transcript_notification(self, ticket_id: str, closed_by: discord.Member, ticket_category: dict, guild: discord.Guild, reason: str, ticket_data: dict):
         """Send transcript notification to designated channel."""
         transcript_channel_id = ticket_category.get("transcript_channel")
         if not transcript_channel_id:
@@ -79,8 +80,13 @@ class Ticket(commands.Cog):
         if not transcript_channel:
             return
         
+        ticked_doc = await self.bot.tickets.find_one({"_id": ticket_id})
+        if not ticked_doc:
+            return
+        user = self.bot.get_user(ticked_doc["user_id"])
+        
         base_url = os.getenv("BASE_URL", "https://cyni.quprdigital.tk")
-        transcript_url = f"{base_url}/transcripts/{transcript_id}"
+        transcript_url = f"{base_url}/transcripts/{ticket_id}"
         
         transcript_embed = discord.Embed(
             title=f"Ticket Transcript: {ticket_category.get('name')}",
@@ -92,9 +98,19 @@ class Ticket(commands.Cog):
         transcript_embed.add_field(name="Closed By", value=closed_by.name, inline=True)
         transcript_embed.add_field(name="View Transcript", value=f"[Click Here]({transcript_url})", inline=False)
         transcript_embed.add_field(name="Reason", value=reason, inline=False)
-        
         await transcript_channel.send(embed=transcript_embed)
 
+        user_embed = discord.Embed(
+            title=f"Ticket Closed in {guild.name}",
+            description=(
+                f"Thanks for reaching out to us, {user.mention}!\n\n"
+                f"Your ticket has been closed. If you have any further questions, feel free to open a new ticket.\n\n"
+                f"**Moderator Note:** ```{reason}```"
+            ),
+            color=0x5865F2,
+            timestamp=datetime.datetime.now()
+        )
+        return await user.send(embed=user_embed)
 
     @commands.hybrid_group(
         name="ticket",
@@ -316,10 +332,10 @@ class Ticket(commands.Cog):
 
                 transcript_id = await self._create_transcript(messages, ctx.author, ticket_doc, reason)
 
-                await self._send_transcript_notification(transcript_id, ctx.author, existing_ticket_category, guild, reason, ticket_doc)
+                await self._send_transcript_notification(ticket_doc["_id"], ctx.author, existing_ticket_category, guild, reason, ticket_doc)
 
                 base_url = os.getenv("BASE_URL", "https://cyni.quprdigital.tk")
-                transcript_url = f"{base_url}/transcripts/{transcript_id}"
+                transcript_url = f"{base_url}/transcripts/{ticket_doc['_id']}"
                 
                 final_embed = discord.Embed(
                     title="Ticket Closed",
@@ -355,6 +371,73 @@ class Ticket(commands.Cog):
                     color=discord.Color.red()
                 )
             )
+
+    # @ticket.command(
+    #     name="closerequest",
+    #     description="Request to close a ticket",
+    # )
+    # async def close_request(self, ctx, reason: str):
+    #     """Request to close a ticket."""
+    #     try:
+    #         ticket_data = await self.bot.db.tickets.find_one(
+    #             {
+    #                 "guild_id": ctx.guild.id,
+    #                 "channel_id": ctx.channel.id,
+    #                 "status": "open"
+    #             }
+    #         )
+
+    #         if not ticket_data:
+    #             embed = discord.Embed(
+    #                 title="No Open Ticket",
+    #                 description="This channel does not have an open ticket.",
+    #                 color=discord.Color.red()
+    #             )
+    #             return await ctx.send(embed=embed)
+
+    #         category_doc = await self.bot.ticket_categories.find_one(
+    #             {
+    #                 "discord_category": ctx.channel.category.id,
+    #                 "guild_id": ctx.guild.id
+    #             }
+    #         )
+    #         support_roles = category_doc.get("support_roles", [])
+    #         if not support_roles:
+    #             embed = discord.Embed(
+    #                 title="No Support Roles",
+    #                 description="This ticket does not have any support roles configured. Please contact an administrator.",
+    #                 color=discord.Color.red()
+    #             )
+    #             return await ctx.send(embed=embed)
+        
+    #         if not any(role.id in support_roles for role in ctx.author.roles):
+    #             embed = discord.Embed(
+    #                 title="Insufficient Permissions",
+    #                 description="You do not have permission to request to close this ticket.",
+    #                 color=discord.Color.red()
+    #             )
+    #             return await ctx.send(embed=embed)
+            
+    #         embed = discord.Embed(
+    #             title="Close Request",
+    #             description=f"{ctx.author.mention} has requested to close this ticket.\n\n**Reason:** ```{reason}```",
+    #             color=discord.Color.orange(),
+    #             timestamp=datetime.datetime.now()
+    #         )
+    #         channel_category = ctx.channel.category
+    #         category = self.bot.ticket_categories.find_one({"discord_category": channel_category.id})
+    #         user = self.bot.get_user(ticket_data["user_id"])
+    #         view = TicketCloseView(user, ticket_data, ctx.guild, category, reason)
+    #         await ctx.send(embed=embed, view=view)
+    #     except Exception as e:
+    #         self.bot.logger.error(f"Failed to request ticket close: {e}")
+    #         await ctx.send(
+    #             embed=discord.Embed(
+    #                 title="Error",
+    #                 description=f"Failed to request ticket close. Please contact an administrator. ```{e}```",
+    #                 color=discord.Color.red()
+    #             )
+    #         )
 
 async def setup(bot):
     await bot.add_cog(Ticket(bot))
