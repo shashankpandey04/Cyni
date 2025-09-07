@@ -316,9 +316,6 @@ class ShiftManager(commands.Cog):
                 },
                 {
                     "$sort": {"total_duration": -1}
-                },
-                {
-                    "$limit": 10
                 }
             ])
 
