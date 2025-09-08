@@ -1,15 +1,10 @@
 aiohttp
 git+https://github.com/Rapptz/discord.py
-flask
-flask-login
-flask-session
 jishaku
-motor
 pymongo
 python-dotenv
 pytz
 sentry-sdk
-waitress
 requests
 python-decouple
 roblox

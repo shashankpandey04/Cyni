@@ -2,7 +2,6 @@ import discord
 import datetime
 from discord.ext import commands
 
-from dashboard import guild
 from utils.constants import YELLOW_COLOR
 from utils.utils import discord_time, generate_embed
 from cyni import premium_check_fun

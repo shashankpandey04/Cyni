@@ -436,6 +436,10 @@ class OnMessage(commands.Cog):
 
     async def _handle_staff_activity(self, message, settings):
         """Handle staff activity tracking."""
+        if not isinstance(message.author, discord.Member):
+            return
+        if message.author.bot:
+            return
         basic_settings = settings.get('basic_settings', {})
         staff_roles = basic_settings.get('staff_roles', [])
         
@@ -487,6 +491,55 @@ class OnMessage(commands.Cog):
                 
         except Exception as e:
             logging.error(f"Error updating staff activity: {e}")
+
+    async def _handle_custom_commands(self, message):
+        """Handle custom commands."""
+        if not isinstance(message.author, discord.Member):
+            return
+        prefix_list = await get_prefix(self.bot, message)
+        prefix = prefix_list[-1]
+        doc = await self.bot.custom_commands.find_by_id(message.guild.id)
+        if not doc:
+            return
+        if not message.content.startswith(prefix):
+            return
+        command_name = message.content[len(prefix):].split(" ")[0]
+        command_data = doc.get(command_name)
+        if not command_data:
+            return
+        try:
+            embed = None
+            if command_data.get("title") or command_data.get("description"):
+                embed  = discord.Embed(
+                    title=command_data.get("title"),
+                    description=command_data.get("description"),
+                    color=command_data.get("color", discord.Color.blue().value)
+                )
+            if command_data.get("image") and embed:
+                embed.set_image(url=command_data["image"])
+            if command_data.get("thumbnail") and embed:
+                embed.set_thumbnail(url=command_data["thumbnail"])
+            if command_data.get("footer") and embed:
+                embed.set_footer(text=command_data["footer"])
+            if command_data.get("timestamp") and embed:
+                embed.timestamp = datetime.fromtimestamp(command_data["timestamp"])
+            if command_data.get("fields") and embed:
+                for field in command_data["fields"]:
+                    embed.add_field(
+                        name=field.get("name", "No Name"),
+                        value=field.get("value", "No Value"),
+                        inline=field.get("inline", False)
+                    )
+            if embed and command_data.get("message"):
+                await message.channel.send(content=command_data["message"], embed=embed)
+            elif embed:
+                await message.channel.send(embed=embed)
+            elif command_data.get("message"):
+                await message.channel.send(content=command_data["message"])
+            await message.delete()
+
+        except Exception as e:
+            pass
 
     async def _handle_ai_moderation(self, message, settings):
         """Handle AI moderation tasks."""
@@ -1253,6 +1306,8 @@ class OnMessage(commands.Cog):
             await self._handle_anti_ping(message, settings)
 
             await self._handle_staff_activity(message, settings)
+
+            await self._handle_custom_commands(message)
 
         except Exception as e:
             logging.error(f"Error in on_message event: {e}")

@@ -8,10 +8,14 @@ from cyni import is_management, is_staff, premium_check
 from utils.utils import log_command_usage
 import re
 from utils.pagination import Pagination
+from Views.PartnershipModule import PartnershipLogView
 
 class Partnership_Log(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    async def _log_partnership(self):
+        pass
 
     @commands.hybrid_group(
         name="partnership",
@@ -29,123 +33,46 @@ class Partnership_Log(commands.Cog):
         }
     )
     @is_staff()
-    @app_commands.describe(
-        title="Partnership Log Title",
-        description="Write the description & for new line use \\n\\n",
-        representative="Representative of the partnership",
-        image="Image of the partnership"
-    )
-    @app_commands.describe(invite="Discord Invite Link")
     @commands.guild_only()
     @premium_check()
-    async def log(self, ctx, title: str, *, description: str, invite: str, representative: discord.Member, role: discord.Role = None, image: str = None):
+    async def log(self, ctx):
         """
-        Log a partnership.
+        Log a partnership for your server.
         """
         try:
-            if isinstance(ctx,commands.Context):
-                await log_command_usage(self.bot,ctx.guild,ctx.author,"partnership log")
+            if isinstance(ctx, commands.Context):
+                await log_command_usage(self.bot, ctx.guild, ctx.author, "partnership log")
+            
             sett = await self.bot.settings.find_by_id(ctx.guild.id)
-            if not sett:
+            if not sett or not sett.get("partnership_module", {}).get("enabled"):
                 return await ctx.send(
-                    embed = discord.Embed(
-                        title = "Settings not found",
-                        description = "Please set the settings first",
-                        color = RED_COLOR
-                    )
-                )
-            try:
-                enabled = sett["partnership_module"]["enabled"]
-                if not enabled:
-                    return await ctx.send(
-                        embed = discord.Embed(
-                            title = "Partnership Module not enabled",
-                            description = "Please set the partnership module first",
-                            color = RED_COLOR
-                        )
-                    )
-            except:
-                return await ctx.send(
-                    embed = discord.Embed(
-                        title = "Partnership Module not enabled",
-                        description = "Please set the partnership module first",
-                        color = RED_COLOR
-                    )
-                )
-            try:
-                log_channel = self.bot.get_channel(sett["partnership_module"]["partnership_channel"])
-            except:
-                return await ctx.send(
-                    embed = discord.Embed(
-                        title = "Log Channel not found",
-                        description = "Please set the log channel first",
-                        color = RED_COLOR
+                    embed=discord.Embed(
+                        title="Partnership Module not enabled",
+                        description="Please ensure the partnership module is enabled and settings are configured.",
+                        color=RED_COLOR
                     )
                 )
             
-            try:
-                partner_role = ctx.guild.get_role(sett["partnership_module"]["partner_role"])
-            except:
+            log_channel_id = sett["partnership_module"].get("partnership_channel")
+            log_channel = self.bot.get_channel(log_channel_id) if log_channel_id else None
+            if not log_channel:
                 return await ctx.send(
-                    embed = discord.Embed(
-                        title = "Partner Role not found",
-                        description = "Please set the partner role first",
-                        color = RED_COLOR
+                    embed=discord.Embed(
+                        title="Log Channel not found",
+                        description="Please set the log channel in the settings.",
+                        color=RED_COLOR
                     )
                 )
-            
+
+            embed = discord.Embed(
+                title="Your Partnership Log is being created!",
+                description=" ",
+                color=BLANK_COLOR
+            )
             partnership_id = await self.bot.partnership.count_all({})
             partnership_id += 1
-            await self.bot.partnership.insert({
-                "_id": f"{ctx.guild.id}_{partnership_id}",
-                "logged_by": ctx.author.id,
-                "title": title,
-                "description": description,
-                "representative": representative.id,
-                "image": image,
-                "timestamp": time.time()
-            })
-            description = re.sub(r'\\n', '\n', description)
-            formatted_description = (
-                f"**Description:**\n{description}\n\n"
-                f"**Discord Invite:** [Click Here](https://discord.gg/{invite})\n"
-                f"-# **Representative:** {representative.mention}\n"
-            )
-            embed = discord.Embed(
-                title=f"{self.bot.emoji.get('partnership')} Partnership Logged",
-                description=f"**Title:** {title}\n\n{formatted_description}",
-                color=BLANK_COLOR
-            ).set_footer(
-                text=f"Partnership ID: {partnership_id} | Logged by {ctx.author}",
-                icon_url=ctx.author.avatar.url if ctx.author.avatar else None
-            ).set_thumbnail(
-                url=ctx.guild.icon.url if ctx.guild.icon else None
-            )
-            if image:
-                embed.set_image(url=image)
-            await log_channel.send(embed = embed)
-            try:
-                if role:
-                    await representative.add_roles(role, reason = "Partnership Logged")
-                else:
-                    await representative.add_roles(partner_role, reason = "Partnership Logged")
-            except:
-                pass
-            await ctx.send(
-                embed = discord.Embed(
-                    title = "Partnership Logged",
-                    description = (
-                        f"We have successfully logged the partnership with ID: {partnership_id}",
-                        f"> **Discord Invite:** [Click Here](https://discord.gg/{invite})",
-                        f"> **Representative:** {representative.mention}\n"
-                        f"-# Logged By: {ctx.author.mention}"
-                    ),
-                    color = GREEN_COLOR
-                ).set_footer(
-                    text = f"Logged by {ctx.author}",
-                    icon_url = ctx.author.avatar.url if ctx.author.avatar else " "
-                )
-            )
+            await ctx.send(embed=embed, view=PartnershipLogView(self.bot, ctx, partnership_id))
+            
         except Exception as e:
             await ctx.send(
                 embed = discord.Embed(
@@ -191,12 +118,13 @@ class Partnership_Log(commands.Cog):
                     f"{description}\n\n"
                     f"Representative: {representative.mention if representative else 'Couldn\'t find the representative'}"
                 )
+                partnership_id = partnership["_id"].split("_")[1]
                 embed = discord.Embed(
                     title=partnership["title"],
                     description=formatted_description,
                     color=BLANK_COLOR
                 ).set_footer(
-                    text=f"Partnership ID: {partnership['_id']} | Logged by {ctx.guild.get_member(partnership['logged_by'])}",
+                    text=f"Partnership ID: {partnership_id} | Logged by {ctx.guild.get_member(partnership['logged_by'])}",
                 )
                 if partnership["image"]:
                     embed.set_image(url=partnership["image"])

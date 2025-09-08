@@ -63,7 +63,7 @@ intents.guilds = True
 
 discord.utils.setup_logging(level=logging.INFO)
 
-_version = "1.0.2"
+_version = "1.0.3"
 class Bot(commands.AutoShardedBot):
     
     RATE_LIMIT_WINDOW = 10  # seconds
@@ -164,39 +164,22 @@ class Bot(commands.AutoShardedBot):
         self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
         self.db = self.mongo["cyni"] if os.getenv("PRODUCTION_TOKEN") or os.getenv("PREMIUM_TOKEN") else self.mongo["dev"]
         self.bot_version = _version
-        self.settings = Document(self.db, 'settings')
-        self.analytics = Document(self.db, 'analytics')
-        self.warnings = Document(self.db, 'warnings')
-        self.staff_activity = Document(self.db, 'staff_activity')
-        self.ban_appeals = Document(self.db, 'ban_appeals')
-        self.errors = Document(self.db, 'errors')
-        self.sessions = Document(self.db, 'sessions')
-        self.infraction_log = Document(self.db, 'infraction_log')
-        self.infraction_types = Document(self.db, 'infraction_types')
-        self.giveaways = Document(self.db, 'giveaways')
-        self.backup = Document(self.db, 'backup')
-        self.afk = Document(self.db, 'afk')
+        collections = [
+            'settings', 'analytics', 'warnings', 'staff_activity', 'ban_appeals', 
+            'errors', 'sessions', 'infraction_log', 'infraction_types', 'giveaways', 
+            'backup', 'afk', 'applications', 'partnership', 'loa', 'erlc', 
+            'vote_tracker', 'premium', 'shift_types', 'ticket_categories', 
+            'terminated_accounts', 'shift_logs', 'punishment_types', 'punishments', 
+            'deleted_shifts', 'roblox_oauth', 'erlc_sessions_embed', 'tickets', 
+            'ticket_transcripts', 'custom_commands', 'message_quotas'
+        ]
+        for collection in collections:
+            setattr(self, collection, Document(self.db, collection))
+
         self.prc_api = PRC_API_Client(self, base_url=config('PRC_API_URL'), api_key=config('PRC_API_KEY'))
-        self.applications = Document(self.db, 'applications')
-        self.partnership = Document(self.db, 'partnership')
-        self.loa = Document(self.db, 'loa')
-        self.erlc = Document(self.db, 'erlc')
-        self.vote_tracker = Document(self.db, 'vote_tracker')
-        self.premium = Document(self.db, 'premium')
-        self.shift_types = Document(self.db, 'shift_types')
-        self.ticket_categories = Document(self.db, 'ticket_categories')
-        self.terminated_accounts = Document(self.db, 'terminated_accounts')
         self.emoji = EmojiController(self)
         self.logger = logging.getLogger()
-        self.shift_logs = Document(self.db, 'shift_logs')
-        self.punishment_types = Document(self.db, 'punishment_types')
         self.roblox = roblox.Client()
-        self.punishments = Document(self.db, 'punishments')
-        self.deleted_shifts = Document(self.db, 'deleted_shifts')
-        self.roblox_oauth = Document(self.db, 'roblox_oauth')
-        self.erlc_sessions_embed = Document(self.db, 'erlc_sessions_embed')
-        self.tickets = Document(self.db, 'tickets')
-        self.ticket_transcripts = Document(self.db, 'ticket_transcripts')
         self.modai = ModerationModel()
         await self.emoji.prefetch_emojis()
 
@@ -469,8 +452,10 @@ def premium_check():
     """Decorator that only blocks premium servers using non-premium bots"""
     async def predicate(ctx):
         premium_status = await premium_check_fun(ctx.bot, ctx.guild)
-        if premium_status == "not_premium_server":
-            raise NotPremiumError()
+        if ctx.bot.is_premium and not premium_status:
+            raise UseRegularBotError()
+        elif not ctx.bot.is_premium and premium_status:
+            raise UsePremiumBotError()
         return True
     return commands.check(predicate)
 
