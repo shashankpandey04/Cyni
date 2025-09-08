@@ -7,8 +7,6 @@ import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
-from flask import logging
-
 from utils.constants import BLANK_COLOR, RED_COLOR, GREEN_COLOR
 from utils.prc_api import ServerKillLogs, ServerJoinLogs, ResponseFailed
     
