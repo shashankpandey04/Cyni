@@ -15,4 +15,5 @@ joblib
 scikit-learn
 numpy
 python-jose
+motor
 snowflake-id
