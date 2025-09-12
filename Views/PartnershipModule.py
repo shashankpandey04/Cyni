@@ -46,7 +46,7 @@ class RepresentativeSelect(View):
         self.add_item(self.finish_button)
 
     async def main_representative_callback(self, interaction: Interaction):
-        self.representative = interaction.user
+        self.representative = self.main_representative_select.values[0]
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="Main Representative Set",
@@ -57,7 +57,7 @@ class RepresentativeSelect(View):
         self.partnership_doc['representative'] = self.representative.id
 
     async def other_representatives_callback(self, interaction: Interaction):
-        self.other_representatives = [self.ctx.guild.get_member(int(user_id)) for user_id in interaction.data['values']]
+        self.other_representatives = [user.id for user in self.other_representatives_select.values]
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="Other Representatives Set",
