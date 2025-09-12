@@ -311,5 +311,108 @@ class Partnership_Log(commands.Cog):
         view = Pagination(self.bot, ctx.author.id, embeds, views)
         await ctx.send(embed=embeds[0], view=view)
 
+    @partnership.command(
+        name="repost",
+        extras={
+            "category": "Partnership"
+        }
+    )
+    @is_staff()
+    @app_commands.describe(partnership_id = "ID of the partnership")
+    @commands.guild_only()
+    @premium_check()
+    async def repost(self, ctx, partnership_id: int):
+        """
+        Repost a partnership to the partnership channel.
+        """
+        try:
+            if isinstance(ctx,commands.Context):
+                await log_command_usage(self.bot,ctx.guild,ctx.author,"partnership repost")
+            # doc = {
+            #     "_id": f"{ctx.guild.id}_{partnership_id}",
+            #     "logged_by": ctx.author.id,
+            #     "title": None,
+            #     "message": None,
+            #     "description": None,
+            #     "representative": None,
+            #     "other_representatives": [],
+            #     "image": None,
+            #     "thumbnail": None,
+            #     "timestamp": None,
+            #     "fields": [],
+            #     "footer": None,
+            #     "color": discord.Color.blue().value
+            # }
+
+            partnership = await self.bot.partnership.find_by_id(f"{ctx.guild.id}_{partnership_id}")
+            if not partnership:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        title = "Partnership not found",
+                        description = "The partnership with the specified ID was not found",
+                        color = RED_COLOR
+                    )
+                )
+            sett = await self.bot.settings.find_by_id(ctx.guild.id)
+            if not sett or not sett.get("partnership_module", {}).get("enabled"):
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Partnership Module not enabled",
+                        description="Please ensure the partnership module is enabled and settings are configured.",
+                        color=RED_COLOR
+                    )
+                )
+            log_channel_id = sett["partnership_module"].get("partnership_channel")
+            log_channel = self.bot.get_channel(log_channel_id) if log_channel_id else None
+
+            if not log_channel:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Log Channel not found",
+                        description="The log channel for partnerships is not configured.",
+                        color=RED_COLOR
+                    )
+                )
+            representative = ctx.guild.get_member(partnership["representative"])
+            try:
+                embed = discord.Embed(
+                    title = partnership["title"],
+                    description=partnership["description"],
+                    color = discord.Color(int(partnership["color"].lstrip('#'), 16))
+                )
+            except:
+                embed = discord.Embed(
+                    title = partnership["title"],
+                    description=partnership["description"],
+                    color = BLANK_COLOR
+                )
+            if partnership["image"]:
+                embed.set_image(url = partnership["image"])
+            if partnership["thumbnail"]:
+                embed.set_thumbnail(url = partnership["thumbnail"])
+            if partnership["footer"]:
+                embed.set_footer(text = partnership["footer"])
+            for field in partnership["fields"]:
+                embed.add_field(name = field["name"], value = field["value"], inline = field.get("inline", False))
+            embed.add_field(name = "Representative", value = representative.mention if representative else "Couldn't find the representative", inline = False)
+            embed.set_footer(text = f"Partnership ID: {partnership_id} | Logged by {ctx.guild.get_member(partnership['logged_by'])}")
+            await log_channel.send(embed = embed)
+            await ctx.send(
+                embed = discord.Embed(
+                    title = "Partnership Reposted",
+                    description = f"The partnership has been reposted to {log_channel.mention}",
+                    color = discord.Color.green()
+                )
+            )
+
+        except Exception as e:
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=str(e),
+                    color=RED_COLOR
+                )
+            )
+
 async def setup(bot):
     await bot.add_cog(Partnership_Log(bot))

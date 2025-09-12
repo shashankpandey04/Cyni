@@ -30,24 +30,19 @@ from roblox import client as roblox
 from Models.modai import ModerationModel
 
 # Custom exceptions for premium checks
-class PremiumCheckError(commands.CheckFailure):
+class PremiumCheck(commands.CheckFailure):
     """Base exception for premium check failures"""
     pass
 
-class UsePremiumBotError(PremiumCheckError):
+class UsePremiumBotError(PremiumCheck):
     """Raised when a premium server tries to use a non-premium bot"""
     def __init__(self):
         super().__init__("This server has premium enabled. Please use the CYNI Premium bot to access this feature.")
 
-class UseRegularBotError(PremiumCheckError):
+class UseRegularBotError(PremiumCheck):
     """Raised when a non-premium server tries to use a premium bot"""
     def __init__(self):
         super().__init__("This server is not premium enabled. Please use the regular CYNI bot instead of the premium bot.")
-
-class NotPremiumError(PremiumCheckError):
-    """Raised when a non-premium server tries to access premium features"""
-    def __init__(self):
-        super().__init__("This server is not premium enabled. Please upgrade to CYNI Premium to access this feature.")
 
 load_dotenv()
 
@@ -181,6 +176,10 @@ class Bot(commands.AutoShardedBot):
         self.logger = logging.getLogger()
         self.roblox = roblox.Client()
         self.modai = ModerationModel()
+        self.prc_player_cache = {} # Cache for PRC player info
+        # {
+        #     guild_id: [username_1, username_2, ...],
+        # }
         await self.emoji.prefetch_emojis()
 
         orig_request = self.http.request
@@ -270,9 +269,9 @@ class Bot(commands.AutoShardedBot):
 
 bot = Bot(
     command_prefix=get_prefix,
-    case_insensitive=True,
     intents=intents,
     allowed_mentions=discord.AllowedMentions(everyone=False, roles=True, users=True),
+    help_command=None,
 )
 
 bot.debug_server = [1152949579407442050]

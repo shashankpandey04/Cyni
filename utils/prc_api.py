@@ -190,3 +190,78 @@ class PRC_API_Client:
     
     async def _send_hint_command(self, server_id:int, command: str):
         return await self._send_request("POST", "server/command", server_id, json={"command": ":h"+command})
+    
+    async def _is_user_in_game(self, server_id:int, user_id: int) -> typing.Union[bool, typing.Tuple[discord.Embed, bool]]:
+        is_linked = await self.bot.roblox_oauth.find_one(
+            {
+                "discord_user_id": user_id
+            }
+        )
+        if not is_linked:
+            embed = discord.Embed(
+                title="User Not Linked",
+                description=f"The Discord user is not linked to a Roblox account. They must link their account using `/link` before starting a shift.",
+                color=YELLOW_COLOR
+            )
+            return (embed, False)
+        username = is_linked.get("username")
+
+        if server_id in self.bot.prc_player_cache:
+            if username in self.bot.prc_player_cache[server_id]:
+                return True
+            
+        players = await self._fetch_server_players(server_id)
+        self.bot.prc_player_cache[server_id] = [player.Player.lower() for player in players if player.Player]
+        if username in self.bot.prc_player_cache[server_id]:
+            return (True, None)
+        else:
+            embed = discord.Embed(
+                title="HyperSync AI - User Not In-Game",
+                description=(
+                    f"**CYNI HyperSync AI** has detected that the user `{username}` is not currently present in the linked ER:LC server.\n\n"
+                    "They must be in-game before starting a shift."
+                ),
+                color=YELLOW_COLOR
+            ).set_footer(text="Powered by CYNI HyperSync AI")
+            return (embed, False)
+        
+    async def _permission_sync(self, user: discord.User, config: dict, guild: discord.Guild, action: str):
+        if action not in ["start", "end"]:
+            raise ValueError("Action must be either 'start' or 'end'")
+
+        is_linked = await self.bot.roblox_oauth.find_one(
+            {
+                "discord_user_id": user.id
+            }
+        )
+
+        roblox_config = config.get("roblox", {})
+        if not is_linked or not roblox_config:
+            return
+
+        staff_roles = roblox_config.get("staff_roles", [])
+        management_roles = roblox_config.get("management_roles", [])
+        if not staff_roles and not management_roles:
+            return
+        
+        user_roles = [role.id for role in user.roles if isinstance(role, discord.Role)]
+        if not user_roles:
+            return
+        
+        permission_type = "none"
+        if any(role in user_roles for role in management_roles):
+            permission_type = "admin"
+        elif any(role in user_roles for role in staff_roles):
+            permission_type = "mod"
+        
+        if permission_type != "none":
+            if action == "start:":
+                command = f":{permission_type} {is_linked.get('username')}"
+            else:
+                command = f":un{permission_type} {is_linked.get('username')}"
+            try:
+                await self._send_command(guild.id, command)
+            except ResponseFailed as e:
+                self.bot.logger.error(f"Failed to sync permissions for {user} in guild {guild.id}: {e}")
+            else:
+                self.bot.logger.info(f"Synced permissions for {user} in guild {guild.id} as {permission_type}")

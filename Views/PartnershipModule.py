@@ -503,7 +503,7 @@ class PartnershipLogView(View):
                 embed = discord.Embed(
                     title=self.doc["title"],
                     description=self.doc["description"],
-                    color=discord.Color.from_str(self.doc["color"])
+                    color=discord.Color(self.doc["color"])
                 )
                 if self.doc["image"]:
                     embed.set_image(url=self.doc["image"])

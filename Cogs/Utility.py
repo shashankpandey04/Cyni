@@ -360,27 +360,27 @@ class Utility(commands.Cog):
         """
         await ctx.send("[Top.gg](https://top.gg/bot/1136945734399295538/vote)")
 
-    # @commands.hybrid_command(
-    #     name="help",
-    #     extras={
-    #         "category": "General"
-    #     }
-    # )
-    # @commands.guild_only()
-    # @premium_check()
-    # async def help(self, ctx):
-    #     """
-    #     Get help with the bot.
-    #     """
-    #     embed = discord.Embed(
-    #         title="Join the support server",
-    #         description="If you need help, feel free to join our support server!",
-    #         color=BLANK_COLOR
-    #     )
-    #     embed.set_footer(text="Support Server")
-    #     view = discord.ui.View()
-    #     view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm"))
-    #     await ctx.send(embed=embed, view=view)
+    @commands.hybrid_command(
+        name="help",
+        extras={
+            "category": "General"
+        }
+    )
+    @commands.guild_only()
+    @premium_check()
+    async def help(self, ctx):
+        """
+        Get help with the bot.
+        """
+        embed = discord.Embed(
+            title="Join the support server",
+            description="If you need help, feel free to join our support server!",
+            color=BLANK_COLOR
+        )
+        embed.set_footer(text="Support Server")
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm"))
+        await ctx.send(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="link",

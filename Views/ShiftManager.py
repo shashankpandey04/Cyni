@@ -69,9 +69,15 @@ class ShiftManagerContainer(discord.ui.Container):
             added_time = sum(shift.get("added_time", 0) for shift in self.past_shifts) if self.past_shifts else 0
             total_duration_seconds = max(0, total_duration_seconds + added_time - removed_time)
 
-            hours, remainder = divmod(total_duration_seconds, 3600)
+            days, remainder = divmod(total_duration_seconds, 86400)
+            hours, remainder = divmod(remainder, 3600)
             minutes, seconds = divmod(remainder, 60)
-            total_duration = f"{hours}h {minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+            if days > 0:
+                total_duration = f"{days}d {hours}h {minutes}m {seconds}s"
+            elif hours > 0:
+                total_duration = f"{hours}h {minutes}m {seconds}s"
+            else:
+                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
 
             return f"## {self.bot.emoji.get('shiftbreak')} On-Break\n### Current Statistics\n> **Shift Type:** {self.shift_type.capitalize()}\n> **Shift Start:** <t:{int(self.shift_data['start_epoch'])}:F>\n> **Break Started:** {break_start_time}\n\n### Overall Statistics\n> **Total Shifts:** {len(self.past_shifts)}\n> **Total Duration:** {total_duration}"
 
@@ -82,9 +88,15 @@ class ShiftManagerContainer(discord.ui.Container):
             added_time = sum(shift.get("added_time", 0) for shift in self.past_shifts) if self.past_shifts else 0
             total_duration_seconds = max(0, total_duration_seconds + added_time - removed_time)
 
-            hours, remainder = divmod(total_duration_seconds, 3600)
+            days, remainder = divmod(total_duration_seconds, 86400)
+            hours, remainder = divmod(remainder, 3600)
             minutes, seconds = divmod(remainder, 60)
-            total_duration = f"{hours}h {minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+            if days > 0:
+                total_duration = f"{days}d {hours}h {minutes}m {seconds}s"
+            elif hours > 0:
+                total_duration = f"{hours}h {minutes}m {seconds}s"
+            else:
+                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
 
             return f"## {self.bot.emoji.get('onshift')} On-Duty\n### Current Statistics\n> **Shift Type:** {self.shift_type.capitalize()}\n> **Shift Start:** <t:{int(self.shift_data['start_epoch'])}:F>\n> **Breaks:** {self.break_count} Break(s)\n\n### Overall Statistics\n> **Total Shifts:** {len(self.past_shifts)}\n> **Total Duration:** {total_duration}"
 
@@ -94,9 +106,16 @@ class ShiftManagerContainer(discord.ui.Container):
             total_duration_seconds -= removed_time
             added_time = sum(shift.get("added_time", 0) for shift in self.past_shifts) if self.past_shifts else 0
             total_duration_seconds = max(0, total_duration_seconds + added_time - removed_time)
-            hours, remainder = divmod(total_duration_seconds, 3600)
+
+            days, remainder = divmod(total_duration_seconds, 86400)
+            hours, remainder = divmod(remainder, 3600)
             minutes, seconds = divmod(remainder, 60)
-            total_duration = f"{hours}h {minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+            if days > 0:
+                total_duration = f"{days}d {hours}h {minutes}m {seconds}s"
+            elif hours > 0:
+                total_duration = f"{hours}h {minutes}m {seconds}s"
+            else:
+                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
 
             return f"## {self.bot.emoji.get('offshift')} Off-Duty\n### Current Statistics\n> **Shift Type:** {self.shift_type.capitalize()}\n> **Total Shifts:** {len(self.past_shifts)}\n> **Total Duration:** {total_duration}"
 
@@ -162,6 +181,32 @@ class ShiftManagerContainer(discord.ui.Container):
             self.bot.dispatch("shift_break", oid["_id"], "end", timestamp)
             success_message = "Break ended! You are now back on duty."
         else:
+            sett = await self.bot.settings.find_by_id(interaction.guild.id)
+            erlc_linked  = await self.bot.erlc.find_by_id(interaction.guild.id)
+            if erlc_linked:
+                if sett and sett.get("roblox", {}).get("shift_module", {}).get("require_staff_ingame", False):
+                    in_game = await self.bot.prc_api._is_user_in_game(interaction.guild.id, interaction.user.id)
+                    if isinstance(in_game, tuple) and not in_game[1]:
+                        return await interaction.response.send_message(
+                            embed=in_game[0],
+                            ephemeral=True
+                        )
+                    await self.bot.prc_api._permission_sync(interaction.user, sett, interaction.guild, "start")
+            elif not erlc_linked and sett and sett.get("roblox", {}).get("shift_module", {}).get("require_staff_ingame", False):
+                return await interaction.response.send_message(
+                    embed=discord.Embed(
+                        title="HyperSync AI - Server Not Linked",
+                        description=(
+                            f"**CYNI HyperSync AI** has detected that this server requires mandatory staff in-game presence,\n"
+                            "but it is not linked to a PRC server. Please link your server using `/erlc link` command."
+                        ),
+                        color=discord.Color.red()
+                    ).set_footer(
+                        text="Powered by CYNI HyperSync AI"
+                    ),
+                    ephemeral=True
+                )
+        
             doc = {
                 "guild_id": interaction.guild.id,
                 "user_id": interaction.user.id,
@@ -193,6 +238,8 @@ class ShiftManagerContainer(discord.ui.Container):
                 title=f"{self.bot.emoji.get('onshift')} Shift Action",
                 description=success_message,
                 color=discord.Color.green(),
+            ).set_footer(
+                text="CYNI HyperSync AI will update your in-game permissions shortly. Please run '/duty sync' if it doesn't happen automatically."
             ),
             ephemeral=True,
         )
@@ -304,7 +351,8 @@ class ShiftManagerContainer(discord.ui.Container):
         
         #print(f"Total shift: {total_duration}s, Break time: {total_break_time}s, Working time: {duration}s")
         
-        hours = duration // 3600
+        days = duration // 86400
+        hours = (duration % 86400) // 3600
         minutes = (duration % 3600) // 60
         seconds = duration % 60
 
@@ -338,11 +386,17 @@ class ShiftManagerContainer(discord.ui.Container):
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=f"{self.bot.emoji.get('offshift')} Shift Ended",
-                description=f"Your shift has been ended. Duration: {hours}h {minutes}m {seconds}s",
+                description=f"Your shift has been ended. Duration: {days}d {hours}h {minutes}m {seconds}s",
                 color=discord.Color.green(),
+            ).set_footer(
+                text="CYNI HyperSync AI will remove your in-game permissions shortly."
             ),
             ephemeral=True,
         )
+        
+        sett = await self.bot.settings.find_by_id(interaction.guild.id)
+        if sett and sett.get("roblox", {}).get("shift_module", {}).get("require_staff_ingame", False):
+            await self.bot.prc_api._permission_sync(interaction.user, sett, interaction.guild, "end")
 
         await self.refresh_view(interaction)
 
@@ -366,7 +420,6 @@ class ShiftManagerContainer(discord.ui.Container):
             }
         )
 
-        # Determine new status
         new_status = "offduty"
         new_break_count = 0
         new_shift_data = None
@@ -379,7 +432,6 @@ class ShiftManagerContainer(discord.ui.Container):
                 breaks = new_shift_data.get("breaks", [])
                 new_break_count = len(breaks)
 
-                # Check if any break is currently active
                 if breaks:
                     for b in breaks:
                         if isinstance(b, dict):
@@ -391,10 +443,8 @@ class ShiftManagerContainer(discord.ui.Container):
                                 new_status = "onbreak"
                                 break
         
-        # Create new view with updated data
         new_view = ShiftManagerView(self.bot, self.ctx, self.shift_type, updated_active_shift, updated_past_shifts)
-        
-        # Update the message with new view
+
         try:
             await interaction.edit_original_response(view=new_view)
         except:
@@ -417,7 +467,6 @@ class ShiftManagerView(discord.ui.LayoutView):
                 breaks = shift_data.get("breaks", [])
                 break_count = len(breaks)
 
-                # Check if any break is currently active
                 if breaks:
                     for b in breaks:
                         if isinstance(b, dict):
@@ -429,7 +478,6 @@ class ShiftManagerView(discord.ui.LayoutView):
                                 status = "onbreak"
                                 break
 
-        # Create and add the container
         self.container = ShiftManagerContainer(bot, ctx, status, shift_type, shift_data, past_shifts, break_count)
         self.add_item(self.container)
 
@@ -448,7 +496,6 @@ class ShiftDeleteConfirm(discord.ui.View):
         self.confirm_button.callback = self.confirm_button_callback
 
     async def confirm_button_callback(self, interaction: discord.Interaction):
-        # Take all shift_logs and add into deleted_shifts
         deleted_shifts = await self.bot.shift_logs.find(
             {"guild_id": interaction.guild.id, "type": self.shift_type}
         )

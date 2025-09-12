@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from utils.prc_api import ResponseFailed, ServerLinkNotFound
 from utils.constants import BLANK_COLOR, RED_COLOR
-from cyni import UsePremiumBotError, UseRegularBotError, NotPremiumError
+from cyni import UsePremiumBotError, UseRegularBotError
 
 load_dotenv()
 
@@ -51,8 +51,20 @@ class CommandErrorHandler(commands.Cog):
         )
 
         try:
+            
+            if isinstance(error, UsePremiumBotError):
+                embed.title = "Premium Bot Required"
+                embed.description = "This server has access to premium services. Please use the premium bot to access this command."
+                embed.color = RED_COLOR
+                return await ctx.reply(embed=embed)
+            
+            elif isinstance(error, UseRegularBotError):
+                embed.title = "Premium Service Required"
+                embed.description = "This server doesn't have access to premium services. Please use the regular bot to access this command."
+                embed.color = RED_COLOR
+                return await ctx.reply(embed=embed)
 
-            if isinstance(error, commands.MissingRequiredArgument):
+            elif isinstance(error, commands.MissingRequiredArgument):
                 embed.description = f"Missing required argument: `{error.param.name}`"
                 
             elif isinstance(error, commands.MissingPermissions):

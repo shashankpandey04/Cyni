@@ -375,11 +375,6 @@ class PRCLogsProcessor:
                 if not member:
                     if player.permission is None or player.permission.lower() not in ["server administrator", "server owner", "server moderator"]:
                         not_in_discord.append(player)
-                #======WILL BE IMPLEMENTED IN NEXT UPDATE======
-                # else:
-                #     callsign_valid = await handle_callsign_check(guild, player.callsign, items, member)
-                #     if not callsign_valid:
-                #         callsign_violations.append(player)
             try:
                 kick_after = settings.get("kick_after", 0)
             except Exception as e:

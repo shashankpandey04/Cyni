@@ -151,6 +151,8 @@ class RobloxManagement(View):
                     f"> Select the role that will be assigned to users when they start a shift.\n\n"
                     f"**On-Break Role**\n"
                     f"> Select the role that will be assigned to users when they go on break."
+                    # f"**Require Staff In-Game**\n"
+                    # f"> Select whether staff members are required to be in-game to start a shift."
                 ),
                 color=BLANK_COLOR
             ),
@@ -279,6 +281,14 @@ class RobloxShiftConfig(View):
         self.shift_types_button.callback = self.shift_types_callback
         self.add_item(self.shift_types_button)
 
+        # self.require_player_ingame_button = Button(
+        #     label="Toggle Require Staff In-Game",
+        #     style=discord.ButtonStyle.secondary,
+        #     row=2
+        # )
+        # self.require_player_ingame_button.callback = self.require_player_ingame_callback
+        # self.add_item(self.require_player_ingame_button)
+
     async def shift_log_channel_callback(self, interaction: discord.Interaction):
         """
         Opens the Roblox shift log channel configuration modal.
@@ -404,7 +414,39 @@ class RobloxShiftConfig(View):
                 view=view,
             )
 
+    async def require_player_ingame_callback(self, interaction: discord.Interaction):
+        """
+        Toggles the require staff in-game setting.
+        """
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="You cannot configure this setting.",
+                    color=discord.Color.red()
+                ),
+                ephemeral=True
+            )
 
+        settings = await self.bot.settings.find_by_id(interaction.guild.id)
+        if "roblox" not in settings:
+            settings["roblox"] = {}
+        if "shift_module" not in settings["roblox"]:
+            settings["roblox"]["shift_module"] = {}
+        current_setting = settings["roblox"]["shift_module"].get("require_staff_ingame", False)
+        new_setting = not current_setting
+        settings["roblox"]["shift_module"]["require_staff_ingame"] = new_setting
+        await self.bot.settings.update({"_id": interaction.guild.id}, {"$set": settings}, upsert=True)
+
+        status = "Enabled" if new_setting else "Disabled"
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                description=f"Require staff in-game has been `{status}`.",
+                color=GREEN_COLOR
+            ),
+            ephemeral=True
+        )
+        
 class RobloxSPunishmentConfig(View):
     def __init__(self, bot, ctx, sett):
         super().__init__()
