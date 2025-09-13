@@ -601,7 +601,7 @@ class Utility(commands.Cog):
             await ctx.channel.purge(limit=1)
             await ctx.send(message)
 
-    @app_commands.command(
+    @commands.hybrid_command(
         name="setprofile",
         description="Set the bot's profile information.",
         extras={
@@ -616,35 +616,33 @@ class Utility(commands.Cog):
     )
     @premium_check()
     @is_management()
-    async def setprofile(self, interaction: discord.Interaction, *, nick: str = None, bio: str = None, banner: discord.Attachment = None, avatar: discord.Attachment = None):
+    async def setprofile(self, ctx, *, nick: str = None, bio: str = None, banner: discord.Attachment = None, avatar: discord.Attachment = None):
         """
         Set the bot's profile information.
         Note: This command only works in guilds where the bot has the necessary permissions.
         """
         if not interaction.guild.me.guild_permissions.manage_nicknames and nick is not None:
-            return await interaction.response.send_message(
+            return await ctx.send(
                 embed=discord.Embed(
                     title="Error",
                     description="I need the `Manage Nicknames` permission to change my nickname.",
                     color=RED_COLOR
-                ),
-                ephemeral=True
+                )
             )
         guild_api = GuildSelfMemberAPI(self.bot)
         await guild_api.set_profile(
-            guild_id=interaction.guild.id,
+            guild_id=ctx.guild.id,
             nick=nick,
             bio=bio,
             banner=banner,
             avatar=avatar
         )
-        await interaction.response.send_message(
+        await ctx.send(
             embed=discord.Embed(
                 title="Success",
                 description="Profile updated successfully.",
                 color=BLANK_COLOR
-            ),
-            ephemeral=True
+            )
         )
 
 
