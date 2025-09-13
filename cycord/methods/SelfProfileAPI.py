@@ -191,8 +191,4 @@ class GuildSelfMemberAPI:
             If any Discord API request fails.
         """
         for guild in self.bot.guilds:
-            try:
-                await self.reset_profile(guild.id)
-                self.bot.logger.info(f"Reset profile in guild {guild.id}")
-            except Exception as e:
-                self.bot.logger.error(f"Failed to reset profile in guild {guild.id}: {e}")
+            await self.reset_profile(guild.id)

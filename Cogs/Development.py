@@ -14,11 +14,11 @@ class DevelopmentView(discord.ui.View):
             "Bug Report",
             [
                 {
-                    "type": "user",
-                    "custom_id": "bug_reporter",
-                    "label": "Who is reporting?",
-                    "description": "Select the reporter from your server",
-                    "placeholder": "Choose a user...",
+                    "type": "channel",
+                    "custom_id": "bug_channel",
+                    "label": "Where is the bug?",
+                    "description": "Select the channel where the bug was found",
+                    "placeholder": "Choose a channel...",
                 },
                 {
                     "type": "text",
@@ -36,12 +36,51 @@ class DevelopmentView(discord.ui.View):
         await interaction.response.send_modal(modal)
         await modal.wait()
 
-        self.bot.logger.info(f"Modal submitted with values: {modal.values}")
+        modal_values = modal.values
+        channel_ids = modal_values.get("bug_channel", [])
+        explanation = modal_values.get("bug_explanation", "No explanation provided")
+
+        # Convert channel ID to Discord channel object
+        if channel_ids:
+            channel_id = int(channel_ids[0])  # Get the first selected channel
+            channel = interaction.guild.get_channel(channel_id)
+            
+            if channel:
+                channel_mention = channel.mention
+                channel_name = channel.name
+            else:
+                channel_mention = f"<#{channel_id}>"
+                channel_name = f"Unknown Channel (ID: {channel_id})"
+        else:
+            channel_mention = "No channel selected"
+            channel_name = "None"
+
+        self.bot.logger.info(f"Modal submitted with channel: {channel_name} ({channel_ids}), explanation: {explanation}")
+        
+        embed = discord.Embed(
+            title="🐛 Bug Report Received",
+            description="Thank you for reporting this bug!",
+            color=discord.Color.green()
+        )
+        
+        embed.add_field(
+            name="📍 Channel",
+            value=channel_mention,
+            inline=True
+        )
+        
+        embed.add_field(
+            name="📝 Report",
+            value=explanation[:500] + "..." if len(explanation) > 500 else explanation,
+            inline=False
+        )
+        
+        embed.set_footer(text=f"Reported by {interaction.user.display_name}")
+        
         await interaction.followup.send(
-            f"Thank you {interaction.user.mention} for your report! We will look into it.",
+            embed=embed,
             ephemeral=True
         )
-
 
 class Development(commands.Cog):
     def __init__(self, bot):

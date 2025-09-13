@@ -62,11 +62,28 @@ class CyModals(discord.ui.Modal):
         self.add_item(wrapped)
 
     async def on_submit(self, interaction: discord.Interaction):
-        for child in self.children:
-            if isinstance(child, Label):
-                inner = child.component
-                if hasattr(inner, "value"):   # TextInput
-                    self.values[inner.custom_id] = inner.value
-                elif hasattr(inner, "values"):  # Selects
-                    self.values[inner.custom_id] = inner.values
+        submitted = {}
+        
+        # Parse the raw interaction data since discord.py might not be handling our custom Label wrapper correctly
+        interaction_data = interaction.data
+        components = interaction_data.get("components", [])
+        resolved = interaction_data.get("resolved", {})
+        
+        for component_data in components:
+            if component_data.get("type") == 18:  # Label component type
+                inner_component = component_data.get("component", {})
+                custom_id = inner_component.get("custom_id")
+                component_type = inner_component.get("type")
+                values = inner_component.get("values", [])
+                
+                if component_type == 4:  # TextInput
+                    submitted[custom_id] = inner_component.get("value", "")
+                
+                elif component_type in [5, 6, 7, 8]:  # Select menus
+                    # For select menus, just return the IDs (values) directly
+                    # This is much cleaner than returning full resolved objects
+                    submitted[custom_id] = values if values else []
+
+        self.values.update(submitted)
         await interaction.response.defer()
+        return self.values
