@@ -210,7 +210,7 @@ class Bot(commands.AutoShardedBot):
         Cogs = [m.name for m in iter_modules(['Cogs'],prefix='Cogs.')]
         Events = [m.name for m in iter_modules(['events'],prefix='events.')]
         EXT_EXTENSIONS = ["utils.api"]
-        UNLOAD_EXTENSIONS = ["Cogs.Applications", "Cogs.Sessions"]
+        UNLOAD_EXTENSIONS = ["Cogs.Applications", "Cogs.Sessions", "Cogs.Development"]
         DISCONTINUED_EXTENSIONS = ["Cogs.Backup", "Cogs.YouTube", "Cogs.Verify"]
 
 

@@ -20,6 +20,10 @@ Usage:
         banner=discord.File("banner.png"),   # File or Attachment also works
         avatar="data:image/png;base64,..."   # Raw data URI still supported
     )
+
+    from cycord.methods.SelfProfileAPI import GuildSelfMemberAPI
+    guild_api = GuildSelfMemberAPI(bot)
+    await guild_api.reset_profile(guild_id=123456789012345678)
 """
 
 import base64
@@ -137,3 +141,58 @@ class GuildSelfMemberAPI:
             guild_id=guild_id
         )
         return await self.bot.http.request(route, json=payload)
+    
+    async def reset_profile(self, guild_id: int) -> Dict[str, Any]:
+        """
+        Reset the bot's guild-specific profile to default.
+
+        Parameters
+        ----------
+        guild_id : int
+            The guild ID to reset the profile in.
+
+        Returns
+        -------
+        dict
+            The updated member object from Discord API.
+
+        Raises
+        ------
+        HTTPException
+            If the Discord API request fails.
+        """
+        
+        payload = {
+            "nick": None,
+            "bio": None,
+            "banner": None,
+            "avatar": None
+        }
+        route = Route(
+            "PATCH",
+            "/guilds/{guild_id}/members/@me",
+            guild_id=guild_id
+        )
+        return await self.bot.http.request(route, json=payload)
+    
+    async def reset_for_all_guilds(self) -> None:
+        """
+        Reset the bot's profile in all guilds it is a member of.
+
+        Note: This can be rate-limited if the bot is in many guilds.
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        HTTPException
+            If any Discord API request fails.
+        """
+        for guild in self.bot.guilds:
+            try:
+                await self.reset_profile(guild.id)
+                self.bot.logger.info(f"Reset profile in guild {guild.id}")
+            except Exception as e:
+                self.bot.logger.error(f"Failed to reset profile in guild {guild.id}: {e}")

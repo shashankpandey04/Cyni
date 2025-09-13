@@ -399,14 +399,18 @@ class Moderation(commands.Cog):
         if mod_log_channel != 0:
             await mod_log_channel.send(
                 embed = discord.Embed(
-                    title = "Case ID: {total_warnings + 1} | User Kicked",
+                    title = f"Case ID: {total_warnings + 1} | User Kicked",
                     description = f"**User ID:** {member.mention}\n> **Moderator:** {ctx.author.mention}\n> **Reason:** {reason}\n> **Timestamp:** <t:{int(datetime.now().timestamp())}:R>",
                     color = discord.Color.red()
                 )
             )
         else:
             await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+                embed=discord.Embed(
+                    title="Moderation log channel not found",
+                    description="Moderation log channel not found. Please set up the bot using the `config` command.",
+                    color=discord.Color.red()
+                )
             )
 
     @commands.hybrid_command(

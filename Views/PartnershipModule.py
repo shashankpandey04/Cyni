@@ -2,7 +2,7 @@ from discord.ui import Button, View
 from discord import Interaction, ButtonStyle
 import discord
 from menu import CustomModal
-from utils.constants import BLANK_COLOR
+from utils.constants import BLANK_COLOR, RED_COLOR
 
 
 # "_id": f"{ctx.guild.id}_{partnership_id}",
@@ -57,11 +57,12 @@ class RepresentativeSelect(View):
         self.partnership_doc['representative'] = self.representative.id
 
     async def other_representatives_callback(self, interaction: Interaction):
-        self.other_representatives = [user.id for user in self.other_representatives_select.values]
+        self.other_representatives = self.other_representatives_select.values
+        mentions = [user.mention for user in self.other_representatives]
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="Other Representatives Set",
-                description=f"Other representatives set to {', '.join([user.mention for user in self.other_representatives]) if self.other_representatives else 'None'}",
+                description=f"Other representatives set to {', '.join(mentions) if mentions else 'None'}",
                 color=BLANK_COLOR
             ), ephemeral=True
         )
@@ -116,6 +117,9 @@ class PartnershipLogView(View):
             "color": discord.Color.blue().value
         }
 
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        return interaction.user.id == self.ctx.author.id
+
     @discord.ui.button(
         label="Set Title",
         style=ButtonStyle.secondary,
@@ -123,6 +127,15 @@ class PartnershipLogView(View):
         row=0
     )
     async def set_title(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
+        
         modal = CustomModal(
             "Partnership Embed Title",
             [
@@ -163,6 +176,14 @@ class PartnershipLogView(View):
         row=0
     )
     async def set_description(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         modal = CustomModal(
             "Partnership Embed Description",
             [
@@ -204,6 +225,14 @@ class PartnershipLogView(View):
         row=0
     )
     async def set_representative(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         view = RepresentativeSelect(self.ctx, interaction.message, self.doc)
         await interaction.response.send_message(
             embed=discord.Embed(
@@ -223,6 +252,15 @@ class PartnershipLogView(View):
         row=0
     )
     async def set_image(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
+        
         modal = CustomModal(
             "Partnership Embed Image",
             [
@@ -251,6 +289,18 @@ class PartnershipLogView(View):
                 ), ephemeral=True
             )
             return
+
+
+        if not (image_url.startswith("http://") or image_url.startswith("https://")):
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    title="Invalid URL",
+                    description="The image URL must start with http:// or https://",
+                    color=BLANK_COLOR
+                ), ephemeral=True
+            )
+            return
+        
         self.doc["image"] = image_url
         embed = interaction.message.embeds[0]
         embed.set_image(url=image_url)
@@ -263,6 +313,14 @@ class PartnershipLogView(View):
         row=0
     )
     async def set_thumbnail(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         modal = CustomModal(
             "Partnership Embed Thumbnail",
             [
@@ -291,6 +349,17 @@ class PartnershipLogView(View):
                 ), ephemeral=True
             )
             return
+        
+        if not (thumbnail_url.startswith("http://") or thumbnail_url.startswith("https://")):
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    title="Invalid URL",
+                    description="The thumbnail URL must start with http:// or https://",
+                    color=BLANK_COLOR
+                ), ephemeral=True
+            )
+            return
+
         self.doc["thumbnail"] = thumbnail_url
         embed = interaction.message.embeds[0]
         embed.set_thumbnail(url=thumbnail_url)
@@ -303,6 +372,14 @@ class PartnershipLogView(View):
         custom_id="add_field_button"
     )
     async def add_field(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         modal = CustomModal(
             "Add Field",
             [
@@ -354,6 +431,14 @@ class PartnershipLogView(View):
         custom_id="remove_last_field_button"
     )
     async def remove_last_field(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         if not self.doc["fields"]:
             await interaction.followup.send(
                 embed=discord.Embed(
@@ -382,6 +467,14 @@ class PartnershipLogView(View):
         custom_id="set_color_button"
     )
     async def set_color(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         modal = CustomModal(
             "Set Color",
             [
@@ -429,6 +522,14 @@ class PartnershipLogView(View):
         custom_id="set_message_button"
     )
     async def set_message(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         modal = CustomModal(
             "Set Message",
             [
@@ -468,6 +569,14 @@ class PartnershipLogView(View):
         custom_id="finish_button"
     )
     async def finish(self, interaction: Interaction, button: Button):
+        if not await self.interaction_check(interaction):
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Unauthorized",
+                    description="You are not authorized to use this button.",
+                    color=RED_COLOR
+                ), ephemeral=True
+            )
         missing_fields = []
         if not self.doc["title"]:
             missing_fields.append("Title")

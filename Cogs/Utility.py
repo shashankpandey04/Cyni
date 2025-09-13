@@ -601,8 +601,15 @@ class Utility(commands.Cog):
             await ctx.channel.purge(limit=1)
             await ctx.send(message)
 
-    @app_commands.command(
-        name="setprofile",
+    @commands.hybrid_group(
+        name="profile",
+        description="Manage the bot's profile information."
+    )
+    async def profile(self, ctx):
+        pass
+
+    @profile.command(
+        name="set",
         description="Set the bot's profile information.",
         extras={
             "category": "General"
@@ -616,36 +623,88 @@ class Utility(commands.Cog):
     )
     @premium_check()
     @is_management()
-    async def setprofile(self, interaction: discord.Interaction, *, nick: str = None, bio: str = None, banner: discord.Attachment = None, avatar: discord.Attachment = None):
+    async def set(self, ctx, *, nick: str = None, bio: str = None, banner: discord.Attachment = None, avatar: discord.Attachment = None):
         """
         Set the bot's profile information.
         Note: This command only works in guilds where the bot has the necessary permissions.
         """
-        if not interaction.guild.me.guild_permissions.manage_nicknames and nick is not None:
-            return await interaction.response.send_message(
+        is_premium = await self.bot.premium.find_by_id(ctx.guild.id)
+        if not is_premium:
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Premium Required",
+                    description="This command is only available for premium servers. Please upgrade to premium to use this feature.",
+                    color=YELLOW_COLOR
+                )
+            )
+        
+        if not ctx.guild.me.guild_permissions.manage_nicknames and nick is not None:
+            return await ctx.send(
                 embed=discord.Embed(
                     title="Error",
                     description="I need the `Manage Nicknames` permission to change my nickname.",
                     color=RED_COLOR
-                ),
-                ephemeral=True
+                )
             )
         guild_api = GuildSelfMemberAPI(self.bot)
         await guild_api.set_profile(
-            guild_id=interaction.guild.id,
+            guild_id=ctx.guild.id,
             nick=nick,
             bio=bio,
             banner=banner,
             avatar=avatar
         )
-        await interaction.response.send_message(
+        await ctx.send(
             embed=discord.Embed(
                 title="Success",
                 description="Profile updated successfully.",
                 color=BLANK_COLOR
-            ),
-            ephemeral=True
+            )
         )
+
+    @profile.command(
+        name="reset",
+        extras={
+            "category": "General"
+        }
+    )
+    @premium_check()
+    @is_management()
+    async def reset(self, ctx: commands.Context):
+        """
+        Reset the bot's profile information.
+        Note: This command only works in guilds where the bot has the necessary permissions.
+        """
+        try:
+            is_premium = await self.bot.premium.find_by_id(ctx.guild.id)
+            if not is_premium:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Premium Required",
+                        description="This command is only available for premium servers. Please upgrade to premium to use this feature.",
+                        color=YELLOW_COLOR
+                    )
+                )
+            guild_api = GuildSelfMemberAPI(self.bot)
+            await guild_api.reset_profile(
+                guild_id=ctx.guild.id
+            )
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Success",
+                    description="Profile reset successfully.",
+                    color=BLANK_COLOR
+                )
+            )
+        except Exception as e:
+            self.bot.logger.error(f"Error resetting profile: {e}")
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while resetting the profile: ```{e}```",
+                    color=RED_COLOR
+                )
+            )
 
 
 async def setup(bot):
