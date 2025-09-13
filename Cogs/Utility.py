@@ -5,7 +5,7 @@ import json
 from cyni import afk_users
 from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
-from cyni import up_time, is_staff, _version, premium_check
+from cyni import up_time, is_staff, _version, premium_check, is_management
 from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 import roblox
@@ -615,6 +615,7 @@ class Utility(commands.Cog):
         avatar="The avatar image file"
     )
     @premium_check()
+    @is_management()
     async def setprofile(self, interaction: discord.Interaction, *, nick: str = None, bio: str = None, banner: discord.Attachment = None, avatar: discord.Attachment = None):
         """
         Set the bot's profile information.
