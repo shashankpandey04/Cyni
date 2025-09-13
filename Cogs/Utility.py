@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import json
 from cyni import afk_users
 from utils.constants import BLANK_COLOR, RED_COLOR, YELLOW_COLOR
 from utils.utils import discord_time
@@ -9,6 +10,7 @@ from menu import UpVote, DownVote, ViewVotersButton, PremiumButton
 import time
 import roblox
 import random
+from cycord.methods.SelfProfileAPI import GuildSelfMemberAPI
 
 OWNER = 1201129677457215558
 LOGGING_CHANNEL = 1257705346525560885
@@ -598,6 +600,52 @@ class Utility(commands.Cog):
             await ctx.typing()
             await ctx.channel.purge(limit=1)
             await ctx.send(message)
+
+    @app_commands.command(
+        name="setprofile",
+        description="Set the bot's profile information.",
+        extras={
+            "category": "General"
+        }
+    )
+    @app_commands.describe(
+        nick="The nickname to set",
+        bio="The bio to set",
+        banner="The banner image file",
+        avatar="The avatar image file"
+    )
+    @premium_check()
+    async def setprofile(self, interaction: discord.Interaction, *, nick: str = None, bio: str = None, banner: discord.Attachment = None, avatar: discord.Attachment = None):
+        """
+        Set the bot's profile information.
+        Note: This command only works in guilds where the bot has the necessary permissions.
+        """
+        if not interaction.guild.me.guild_permissions.manage_nicknames and nick is not None:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Error",
+                    description="I need the `Manage Nicknames` permission to change my nickname.",
+                    color=RED_COLOR
+                ),
+                ephemeral=True
+            )
+        guild_api = GuildSelfMemberAPI(self.bot)
+        await guild_api.set_profile(
+            guild_id=interaction.guild.id,
+            nick=nick,
+            bio=bio,
+            banner=banner,
+            avatar=avatar
+        )
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Success",
+                description="Profile updated successfully.",
+                color=BLANK_COLOR
+            ),
+            ephemeral=True
+        )
+
 
 async def setup(bot):
     await bot.add_cog(Utility(bot=bot))
