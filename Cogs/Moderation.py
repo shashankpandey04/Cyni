@@ -974,10 +974,9 @@ class Moderation(commands.Cog):
                     color = discord.Color.red()
                 )
             )
-        
-        if amount > 25:
-            for i in range(0, amount, 25):
-                await ctx.channel.purge(limit=25)
+        if amount>100:
+            return await ctx.send("Not more than 100 purge allowed")
+        await ctx.channel.purge(amount)
         else:
             await ctx.channel.purge(limit=amount)
 
