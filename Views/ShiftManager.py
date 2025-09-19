@@ -238,8 +238,6 @@ class ShiftManagerContainer(discord.ui.Container):
                 title=f"{self.bot.emoji.get('onshift')} Shift Action",
                 description=success_message,
                 color=discord.Color.green(),
-            ).set_footer(
-                text="CYNI HyperSync AI will update your in-game permissions shortly. Please run '/duty sync' if it doesn't happen automatically."
             ),
             ephemeral=True,
         )
@@ -388,8 +386,6 @@ class ShiftManagerContainer(discord.ui.Container):
                 title=f"{self.bot.emoji.get('offshift')} Shift Ended",
                 description=f"Your shift has been ended. Duration: {days}d {hours}h {minutes}m {seconds}s",
                 color=discord.Color.green(),
-            ).set_footer(
-                text="CYNI HyperSync AI will remove your in-game permissions shortly."
             ),
             ephemeral=True,
         )

@@ -85,7 +85,7 @@ class Utility(commands.Cog):
             description=(
                 f"Cyni is a multifunctional Discord bot designed to enhance your server\nmanagement experience with a variety of features including moderation,\nutility commands, and entertainment options.\n"
                 f"**Version:** `v{_version}-stable`\n"
-                f"**CyniLib:** `v1.0.1`\n> (Cyni uses custom forked version of discord.py which enhances performance and adds new features.)\n"
+                f"**CyCord:** `v1.0.2`\n> (Cyni uses custom forked version of discord.py which enhances performance and adds new features.)\n"
                 f"**DB:** `MongoDB`"
             ),
             color=BLANK_COLOR
