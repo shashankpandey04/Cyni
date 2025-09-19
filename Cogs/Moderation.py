@@ -975,10 +975,14 @@ class Moderation(commands.Cog):
                 )
             )
         if amount>100:
-            return await ctx.send("Not more than 100 purge allowed")
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Not Permited",
+                    description = "Discord allows only 100 messages purge per comamnd invoke.",
+                    color = discord.Color.green()
+                )
+            )
         await ctx.channel.purge(amount)
-        else:
-            await ctx.channel.purge(limit=amount)
 
         await ctx.send(
             embed = discord.Embed(
