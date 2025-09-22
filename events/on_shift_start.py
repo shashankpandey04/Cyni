@@ -2,7 +2,11 @@ import discord
 from bson import ObjectId
 from discord.ext import commands
 from utils.constants import GREEN_COLOR
+import os
+from dotenv import load_dotenv
+import requests
 
+load_dotenv()
 
 class OnShiftStart(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -36,6 +40,16 @@ class OnShiftStart(commands.Cog):
 
         on_duty_role_id = guild_settings.get("roblox", {}).get("shift_module", {}).get("on_duty_role")
         on_duty_role: discord.Role = guild.get_role(on_duty_role_id) if on_duty_role_id else None
+
+        # PANEL_URL = os.getenv('PANEL_URL')
+        # PANEL_KEY = os.getenv('PANEL_KEY')
+        # response = requests.post(
+        #     f"{PANEL_URL}/api/v1/panel/shifts",
+        #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+        #     json=document
+        # )
+        # if response.status_code != 200:
+        #     self.bot.logger.error(f"Failed to log shift start to panel: {response.status_code} - {response.text}")
 
         guild_roles = await guild.fetch_roles()
         if on_duty_role in guild_roles:

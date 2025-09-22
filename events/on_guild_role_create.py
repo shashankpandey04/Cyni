@@ -5,6 +5,11 @@ from discord.ext import commands
 from utils.constants import RED_COLOR
 from utils.utils import discord_time, generate_embed
 import datetime
+import os
+from dotenv import load_dotenv
+import requests
+
+load_dotenv()   
 
 class OnGuildRoleCreate(commands.Cog):
     def __init__(self, bot):
@@ -34,6 +39,16 @@ class OnGuildRoleCreate(commands.Cog):
             if not guild_log_channel:
                 return
             created_at = discord_time(datetime.datetime.now())
+
+            # PANEL_URL = os.getenv('PANEL_URL')
+            # PANEL_KEY = os.getenv('PANEL_KEY')
+            # response = requests.post(
+            #     f"{PANEL_URL}/api/v1/panel/roles/create",
+            #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+            #     json=role.to_dict()
+            # )
+            # if response.status_code != 200:
+            #     self.bot.logger.error(f"Failed to log role creation to panel: {response.status_code} - {response.text}")
 
             async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_create):
                 embed = generate_embed(

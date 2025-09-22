@@ -1,9 +1,14 @@
+import os
+from dotenv import load_dotenv
+import requests
 import discord
 from discord.ext import commands
 from utils.utils import compare_overwrites, discord_time, generate_embed
 from utils.constants import YELLOW_COLOR
 import datetime
 from cyni import premium_check_fun
+
+load_dotenv()
 
 class OnGuildChannelUpdate(commands.Cog):
     def __init__(self, bot):
@@ -80,6 +85,15 @@ class OnGuildChannelUpdate(commands.Cog):
                     premium=premium_status,
                     custom_colors=custom_colors
                 )
+                # PANEL_URL = os.getenv('PANEL_URL')
+                # PANEL_KEY = os.getenv('PANEL_KEY')
+                # response = requests.post(
+                #     f"{PANEL_URL}/api/v1/panel/channel/update",
+                #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+                #     json=after.to_dict()
+                # )
+                # if response.status_code != 200:
+                #     self.bot.logger.error(f"Failed to log channel deletion to panel: {response.status_code} - {response.text}")
                 await self._send_log_embed(guild_log_channel, embed)
 
             if before.category != after.category:

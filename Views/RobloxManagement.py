@@ -376,19 +376,7 @@ class RobloxShiftConfig(View):
         """
         Opens the Roblox shift types configuration modal.
         """
-        shift_types = await self.bot.shift_types.find_by_id(interaction.guild.id)
-        # {
-        #     "_id": {
-        #         "$numberLong": "1228305781938720779"
-        #     },
-        #     "test": {
-        #         "access_role": [
-        #         {
-        #             "$numberLong": "1251031163523305527"
-        #         }
-        #         ]
-        #     }
-        # }
+        shift_types = await self.bot.shift_types.find_by_id(interaction.guild.id) or {"_id": interaction.guild.id}
 
         embed = discord.Embed(
             title="Custom Shift Types",
@@ -407,12 +395,11 @@ class RobloxShiftConfig(View):
                 if not isinstance(access_roles, list):
                     access_roles = [access_roles]
                 embed.description += f"> Access Roles: {', '.join([f'<@&{role_id}>' for role_id in access_roles])}\n"
-
-            view = CustomShiftTypeMenu(self.bot, self.ctx)
-            await interaction.response.send_message(
-                embed=embed,
-                view=view,
-            )
+        view = CustomShiftTypeMenu(self.bot, self.ctx)
+        await interaction.response.send_message(
+            embed=embed,
+            view=view,
+        )
 
     async def require_player_ingame_callback(self, interaction: discord.Interaction):
         """

@@ -2,7 +2,11 @@ import discord
 from bson import ObjectId
 from discord.ext import commands
 from utils.constants import RED_COLOR
+import os
+from dotenv import load_dotenv
+import requests
 
+load_dotenv()
 
 class OnShiftEnd(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -43,10 +47,28 @@ class OnShiftEnd(commands.Cog):
                 await staff_member.remove_roles(on_duty_role, atomic=True)
             except discord.HTTPException:
                 pass
+
         total_duration_seconds = document.get('duration', 0)
-        hours, remainder = divmod(total_duration_seconds, 3600)
+        days, remainder = divmod(total_duration_seconds, 86400)
+        hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
-        total_duration = f"{hours}h {minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+        if days > 0:
+            total_duration = f"{days}d {hours}h {minutes}m {seconds}s"
+        elif hours > 0:
+            total_duration = f"{hours}h {minutes}m {seconds}s"
+        else:
+            total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+
+        # PANEL_URL = os.getenv('PANEL_URL')
+        # PANEL_KEY = os.getenv('PANEL_KEY')
+        # response = requests.post(
+        #     f"{PANEL_URL}/api/v1/modpanel/shifts",
+        #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+        #     json=document
+        # )
+        # if response.status_code != 200:
+        #     self.bot.logger.error(f"Failed to log shift end to panel: {response.status_code} - {response.text}")
+
         if channel is not None:
             await channel.send(
                 embed=discord.Embed(

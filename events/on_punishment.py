@@ -2,7 +2,11 @@ import discord
 from bson import ObjectId
 from discord.ext import commands
 from utils.constants import GREEN_COLOR
+import os
+from dotenv import load_dotenv
+import requests
 
+load_dotenv()
 
 class OnPunishment(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -25,6 +29,16 @@ class OnPunishment(commands.Cog):
 
         channel_id = guild_settings.get("roblox", {}).get("punishments", {}).get("channel")
         channel: discord.TextChannel = guild.get_channel(channel_id) if channel_id else None
+
+        # PANEL_URL = os.getenv('PANEL_URL')
+        # PANEL_KEY = os.getenv('PANEL_KEY')
+        # response = requests.post(
+        #     f"{PANEL_URL}/api/v1/modpanel/punishments",
+        #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+        #     json=warning
+        # )
+        # if response.status_code != 200:
+        #     self.bot.logger.error(f"Failed to log punishment to panel: {response.status_code} - {response.text}")
 
         log_embed = discord.Embed(
                 title=f"{self.bot.emoji.get('caution')} Logged Punishment",

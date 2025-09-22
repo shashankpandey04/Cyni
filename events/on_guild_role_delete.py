@@ -1,10 +1,14 @@
 import os
 import discord
 from discord.ext import commands
+import requests
 from utils.constants import RED_COLOR
 from utils.utils import discord_time, generate_embed
 import datetime
 from cyni import premium_check_fun
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class OnGuildRoleDelete(commands.Cog):
     def __init__(self, bot):
@@ -55,6 +59,16 @@ class OnGuildRoleDelete(commands.Cog):
             created_at = discord_time(datetime.datetime.now())
             
             user_mention = audit_entry.user.mention if audit_entry else "System"
+
+            # PANEL_URL = os.getenv('PANEL_URL')
+            # PANEL_KEY = os.getenv('PANEL_KEY')
+            # response = requests.post(
+            #     f"{PANEL_URL}/api/v1/panel/roles/delete",
+            #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+            #     json=role.to_dict()
+            # )
+            # if response.status_code != 200:
+            #     self.bot.logger.error(f"Failed to log role deletion to panel: {response.status_code} - {response.text}")
 
             embed = generate_embed(
                 guild,

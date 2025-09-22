@@ -2,7 +2,11 @@ import discord
 from bson import ObjectId
 from discord.ext import commands
 from utils.constants import YELLOW_COLOR
+import os
+from dotenv import load_dotenv
+import requests
 
+load_dotenv()
 
 class OnShiftBreak(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -64,6 +68,16 @@ class OnShiftBreak(commands.Cog):
                 except discord.HTTPException:
                     pass
 
+        # PANEL_URL = os.getenv('PANEL_URL')
+        # PANEL_KEY = os.getenv('PANEL_KEY')
+        # response = requests.post(
+        #     f"{PANEL_URL}/api/v1/modpanel/shifts",
+        #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+        #     json=document
+        # )
+        # if response.status_code != 200:
+        #     self.bot.logger.error(f"Failed to log shift end to panel: {response.status_code} - {response.text}")
+
         if channel is not None:
             await channel.send(
                 embed=discord.Embed(
@@ -71,7 +85,7 @@ class OnShiftBreak(commands.Cog):
                     description=(
                         f"> **Shift Details for {staff_member.mention}**\n\n"
                         f"> **Shift Type:** {document['type'].capitalize()}\n"
-                        f"> **Break {"Started" if status=="start" else "Ended"}:** <t:{timestamp}:F>\n"
+                        f"> **Break {'Started' if status == 'start' else 'Ended'}:** <t:{timestamp}:F>\n"
                         f"> **Nickname:** `{staff_member.nick}`\n"
                     ),
                     color=YELLOW_COLOR

@@ -4,6 +4,11 @@ from utils.constants import YELLOW_COLOR
 from utils.utils import discord_time, generate_embed
 import datetime
 from cyni import premium_check_fun
+import os
+from dotenv import load_dotenv
+import requests
+
+load_dotenv()
 
 class OnGuildRoleUpdate(commands.Cog):
     def __init__(self, bot):
@@ -74,6 +79,20 @@ class OnGuildRoleUpdate(commands.Cog):
                         {"name": "After", "value": str(after.name), "inline": True}
                     ]
                 )
+                # PANEL_URL = os.getenv('PANEL_URL')
+                # PANEL_KEY = os.getenv('PANEL_KEY')
+                # response = requests.post(
+                #     f"{PANEL_URL}/api/v1/panel/roles/update",
+                #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+                #     json={
+                #         "id": after.id,
+                #         "name": after.name,
+                #         "color": after.color,
+                #         "permissions": after.permissions
+                #     }
+                # )
+                # if response.status_code != 200:
+                #     self.bot.logger.error(f"Failed to log role update to panel: {response.status_code} - {response.text}")
                 await self._send_log_embed(guild_log_channel, embed)
 
             if before.color != after.color:

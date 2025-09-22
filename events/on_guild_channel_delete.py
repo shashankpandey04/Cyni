@@ -4,6 +4,11 @@ from utils.constants import RED_COLOR
 from utils.utils import discord_time, generate_embed
 import datetime
 from cyni import premium_check_fun
+import os
+from dotenv import load_dotenv
+import requests
+
+load_dotenv()
 
 class OnGuildChannelDelete(commands.Cog):
     def __init__(self, bot):
@@ -121,6 +126,16 @@ class OnGuildChannelDelete(commands.Cog):
             
             await self._send_log_embed(guild_log_channel, embed)
             
+            # PANEL_URL = os.getenv('PANEL_URL')
+            # PANEL_KEY = os.getenv('PANEL_KEY')
+            # response = requests.post(
+            #     f"{PANEL_URL}/api/v1/panel/channel/delete",
+            #     headers={"Authorization": f"Bearer {PANEL_KEY}"},
+            #     json=channel.to_dict()
+            # )
+            # if response.status_code != 200:
+            #     self.bot.logger.error(f"Failed to log channel deletion to panel: {response.status_code} - {response.text}")
+
         except Exception as e:
             print(f"Error in on_guild_channel_delete: {e}")
 
