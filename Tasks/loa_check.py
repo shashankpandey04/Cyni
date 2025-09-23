@@ -51,7 +51,8 @@ async def loa_check(bot):
                     print(f"Could not DM {user} about expired LOA in {guild.name}")
 
             except Exception as e:
-                print(f"Error processing LOA for guild {loa.get('guild_id')}: {e}")
+                #print(f"Error processing LOA for guild {loa.get('guild_id')}: {e}")
+                pass
 
     except Exception as e:
         print(f"Error fetching LOAs: {e}")
