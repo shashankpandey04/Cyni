@@ -67,7 +67,7 @@ class LoggingChannels(View):
         )
 
         self.command_log_channel_button = discord.ui.Button(
-            label="Command Auto Logging",
+            label="Remote Command Logs",
             style=discord.ButtonStyle.secondary,
             row=2
         )
@@ -508,3 +508,17 @@ class ERLCDiscordChecksConfiguration(discord.ui.View):
         embed = interaction.message.embeds[0]
         embed.set_field_at(3, name="Alert Message", value=f"> **Current Message:** {alert_message}", inline=True)
         await interaction.edit_original_response(embed=embed, view=self)
+
+
+class VehicleRestrictions(View):
+    def __init__(self, bot, ctx):
+        self.bot = bot
+        self.ctx = ctx
+
+    @discord.ui.button(label="Add/Edit Restriction", style=discord.ButtonStyle.green, row=0)
+    async def add_vehicle_restriction(self, interaction: discord.Interaction, button: Button):
+        pass
+
+    @discord.ui.button(label="Remove Restriction", style=discord.ButtonStyle.red, row=0)
+    async def remove_vehicle_restriction(self, interaction: discord.Interaction, button: Button):
+        pass
