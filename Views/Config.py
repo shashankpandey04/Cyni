@@ -6,6 +6,96 @@ from menu import CustomModal
 from utils.constants import BLANK_COLOR, RED_COLOR
 from cycord.methods.DiscordModalsv2 import CyModals
 
+class LandingEmbedView(View):
+    def __init__(self, bot, ctx, sett):
+        super().__init__()
+        self.bot = bot
+        self.ctx = ctx
+        self.sett = sett
+
+        self.select_menu = discord.ui.Select(
+            placeholder="Select a configuration module",
+            options=[
+                discord.SelectOption(
+                    label="Staff Tools",
+                    description="Configure staff-related tools and settings",
+                    emoji="🛡️"
+                ),
+                discord.SelectOption(
+                    label="Server Management",
+                    description="Manage server-wide settings and features",
+                    emoji="🛠️"
+                ),
+                discord.SelectOption(
+                    label="Game Integrations",
+                    description="Set up and manage game-related integrations",
+                    emoji="🎮"
+                )
+            ],
+        )
+        self.add_item(self.select_menu)
+        self.select_menu.callback = self.select_menu_callback
+
+        self.prefix = self.sett.get('customization', {})
+        if self.bot.is_premium:
+            self.prefix = self.prefix.get('premium_prefix', '?')
+        else:
+            self.prefix = self.prefix.get('prefix', '?')
+
+    async def select_menu_callback(self, interaction: Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            return await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Not Permitted",
+                    description="You are not permitted to interact with this menu.",
+                    color=RED_COLOR
+                ),
+                ephemeral=True
+            )
+        if self.select_menu.values[0] == "Staff Tools":
+            embed = discord.Embed(
+                title="Staff Tools Configuration",
+                description=(
+                    "Overview of staff-related tools and settings.\n\n"
+                    f"> - {self.bot.emoji.get('antiping')} Anti-Ping Module: {'**Enabled**' if self.sett.get('anti_ping_module', {}).get('enabled', False) else '**Disabled**'}\n"
+                    f"> - {self.bot.emoji.get('moderation')} Moderation Module: {'**Enabled**' if self.sett.get('moderation_module', {}).get('enabled', False) else '**Disabled**'}\n"
+                    f"> - 📝 Staff Infraction Module: {'**Enabled**' if self.sett.get('staff_management', {}).get('enabled', False) else '**Disabled**'}\n"
+                    f"> - {self.bot.emoji.get('loa')} LOA Module: {'**Enabled**' if self.sett.get('leave_of_absence', {}).get('enabled', False) else '**Disabled**'}\n\n"
+                ),
+                color=BLANK_COLOR
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        elif self.select_menu.values[0] == "Server Management":
+            embed = discord.Embed(
+                title="Server Management Configuration",
+                description=(
+                    "Overview of server-wide settings and features.\n\n"
+                    f"> - {self.bot.emoji.get('utility')} Prefix: {'`' + self.prefix + '`'}\n"
+                    f"> - {self.bot.emoji.get('partnership')} Partnership Module: {'**Enabled**' if self.sett.get('partnership_module', {}).get('enabled', False) else '**Disabled**'}\n\n"
+                ),
+                color=BLANK_COLOR
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        elif self.select_menu.values[0] == "Game Integrations":
+            embed = discord.Embed(
+                title="Game Integrations Configuration",
+                description=(
+                    "Overview of game-related integrations.\n\n"
+                    f"{self.bot.emoji.get('roblox')} Roblox Management\n"
+                    f">  - Staff Roles: {'**Configured**' if self.sett.get('roblox', {}).get('staff_roles', False) else '**Not Configured**'}\n"
+                    f">  - Shift Module: {'**Configured**' if self.sett.get('roblox', {}).get('shift_module',{}).get('channel', False) else '**Not Configured**'}\n"
+                    f">  - Punishment Module: {'**Configured**' if self.sett.get('roblox', {}).get('punishments',{}).get('enabled', False) else '**Not Configured**'}\n\n"
+                    f"{self.bot.emoji.get('prc')} ER:LC Automations\n"
+                    f">  - Kill Logs: {'**Configured**' if self.sett.get('erlc', {}).get('kill_logs_channel', False) else '**Not Configured**'}\n"
+                    f">  - Join Logs: {'**Configured**' if self.sett.get('erlc', {}).get('join_logs_channel', False) else '**Not Configured**'}\n"
+                    f">  - Discord Checks: {'**Enabled**' if self.sett.get('erlc', {}).get('discord_check_log_channel', False) else '**Disabled**'}\n"
+                    f">  - Auto Kick/Ban Log: {'**Configured**' if self.sett.get('erlc', {}).get('kick_ban_log_channel', False) else '**Not Configured**'}\n"
+                    f">  - Remote Command Logs: {'**Configured**' if self.sett.get('erlc', {}).get('command_log_channel', False) else '**Not Configured**'}\n\n"
+                ),
+                color=BLANK_COLOR
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
 class BasicConfig(View):
     def __init__(self, bot, ctx):
         super().__init__()

@@ -344,20 +344,25 @@ async def staff_check(bot,guild,member):
                     return True
     return False
 
-async def management_check(bot,guild,member):
+async def management_check(bot, guild, member):
+    """Check if a member has management permissions."""
     if member.guild_permissions.administrator:
         return True
+    
     guild_settings = await bot.settings.find_by_id(guild.id)
-    if guild_settings:
-        if "management_roles" in guild_settings["basic_settings"].keys():
-            if guild_settings["basic_settings"]["management_roles"] != []:
-                if isinstance(guild_settings["basic_settings"]["management_roles"], list):
-                    for role in guild_settings["basic_settings"]["management_roles"]:
-                        if role in [role.id for role in member.roles]:
-                            return True
-            elif isinstance(guild_settings["basic_settings"]["management_roles"], int):
-                if guild_settings["basic_settings"]["management_roles"] in [role.id for role in member.roles]:
-                    return True
+    if not guild_settings:
+        return False
+
+    management_roles = guild_settings.get("basic_settings", {}).get("management_roles", [])
+    if not management_roles:
+        return False
+
+    member_role_ids = {role.id for role in member.roles}
+    if isinstance(management_roles, list):
+        return any(role_id in member_role_ids for role_id in management_roles)
+    elif isinstance(management_roles, int):
+        return management_roles in member_role_ids
+
     return False
 
 async def staff_or_management_check(bot,guild,member):

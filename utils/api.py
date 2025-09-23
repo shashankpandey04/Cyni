@@ -825,7 +825,6 @@ class APIRoutes:
         if not await validate_authorization(self.bot, authorization):
             raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
 
-        # Try to get guild_id from query params first, then from JSON body
         guild_id = request.query_params.get("guild_id")
         if not guild_id:
             try:
@@ -839,8 +838,10 @@ class APIRoutes:
         
         guild = self.bot.get_guild(int(guild_id))
         if not guild:
-            raise HTTPException(status_code=404, detail="Guild not found")
-        logger.debug(f"Retrieved guild: {guild.name} with ID: {guild.id}.")
+            guild = self.bot.fetch_guild(int(guild_id))
+            if not guild:
+                raise HTTPException(status_code=404, detail="Guild not found")
+        self.bot.logger.debug(f"Retrieved guild: {guild.name} with ID: {guild.id}.")
         return {
             "id": str(guild.id),
             "name": guild.name,
@@ -856,6 +857,7 @@ class APIRoutes:
             "description": guild.description if hasattr(guild, 'description') else None,
             "splash_url": guild.splash.url if guild.splash else None,
             "banner_url": guild.banner.url if guild.banner else None,
+            "member_count": guild.member_count,
             "owner": {
                 "id": str(guild.owner.id),
                 "name": guild.owner.name,

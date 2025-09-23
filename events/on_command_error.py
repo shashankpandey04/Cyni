@@ -69,7 +69,9 @@ class CommandErrorHandler(commands.Cog):
                 
             elif isinstance(error, commands.MissingPermissions):
                 missing = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
-                embed.description = f"You're missing these permissions: {', '.join(missing)}"
+                embed.title = "Missing Permissions"
+                embed.description = f"Looks like you don't have the required permissions to run this command. You need: `{', '.join(missing)}`"
+                embed.color = RED_COLOR
                 
             elif isinstance(error, commands.BotMissingPermissions):
                 missing = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
