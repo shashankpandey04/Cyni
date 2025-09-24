@@ -774,6 +774,7 @@ class APIRoutes:
                             "splash_url": guild.splash.url if guild.splash else None,
                             "banner_url": guild.banner.url if guild.banner else None,
                             "member_count": str(guild.member_count),
+                            "permission_level": permission_level,
                             "owner": {
                                 "id": str(guild.owner.id),
                                 "name": guild.owner.name,
