@@ -11,6 +11,7 @@ import os
 from dotenv import load_dotenv
 import datetime
 import motor.motor_asyncio
+from cyni import management_check, staff_check, roblox_staff_check, roblox_management_check
 
 from Views.Tickets import TicketButton, TicketView
 
@@ -220,23 +221,6 @@ class APIRoutes:
             raise HTTPException(status_code=404, detail="Guild not found")
         members = [{"id": member.id, "name": member.name} for member in guild.members]
         return members, 200
-    
-    async def POST_change_config(
-        self,
-        authorization: Annotated[str | None, Header()],
-        request: Request
-    ):
-        """Change the bot configuration."""
-        if not authorization:
-            raise HTTPException(status_code=401, detail="Invalid authorization")
-        if not await validate_authorization(self.bot, authorization):
-            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
-        json_data = await request.json()
-        doc = await db.settings.find_one({"_id": json_data["_id"]})
-        if not doc:
-            raise HTTPException(status_code=404, detail="Settings not found")
-        await db.settings.update_one({"_id": json_data["_id"]}, {"$set": json_data})
-        return {"message": "Configuration updated successfully."}, 200
 
     async def POST_notify_user(
         self,
@@ -606,43 +590,6 @@ class APIRoutes:
             logger.error(f"Failed to send ticket embed: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to send ticket embed: {str(e)}")
         
-    async def POST_send_latest_audit_logs(
-        self,
-        authorization: Annotated[str | None, Header()],
-        request: Request
-    ):
-        """Send the latest audit logs of a server."""
-        if not authorization:
-            raise HTTPException(status_code=401, detail="Invalid authorization")
-        if not await validate_authorization(self.bot, authorization):
-            raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
-        
-        json_data = await request.json()
-        guild_id = json_data.get("guild_id")
-        if not guild_id:
-            raise HTTPException(status_code=400, detail="Guild ID not provided")
-        
-        guild = self.bot.get_guild(int(guild_id))
-        if not guild:
-            raise HTTPException(status_code=404, detail="Guild not found")
-        
-        audit_logs = []
-        async for entry in guild.audit_logs(limit=3):
-            changes = {}
-            if entry.changes:
-                for attr_name, change in entry.changes.items():
-                    changes[attr_name] = {"before": change.before, "after": change.after}
-            
-            audit_logs.append({
-                "user": str(entry.user),
-                "action": entry.action.name,
-                "target": str(entry.target) if entry.target else None,
-                "created_at": entry.created_at.isoformat(),
-                "changes": changes
-            })
-        if not audit_logs:
-            raise HTTPException(status_code=404, detail="No audit logs found for this guild")
-
     async def POST_notify_application_submission(
         self,
         authorization: Annotated[str | None, Header()],
@@ -743,7 +690,6 @@ class APIRoutes:
                         role = guild.get_role(VOTER_ROLE_ID)
                         if role and role not in member.roles:
                             await member.add_roles(role, reason="User voted for CYNI on Top.gg")
-                            logger.debug(f"Added voter role to user: {member.name}.")
                             await db.votes.insert_one({
                                 "user_id": user_id,
                                 "voted_at": datetime.datetime.now().timestamp()
@@ -759,59 +705,142 @@ class APIRoutes:
             logger.error(f"Failed to send vote notification: {e}")
             raise HTTPException(status_code=500, detail="Failed to send vote notification")
 
-    async def POST_create_webhook(
-            self,
-            authorization: Annotated[str | None, Header()],
-            request: Request
+    async def POST_get_staff_guilds(self, request: Request):
+        json_data = await request.json()
+        guild_ids = json_data.get("guilds")
+        user_id = json_data.get("user")
+        if not guild_ids:
+            raise HTTPException(status_code=400, detail="No guilds specified")
+
+        semaphore = asyncio.Semaphore(3)
+
+        async def get_or_fetch(guild: discord.Guild, member_id: int):
+            m = guild.get_member(member_id)
+            if m:
+                return m
+            try:
+                await asyncio.sleep(0.1)
+                m = await guild.fetch_member(member_id)
+            except discord.HTTPException:
+                m = None
+            return m
+
+        async def process_guild(guild_id):
+            async with semaphore:
+                try:
+                    guild: discord.Guild = self.bot.get_guild(int(guild_id))
+                    if not guild:
+                        return None
+                        
+                    try:
+                        icon = guild.icon.with_size(512)
+                        icon = icon.with_format("png")
+                        icon = str(icon)
+                    except AttributeError:
+                        icon = "https://cdn.discordapp.com/embed/avatars/0.png?size=512"
+
+                    try:
+                        user = await asyncio.wait_for(
+                            get_or_fetch(guild, user_id), timeout=10.0
+                        )
+                    except (discord.NotFound, asyncio.TimeoutError, discord.HTTPException):
+                        return None
+
+                    if user is None:
+                        return None
+
+                    permission_level = 0
+                    if await management_check(self.bot, guild, user):
+                        permission_level = 1
+                    elif await staff_check(self.bot, guild, user):
+                        permission_level = 2
+                    elif await roblox_staff_check(self.bot, guild, user):
+                        permission_level = 3
+
+                    if permission_level > 0:
+                        return {
+                            "id": str(guild.id),
+                            "name": str(guild.name),
+                            "icon_url": guild.icon.url if guild.icon else None,
+                            "owner_id": str(guild.owner_id),
+                            "member_count": guild.member_count,
+                            "features": guild.features,
+                            "is_large": guild.large,
+                            "permissions": guild.me.guild_permissions.value,
+                            "premium_tier": guild.premium_tier,
+                            "premium_subscription_count": guild.premium_subscription_count,
+                            "created_at": guild.created_at.isoformat(),
+                            "description": guild.description if hasattr(guild, 'description') else None,
+                            "splash_url": guild.splash.url if guild.splash else None,
+                            "banner_url": guild.banner.url if guild.banner else None,
+                            "member_count": str(guild.member_count),
+                            "owner": {
+                                "id": str(guild.owner.id),
+                                "name": guild.owner.name,
+                                "discriminator": guild.owner.discriminator,
+                                "avatar_url": guild.owner.avatar.url if guild.owner.avatar else None
+                            }
+                        }
+                    return None
+                except Exception as e:
+                    logger.error(f"Error processing guild {guild_id}: {e}")
+                    return None
+
+        batch_size = 5
+        all_results = []
+        
+        for i in range(0, len(guild_ids), batch_size):
+            batch = guild_ids[i:i + batch_size]
+            batch_results = await asyncio.gather(
+                *[process_guild(guild_id) for guild_id in batch],
+                return_exceptions=True
+            )
+            all_results.extend(batch_results)
+            
+            if i + batch_size < len(guild_ids):
+                await asyncio.sleep(1)
+
+        guilds = [x for x in all_results if x is not None and not isinstance(x, Exception)]
+        return guilds
+    
+    async def POST_check_staff_level(
+        self,
+        authorization: Annotated[str | None, Header()],
+        request: Request
     ):
-        """Create a webhook for a specific channel."""
-        logger.debug("Received POST request to create a webhook.")
-
+        """Check if a user is staff or management in a guild."""
         if not authorization:
-            logger.warning("Authorization header is missing.")
             raise HTTPException(status_code=401, detail="Invalid authorization")
-
-        if authorization != bot_token:
-            logger.warning("Invalid or expired authorization for user.")
+        
+        if not await validate_authorization(self.bot, authorization):
             raise HTTPException(status_code=401, detail="Invalid or expired authorization.")
 
         json_data = await request.json()
         guild_id = json_data.get("guild_id")
-        channel_id = json_data.get("channel_id")
-        purpose = json_data.get("purpose", "Webhook for CYNI Bot")
+        user_id = json_data.get("user_id")
 
-        if not guild_id or not channel_id:
-            logger.error("Guild ID or Channel ID not provided in the request.")
-            raise HTTPException(status_code=400, detail="Guild ID or Channel ID not provided")
+        if not guild_id or not user_id:
+            raise HTTPException(status_code=400, detail="Guild ID or User ID not provided")
         
-        guild = self.bot.get_guild(guild_id)
+        guild = self.bot.get_guild(int(guild_id))
         if not guild:
-            logger.error(f"Guild not found for ID: {guild_id}")
             raise HTTPException(status_code=404, detail="Guild not found")
-
-        channel = guild.get_channel(channel_id)
-        if not channel:
-            logger.error(f"Channel not found for ID: {channel_id} in guild: {guild.name}")
-            raise HTTPException(status_code=404, detail="Channel not found")
-
-        try:
-            webhooks = await channel.webhooks()
-            for webhook in webhooks:
-                if webhook.user and webhook.user.id == self.bot.user.id:
-                    return {"message": "Webhook already exists", "url": webhook.url}
-                else:
-                    return {"message": "Webhook already exists but not owned by the bot", "url": webhook.url}
-
-            webhook = await channel.create_webhook(name=f"{guild.name} | {purpose}", reason=f"Webhook created by {self.bot.user.name} for {purpose}")
-        except discord.Forbidden:
-            logger.error(f"Bot does not have permission to create webhooks in channel: {channel.name}")
-            return {"message": "Failed to create webhook", "error": "Insufficient permissions"}
-        except Exception as e:
-            logger.error(f"Error creating webhook in channel: {channel.name} - {e}")
-            return {"message": "Failed to create webhook", "error": str(e)}
-
-        logger.debug(f"Created webhook in channel: {channel.name} with ID: {webhook.id}.")
-        return {"message": "Webhook created successfully", "url": webhook.url}
+        
+        member = guild.get_member(int(user_id))
+        if not member:
+            raise HTTPException(status_code=404, detail="User not found in guild")
+        
+        permission_level = 0
+        if await management_check(self.bot, guild, member):
+            permission_level = 1
+        elif await staff_check(self.bot, guild, member):
+            permission_level = 2
+        elif await roblox_staff_check(self.bot, guild, member):
+            permission_level = 3
+        
+        return {
+            "permission_level": permission_level
+        }
 
     async def POST_fetch_guild(
         self,
