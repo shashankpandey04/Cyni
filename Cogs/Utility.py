@@ -25,7 +25,6 @@ class Utility(commands.Cog):
         extras={"category": "General"}
     )
     @commands.guild_only()
-    @premium_check()
     async def ping(self, ctx: commands.Context):
         """
         Displays the bot's WebSocket latency, database latency, and uptime.
@@ -76,7 +75,6 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
-    @premium_check()
     async def about(self, ctx: commands.Context):
         """
         Get information about the bot.
@@ -317,17 +315,15 @@ class Utility(commands.Cog):
         ).add_field(
             name="Server Information",
             value=(
-                f'''
-                **ID:** {guild.id}
-                **Owner:** {guild.owner.mention}
-                **Verification Level:** {guild.verification_level}
-                **Boost Tier:** {guild.premium_tier}
-                **Boost Count:** {guild.premium_subscription_count}
-                **Member Count:** {guild.member_count}
-                **Role Count:** {len(guild.roles)}
-                **Emoji Count:** {len(guild.emojis)}
-                **Channel Count:** {len(guild.channels)}
-                '''
+                f"**ID:** {guild.id}\n"
+                f"**Owner:** {guild.owner.mention}\n"
+                f"**Verification Level:** {guild.verification_level}\n"
+                f"**Boost Tier:** {guild.premium_tier}\n"
+                f"**Boost Count:** {guild.premium_subscription_count}\n"
+                f"**Member Count:** {guild.member_count}\n"
+                f"**Role Count:** {len(guild.roles)}\n"
+                f"**Emoji Count:** {len(guild.emojis)}\n"
+                f"**Channel Count:** {len(guild.channels)}\n"
             )
         )
 
@@ -355,13 +351,35 @@ class Utility(commands.Cog):
         }
     )
     @commands.guild_only()
-    @premium_check()
     async def vote(self, ctx):
         """
         Vote for the bot.
         """
-        await ctx.send("[Top.gg](https://top.gg/bot/1136945734399295538/vote)")
-
+        try:
+            view = discord.ui.View()
+            view.add_item(
+                item=discord.ui.Button(
+                    label="Vote Now!",
+                    style=discord.ButtonStyle.url,
+                    url="https://top.gg/bot/1136945734399295538/vote"
+                )
+            )
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Vote For CYNI!",
+                    description="Join the support server before voting to get supporter roles!",
+                    color= ctx.author.top_role.color,
+                ),
+                view=view
+            )
+        except Exception as e:
+            return await ctx.reply(
+                embed = discord.Embed(
+                    title="Error Occured",
+                    description=f"```{e}```"
+                )
+            )
+    
     @commands.hybrid_command(
         name="help",
         extras={
@@ -382,7 +400,7 @@ class Utility(commands.Cog):
         embed.set_footer(text="Support Server")
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Support Server", url="https://discord.gg/J96XEbGNDm"))
-        await ctx.send(embed=embed, view=view)
+        await ctx.reply(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="link",
@@ -428,7 +446,7 @@ class Utility(commands.Cog):
             embed.set_thumbnail(url=thumbnail)
             view = discord.ui.View()
             view.add_item(discord.ui.Button(label="View Profile", url=f"https://www.roblox.com/users/{roblox_id}/profile"))
-            await ctx.send(embed=embed, view=view)
+            await ctx.reply(embed=embed, view=view)
         else:
             embed = discord.Embed(
                 title="Account Not Linked",
@@ -437,7 +455,7 @@ class Utility(commands.Cog):
             )
             view = discord.ui.View()
             view.add_item(discord.ui.Button(label="Link Account", url="https://cyni.quprdigital.tk/api/verify/roblox/v1/link"))
-            await ctx.send(embed=embed, view=view)
+            await ctx.reply(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="dashboard",
@@ -453,11 +471,11 @@ class Utility(commands.Cog):
         """
         embed = discord.Embed(
             description="Manage your server with the Cyni Dashboard.",
-            color=BLANK_COLOR
+            color=ctx.author.top_role.color,
         )
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label="Dashboard", url="https://cyni.quprdigital.tk/dashboard"))
-        await ctx.send(embed=embed, view=view)
+        await ctx.reply(embed=embed, view=view)
 
     @commands.hybrid_command(
         name="suggest",
@@ -540,7 +558,7 @@ class Utility(commands.Cog):
         )
 
     support_role = 1158043149424398406
-    @commands.hybrid_command(
+    @commands.command(
         name="sentry",
         extras={
             "category": "General"

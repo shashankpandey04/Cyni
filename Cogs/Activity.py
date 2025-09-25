@@ -66,12 +66,12 @@ class Activity(commands.Cog):
                                     quota_met = True
                                     break
     
-                status_emoji = "🟢" if quota_met else "🔴"
-                loa_text = "LOA " if is_loa else ""
-                embed.description += (
-                    f"**#{idx}** {status_emoji} {loa_text}{user.mention}\n"
-                    f"> **{member['messages']}** messages\n\n"
-                )
+                    status_emoji = "🟢" if quota_met else "🔴"
+                    loa_text = "LOA " if is_loa else ""
+                    embed.description += (
+                        f"**#{idx}** {status_emoji} {loa_text}{user.mention}\n"
+                        f"> **{member['messages']}** messages\n\n"
+                    )
     
                 if idx % 25 == 0:
                     embeds.append(embed)
