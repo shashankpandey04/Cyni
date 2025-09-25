@@ -34,61 +34,70 @@ class Activity(commands.Cog):
         """
         Get the activity leaderboard.
         """
-        embeds = []
-        embed = discord.Embed(
-            title="Activity Leaderboard",
-            color=0x2F3136
-        )
-        guild_id = ctx.guild.id
-        staff_activity = await self.bot.staff_activity.find_by_id(guild_id)
-        if not staff_activity:
-            embed.description = "No activity data."
-            embeds.append(embed)
-            return await ctx.send(embed=embed)
-
-        quota_doc = await self.bot.message_quotas.find_by_id(guild_id)
-
-        staff_activity["staff"] = sorted(staff_activity["staff"], key=lambda x: x["messages"], reverse=True)
-
-        embed.description = ""
-        for idx, member in enumerate(staff_activity["staff"], start=1):
-            user = ctx.guild.get_member(member["_id"])
-            if user:
-                is_loa = await self.bot.loa.find_one(
-                    {"guild_id": guild_id, "user_id": user.id, "active": True}
-                )
-                quota_met = False
-                if quota_doc:
-                    for quota_name, quota_data in quota_doc.items():
-                        if quota_name != "_id" and quota_data["role_id"] in [role.id for role in user.roles]:
-                            if member["messages"] >= quota_data["quota"]:
-                                quota_met = True
-                                break
-
-            status_emoji = "🟢" if quota_met else "🔴"
-            loa_text = "LOA " if is_loa else ""
-            embed.description += (
-                f"**#{idx}** {status_emoji} {loa_text}{user.mention}\n"
-                f"> **{member['messages']}** messages\n\n"
-            )
-
-            if idx % 25 == 0:
-                embeds.append(embed)
-                embed = discord.Embed(
-                title="Activity Leaderboard (Continued)",
+        try:
+            embeds = []
+            embed = discord.Embed(
+                title="Activity Leaderboard",
                 color=0x2F3136
+            )
+            guild_id = ctx.guild.id
+            staff_activity = await self.bot.staff_activity.find_by_id(guild_id)
+            if not staff_activity:
+                embed.description = "No activity data."
+                embeds.append(embed)
+                return await ctx.send(embed=embed)
+    
+            quota_doc = await self.bot.message_quotas.find_by_id(guild_id)
+    
+            staff_activity["staff"] = sorted(staff_activity["staff"], key=lambda x: x["messages"], reverse=True)
+    
+            embed.description = ""
+            for idx, member in enumerate(staff_activity["staff"], start=1):
+                user = ctx.guild.get_member(member["_id"])
+                if user:
+                    is_loa = await self.bot.loa.find_one(
+                        {"guild_id": guild_id, "user_id": user.id, "active": True}
+                    )
+                    quota_met = False
+                    if quota_doc:
+                        for quota_name, quota_data in quota_doc.items():
+                            if quota_name != "_id" and quota_data["role_id"] in [role.id for role in user.roles]:
+                                if member["messages"] >= quota_data["quota"]:
+                                    quota_met = True
+                                    break
+    
+                status_emoji = "🟢" if quota_met else "🔴"
+                loa_text = "LOA " if is_loa else ""
+                embed.description += (
+                    f"**#{idx}** {status_emoji} {loa_text}{user.mention}\n"
+                    f"> **{member['messages']}** messages\n\n"
                 )
-                embed.description = ""
-
-        if embed.description:
-            embeds.append(embed)
-
-        pager = BasicPager(
-            user_id=ctx.author.id,
-            embeds=embeds
-        )
-        await ctx.send(embed=embeds[0], view=pager)
-
+    
+                if idx % 25 == 0:
+                    embeds.append(embed)
+                    embed = discord.Embed(
+                    title="Activity Leaderboard (Continued)",
+                    color=0x2F3136
+                    )
+                    embed.description = ""
+    
+            if embed.description:
+                embeds.append(embed)
+    
+            pager = BasicPager(
+                user_id=ctx.author.id,
+                embeds=embeds
+            )
+            await ctx.send(embed=embeds[0], view=pager)
+        except Exception as e:
+            return await ctx.reply(
+                embed=discord.Embed(
+                    title="Error Occured",
+                    description=f"Error Details: ```{e}```",
+                    color = 0x2F3136
+                )
+            )
+    
     @activity.command(
         name="reset",
         extras={
