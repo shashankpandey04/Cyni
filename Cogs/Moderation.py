@@ -952,59 +952,70 @@ class Moderation(commands.Cog):
         """
         Purge messages in a channel.
         """
-        if isinstance(ctx,commands.Context):
-            await log_command_usage(self.bot,ctx.guild,ctx.author,f"Purge {amount} messages")
-        await ctx.typing()
-        settings = await self.bot.settings.find_by_id(ctx.guild.id)
-        if not settings:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "No settings found.\nPlease set up the bot using the `config` command.",
-                    color = discord.Color.red()
-                )
-            )
         try:
-            module_enabled = settings["moderation_module"]["enabled"]
-        except KeyError:
-            module_enabled = False
-        if not module_enabled:
-            return await ctx.send(
-                embed = discord.Embed(
-                    description = "Moderation module is not enabled.",
-                    color = discord.Color.red()
+            if isinstance(ctx,commands.Context):
+                await log_command_usage(self.bot,ctx.guild,ctx.author,f"Purge {amount} messages")
+            await ctx.typing()
+            settings = await self.bot.settings.find_by_id(ctx.guild.id)
+            if not settings:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "No settings found.\nPlease set up the bot using the `config` command.",
+                        color = discord.Color.red()
+                    )
                 )
-            )
-        if amount>100:
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Not Permited",
-                    description = "Discord allows only 100 messages purge per comamnd invoke.",
+            try:
+                module_enabled = settings["moderation_module"]["enabled"]
+            except KeyError:
+                module_enabled = False
+            if not module_enabled:
+                return await ctx.send(
+                    embed = discord.Embed(
+                        description = "Moderation module is not enabled.",
+                        color = discord.Color.red()
+                    )
+                )
+            if amount>100:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Not Permited",
+                        description = "Discord allows only 100 messages purge per comamnd invoke.",
+                        color = discord.Color.green()
+                    )
+                )
+            await ctx.channel.purge(limit=amount+1)
+
+            await ctx.channel.send(
+                embed = discord.Embed(
+                    description = f"{amount} messages have been purged.",
                     color = discord.Color.green()
                 )
             )
-        await ctx.channel.purge(amount)
-
-        await ctx.send(
-            embed = discord.Embed(
-                description = f"{amount} messages have been purged.",
-                color = discord.Color.green()
-            )
-        )
-        try:
-            mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
-        except KeyError:
-            mod_log_channel = None
-        if mod_log_channel:
-            await mod_log_channel.send(
-                embed = discord.Embed(
-                    title = "Messages Purged",
-                    description = f"**Channel:** {ctx.channel.mention}\n**Moderator:** {ctx.author.mention}\n**Amount:** {amount}",
-                    color = discord.Color.red()
+            try:
+                mod_log_channel = ctx.guild.get_channel(settings["moderation_module"]["mod_log_channel"])
+            except KeyError:
+                mod_log_channel = None
+            if mod_log_channel:
+                await mod_log_channel.send(
+                    embed = discord.Embed(
+                        title = "Messages Purged",
+                        description = f"**Channel:** {ctx.channel.mention}\n**Moderator:** {ctx.author.mention}\n**Amount:** {amount}",
+                        color = discord.Color.red()
+                    )
                 )
-            )
-        else:
-            await ctx.channel.send(
-                "Moderation log channel not found. Please set up the bot using the `config` command."
+            else:
+                await ctx.channel.send(
+                    embed=discord.Embed(
+                        title="",
+                        description="Please setup Moderation Log channel to perform any moderative actions or bot doesn't have sufficient permissions to send messages in that channel."
+                    )
+                )
+        except Exception as e:
+            return await ctx.reply(
+                embed=discord.Embed(
+                    title="Error Occured",
+                    description=f"```{e}```"
+                )
             )
 
 
