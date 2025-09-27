@@ -77,7 +77,7 @@ class ShiftManagerContainer(discord.ui.Container):
             elif hours > 0:
                 total_duration = f"{hours}h {minutes}m {seconds}s"
             else:
-                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "0"
 
             return f"## {self.bot.emoji.get('shiftbreak')} On-Break\n### Current Statistics\n> **Shift Type:** {self.shift_type.capitalize()}\n> **Shift Start:** <t:{int(self.shift_data['start_epoch'])}:F>\n> **Break Started:** {break_start_time}\n\n### Overall Statistics\n> **Total Shifts:** {len(self.past_shifts)}\n> **Total Duration:** {total_duration}"
 
@@ -542,7 +542,15 @@ class ShiftAdminView(discord.ui.View):
         self.active_shift = active_shift
         self.past_shifts = past_shifts
         self.status = status
+        
+        # Initialize buttons with proper states
+        self._setup_buttons()
 
+    def _setup_buttons(self):
+        """Setup buttons with proper states based on current status"""
+        # Clear existing items to avoid duplicates
+        self.clear_items()
+        
         self.start_shift_button = discord.ui.Button(
             label="Start Shift",
             style=discord.ButtonStyle.green,
@@ -555,7 +563,7 @@ class ShiftAdminView(discord.ui.View):
         self.toggle_break_button = discord.ui.Button(
             label="Toggle Break",
             style=discord.ButtonStyle.secondary,
-            disabled=self.status == "onbreak" or self.status == "offduty",
+            disabled=self.status == "offduty",
             row=0
         )
         self.toggle_break_button.callback = self.toggle_break_callback
@@ -585,38 +593,49 @@ class ShiftAdminView(discord.ui.View):
         )
         self.remove_time_button.callback = self.remove_time_callback
         self.add_item(self.remove_time_button)
-    
-    async def _refresh(self, components):
-        return super()._refresh(components)
+
+    def _get_active_shift_data(self):
+        """Helper method to get active shift data consistently"""
+        if not self.active_shift:
+            return None
+        if isinstance(self.active_shift, list):
+            return self.active_shift[0] if len(self.active_shift) > 0 else None
+        return self.active_shift
     
     async def start_shift_callback(self, interaction: discord.Interaction):
         timestamp = int(datetime.now().timestamp())
         
         if self.status == "onbreak":
-            await self.bot.shift_logs.update_one(
-                {
-                    "guild_id": interaction.guild.id,
-                    "user_id": self.user.id,
-                    "type": self.shift_type.lower(),
-                    "end_epoch": 0
-                },
-                {
-                    "$set": {
-                        f"breaks.{len(self.active_shift[0].get('breaks', [])) - 1}.end_epoch": timestamp
-                    }
-                }
-            )
-            oid = await self.bot.shift_logs.find_one(
-                {
-                    "guild_id": interaction.guild.id,
-                    "user_id": self.user.id,
-                    "type": self.shift_type.lower(),
-                    "end_epoch": 0
-                }
-            )
-            self.bot.dispatch("shift_break", oid["_id"], "end", timestamp)
-            success_message = f"Break ended for <@{self.active_shift[0]['user_id']}>! They are now back on duty."
+            # End the current break
+            active_data = self._get_active_shift_data()
+            if active_data:
+                breaks = active_data.get('breaks', [])
+                if breaks:
+                    await self.bot.shift_logs.update_one(
+                        {
+                            "guild_id": interaction.guild.id,
+                            "user_id": self.user.id,
+                            "type": self.shift_type.lower(),
+                            "end_epoch": 0
+                        },
+                        {
+                            "$set": {
+                                f"breaks.{len(breaks) - 1}.end_epoch": timestamp
+                            }
+                        }
+                    )
+                    oid = await self.bot.shift_logs.find_one(
+                        {
+                            "guild_id": interaction.guild.id,
+                            "user_id": self.user.id,
+                            "type": self.shift_type.lower(),
+                            "end_epoch": 0
+                        }
+                    )
+                    self.bot.dispatch("shift_break", oid["_id"], "end", timestamp)
+            success_message = f"Break ended for <@{self.user.id}>! They are now back on duty."
         else:
+            # Start new shift
             doc = {
                 "guild_id": interaction.guild.id,
                 "user_id": self.user.id,
@@ -632,7 +651,7 @@ class ShiftAdminView(discord.ui.View):
                 "duration": 0
             }
             await self.bot.shift_logs.insert_one(doc)
-            success_message = f"Shift started successfully for <@{self.active_shift[0]['user_id']}>!"
+            success_message = f"Shift started successfully for <@{self.user.id}>!"
             doc_id = await self.bot.shift_logs.find_one(
                 {
                     "guild_id": interaction.guild.id,
@@ -652,7 +671,7 @@ class ShiftAdminView(discord.ui.View):
             ephemeral=True,
         )
 
-        await self.refresh_view(interaction)
+        await self.refresh_view(self.user, interaction)
 
     async def toggle_break_callback(self, interaction: discord.Interaction):
         timestamp = int(datetime.now().timestamp())
@@ -691,47 +710,64 @@ class ShiftAdminView(discord.ui.View):
                 ),
                 ephemeral=True,
             )
+        
         self.bot.dispatch("shift_break", oid["_id"], "start", timestamp)
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=f"{self.bot.emoji.get('shiftbreak')} Break Started",
-                description=f"<@{self.active_shift[0]['user_id']}> is now on break.",
+                description=f"<@{self.user.id}> is now on break.",
                 color=discord.Color.from_rgb(255, 255, 0),
             ),
             ephemeral=True,
         )
 
         # Refresh the view
-        await self.refresh_view(interaction)
+        await self.refresh_view(self.user, interaction)
 
     async def end_shift_callback(self, interaction: discord.Interaction):
         timestamp = int(datetime.now().timestamp())
+        active_data = self._get_active_shift_data()
         
-        if self.status == "onbreak":
-            await self.bot.shift_logs.update_one(
-                {
-                    "guild_id": interaction.guild.id,
-                    "user_id": self.user.id,
-                    "type": self.shift_type.lower(),
-                    "end_epoch": 0
-                },
-                {
-                    "$set": {
-                        f"breaks.{len(self.active_shift[0].get('breaks', [])) - 1}.end_epoch": timestamp
+        if self.status == "onbreak" and active_data:
+            # End current break first
+            breaks = active_data.get('breaks', [])
+            if breaks:
+                await self.bot.shift_logs.update_one(
+                    {
+                        "guild_id": interaction.guild.id,
+                        "user_id": self.user.id,
+                        "type": self.shift_type.lower(),
+                        "end_epoch": 0
+                    },
+                    {
+                        "$set": {
+                            f"breaks.{len(breaks) - 1}.end_epoch": timestamp
+                        }
                     }
-                }
-            )
+                )
 
-            self.active_shift = await self.bot.shift_logs.find_one(
-                {
-                    "guild_id": interaction.guild.id,
-                    "user_id": self.user.id,
-                    "type": self.shift_type.lower(),
-                    "end_epoch": 0
-                }
-            )
+                # Refresh active shift data
+                active_data = await self.bot.shift_logs.find_one(
+                    {
+                        "guild_id": interaction.guild.id,
+                        "user_id": self.user.id,
+                        "type": self.shift_type.lower(),
+                        "end_epoch": 0
+                    }
+                )
 
-        start_time = self.active_shift.get('start_epoch', timestamp) if self.active_shift else timestamp
+        if not active_data:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title=f"{self.bot.emoji.get('error')} Error",
+                    description="No active shift found to end.",
+                    color=discord.Color.red(),
+                ),
+                ephemeral=True,
+            )
+            return
+
+        start_time = active_data.get('start_epoch', timestamp)
         end_time = timestamp
 
         # Calculate total shift duration
@@ -739,19 +775,16 @@ class ShiftAdminView(discord.ui.View):
 
         # Calculate total break time
         total_break_time = 0
-        if self.active_shift and "breaks" in self.active_shift:
-            for b in self.active_shift["breaks"]:
+        if "breaks" in active_data:
+            for b in active_data["breaks"]:
                 if isinstance(b, dict):
                     break_start = b.get("start_epoch")
                     break_end = b.get("end_epoch")
                     
-                    # Only process breaks that have both start and end times
                     if break_start is not None and break_end is not None:
-                        # Clip break to shift boundaries
                         effective_start = max(start_time, break_start)
                         effective_end = min(end_time, break_end)
                         
-                        # Only subtract if the break actually overlaps with the shift
                         if effective_end > effective_start:
                             total_break_time += (effective_end - effective_start)
 
@@ -759,20 +792,25 @@ class ShiftAdminView(discord.ui.View):
                     break_start = b[0]
                     break_end = b[1]
                     
-                    # Only process breaks that have both start and end times
                     if break_start is not None and break_end is not None:
-                        # Clip break to shift boundaries
                         effective_start = max(start_time, break_start)
                         effective_end = min(end_time, break_end)
                         
-                        # Only subtract if the break actually overlaps with the shift
                         if effective_end > effective_start:
                             total_break_time += (effective_end - effective_start)
 
         duration = max(total_duration - total_break_time, 0)
-        hours = duration // 3600
-        minutes = (duration % 3600) // 60
-        seconds = duration % 60
+        days, remainder = divmod(duration, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        
+        if days > 0:
+            total_duration_str = f"{days}d {hours}h {minutes}m {seconds}s"
+        elif hours > 0:
+            total_duration_str = f"{hours}h {minutes}m {seconds}s"
+        else:
+            total_duration_str = f"{minutes}m {seconds}s" if duration > 0 else "0"
+
         await self.bot.shift_logs.update_one(
             {
                 "guild_id": interaction.guild.id,
@@ -787,6 +825,7 @@ class ShiftAdminView(discord.ui.View):
                 }
             }
         )
+        
         doc_id = await self.bot.shift_logs.find_one(
             {
                 "guild_id": interaction.guild.id,
@@ -795,16 +834,18 @@ class ShiftAdminView(discord.ui.View):
                 "end_epoch": timestamp
             }
         )
+        
         self.bot.dispatch("shift_end", doc_id["_id"])
+        
         await interaction.response.send_message(
             embed=discord.Embed(
                 title=f"{self.bot.emoji.get('offshift')} Shift Ended",
-                description=f"<@{self.active_shift[0]['user_id']}>'s shift has been ended. Duration: {hours}h {minutes}m {seconds}s",
+                description=f"<@{self.user.id}>'s shift has been ended. Duration: {total_duration_str}",
                 color=discord.Color.green(),
             ),
             ephemeral=True,
         )
-        await self.refresh_view(interaction)
+        await self.refresh_view(self.user, interaction)
 
     async def add_time_callback(self, interaction: discord.Interaction):
         modal = CustomModal(
@@ -838,17 +879,20 @@ class ShiftAdminView(discord.ui.View):
                 ),
                 ephemeral=True,
             )
-        if self.active_shift is None or len(self.active_shift) == 0:
-            last_shift_cursor = await self.bot.shift_logs.find(
+
+        active_data = self._get_active_shift_data()
+        if not active_data:
+            # Find last shift
+            last_shift_list = await self.bot.shift_logs.find(
                 {
                     "guild_id": interaction.guild.id,
                     "user_id": self.user.id,
                     "type": self.shift_type.lower(),
                     "end_epoch": {"$ne": 0}
                 }
-            )
-            last_shift = last_shift_cursor[0]
-            if last_shift is None or len(last_shift) == 0:
+            ).sort("end_epoch", -1).limit(1)
+            
+            if not last_shift_list:
                 return await interaction.followup.send(
                     embed=discord.Embed(
                         title=f"{self.bot.emoji.get('error')} Error",
@@ -857,13 +901,10 @@ class ShiftAdminView(discord.ui.View):
                     ),
                     ephemeral=True,
                 )
+            
+            last_shift = last_shift_list[0]
             await self.bot.shift_logs.update_one(
-                {
-                    "guild_id": interaction.guild.id,
-                    "user_id": self.user.id,
-                    "type": self.shift_type.lower(),
-                    "end_epoch": last_shift["end_epoch"]
-                },
+                {"_id": last_shift["_id"]},
                 {
                     "$set": {
                         "added_time": last_shift.get("added_time", 0) + seconds
@@ -880,10 +921,11 @@ class ShiftAdminView(discord.ui.View):
                 },
                 {
                     "$set": {
-                        "added_time": self.active_shift.get("added_time", 0) + seconds
+                        "added_time": active_data.get("added_time", 0) + seconds
                     },
                 }
             )
+            
         await interaction.followup.send(
             embed=discord.Embed(
                 title="Time Added",
@@ -892,7 +934,7 @@ class ShiftAdminView(discord.ui.View):
             ),
             ephemeral=True,
         )
-        await self.refresh_view(interaction)
+        await self.refresh_view(self.user, interaction)
 
     async def remove_time_callback(self, interaction: discord.Interaction):
         modal = CustomModal(
@@ -926,17 +968,20 @@ class ShiftAdminView(discord.ui.View):
                 ),
                 ephemeral=True,
             )
-        if self.active_shift is None or len(self.active_shift) == 0:
-            last_shift_cursor = await self.bot.shift_logs.find(
+
+        active_data = self._get_active_shift_data()
+        if not active_data:
+            # Find last shift
+            last_shift_list = await self.bot.shift_logs.find(
                 {
                     "guild_id": interaction.guild.id,
                     "user_id": self.user.id,
                     "type": self.shift_type.lower(),
                     "end_epoch": {"$ne": 0}
                 }
-            )
-            last_shift = last_shift_cursor[0]
-            if last_shift is None or len(last_shift) == 0:
+            ).sort("end_epoch", -1).limit(1)
+            
+            if not last_shift_list:
                 return await interaction.followup.send(
                     embed=discord.Embed(
                         title=f"{self.bot.emoji.get('error')} Error",
@@ -945,13 +990,10 @@ class ShiftAdminView(discord.ui.View):
                     ),
                     ephemeral=True,
                 )
+            
+            last_shift = last_shift_list[0]
             await self.bot.shift_logs.update_one(
-                {
-                    "guild_id": interaction.guild.id,
-                    "user_id": self.user.id,
-                    "type": self.shift_type.lower(),
-                    "end_epoch": last_shift["end_epoch"]
-                },
+                {"_id": last_shift["_id"]},
                 {
                     "$set": {
                         "removed_time": last_shift.get("removed_time", 0) + seconds
@@ -962,16 +1004,17 @@ class ShiftAdminView(discord.ui.View):
             await self.bot.shift_logs.update_one(
                 {
                     "guild_id": interaction.guild.id,
-                    "user_id": self.active_shift[0]["user_id"],
+                    "user_id": self.user.id,
                     "type": self.shift_type.lower(),
                     "end_epoch": 0
                 },
                 {
                     "$set": {
-                        "removed_time": self.active_shift[0].get("removed_time", 0) + seconds
+                        "removed_time": active_data.get("removed_time", 0) + seconds
                     },
                 }
             )
+            
         await interaction.followup.send(
             embed=discord.Embed(
                 title="Time Removed",
@@ -980,4 +1023,164 @@ class ShiftAdminView(discord.ui.View):
             ),
             ephemeral=True,
         )
-        await self.refresh_view(interaction)
+        await self.refresh_view(self.user, interaction)
+
+    async def refresh_view(self, user: discord.User, interaction: discord.Interaction):
+        """Refresh the entire view with updated data"""
+        try:
+            # Get updated active shift data
+            updated_active_shift = await self.bot.shift_logs.find(
+                {
+                    "guild_id": interaction.guild.id,
+                    "user_id": user.id,
+                    "type": self.shift_type.lower(),
+                    "end_epoch": 0
+                }
+            )
+            
+            # Get updated past shifts data
+            updated_past_shifts = await self.bot.shift_logs.find(
+                {
+                    "guild_id": interaction.guild.id,
+                    "user_id": user.id,
+                    "type": self.shift_type.lower(),
+                    "end_epoch": {"$ne": 0}
+                }
+            )
+
+            # Determine new status
+            new_status = "offduty"
+            
+            if updated_active_shift and len(updated_active_shift) > 0:
+                shift_data = updated_active_shift[0]
+                new_status = "onduty"
+                
+                breaks = shift_data.get("breaks", [])
+                if breaks:
+                    for b in breaks:
+                        if isinstance(b, dict):
+                            if b.get("end_epoch", 0) == 0:
+                                new_status = "onbreak"
+                                break
+                        elif isinstance(b, list) and len(b) >= 2:
+                            if b[1] == 0:
+                                new_status = "onbreak"
+                                break
+
+            self.active_shift = updated_active_shift
+            self.past_shifts = updated_past_shifts
+            self.status = new_status
+            
+            self._setup_buttons()
+
+            updated_embed = await self._create_shift_embed(user, interaction.guild.id)
+
+            await interaction.message.edit(embed=updated_embed, view=self)
+                
+        except Exception as e:
+            try:
+                if interaction.response.is_done():
+                    await interaction.edit_original_response(view=self)
+                else:
+                    await interaction.message.edit(view=self)
+            except:
+                pass
+
+    async def _create_shift_embed(self, user: discord.User, guild_id: int):
+        """Create the shift status embed"""
+        if self.status == "onduty":
+            status_emoji = self.bot.emoji.get('onshift')
+            status_text = "On Duty"
+            status_color = discord.Color.green()
+        elif self.status == "onbreak":
+            status_emoji = self.bot.emoji.get('shiftbreak')
+            status_text = "On Break"
+            status_color = discord.Color.from_rgb(255, 255, 0)
+        else:
+            status_emoji = self.bot.emoji.get('offshift')
+            status_text = "Off Duty"
+            status_color = discord.Color.red()
+
+        embed = discord.Embed(
+            title=f"{status_emoji} {status_text}",
+            color=status_color
+        )
+
+        embed.add_field(
+            name="Staff Information",
+            value=(
+                f"**User:** {user.mention} (`{user.id}`)\n"
+                f"**Shift Type:** {self.shift_type.title()}\n"
+                f"**Past Shifts:** {len(self.past_shifts) if self.past_shifts else 0}\n"
+                f"**Total Past Duration:** {self._calculate_total_past_duration()}"
+            ),
+            inline=False
+        )
+        if self.active_shift and len(self.active_shift) > 0:
+            shift_data = self.active_shift[0]
+            start_time = shift_data.get('start_epoch', 0)
+            current_time = int(datetime.now().timestamp())
+            
+            if start_time:
+                duration = current_time - start_time
+                breaks = shift_data.get('breaks', [])
+                
+                total_break_time = 0
+                for b in breaks:
+                    if isinstance(b, dict):
+                        break_start = b.get("start_epoch", 0)
+                        break_end = b.get("end_epoch", current_time if b.get("end_epoch", 0) == 0 else b.get("end_epoch", 0))
+                        if break_start and break_end:
+                            total_break_time += (break_end - break_start)
+                
+                active_duration = duration - total_break_time
+                embed.add_field(
+                    name="Active Shift",
+                    value=(
+                        f"**Started:** <t:{start_time}:R>\n"
+                        f"**Duration:** {self._format_duration(active_duration)}\n"
+                        f"**Breaks:** {len(breaks)}"
+                    ),
+                    inline=False
+                )
+
+        embed.add_field(
+            name="Management",
+            value=f"Managing shifts for {user.mention} | User ID: {user.id}",
+            inline=False
+        )
+
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+
+        return embed
+
+    def _calculate_total_past_duration(self):
+        """Calculate total duration of all past shifts"""
+        if not self.past_shifts:
+            return "0s"
+        
+        total_seconds = 0
+        for shift in self.past_shifts:
+            duration = shift.get('duration', 0)
+            added_time = shift.get('added_time', 0)
+            removed_time = shift.get('removed_time', 0)
+            total_seconds += duration + added_time - removed_time
+        
+        return self._format_duration(total_seconds)
+
+    def _format_duration(self, seconds):
+        """Format duration in seconds to readable string"""
+        if seconds <= 0:
+            return "0s"
+        
+        days, remainder = divmod(seconds, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, secs = divmod(remainder, 60)
+        
+        if days > 0:
+            return f"{days}d {hours}h {minutes}m {secs}s"
+        elif hours > 0:
+            return f"{hours}h {minutes}m {secs}s"
+        else:
+            return f"{minutes}m {secs}s"

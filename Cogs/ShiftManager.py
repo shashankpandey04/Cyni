@@ -483,9 +483,16 @@ class ShiftManager(commands.Cog):
             added_time = sum(shift.get("added_time", 0) for shift in past_shifts) if past_shifts else 0
             total_shift_duration_seconds = max(0, total_shift_duration_seconds + added_time - removed_time)
 
-            hours, remainder = divmod(total_shift_duration_seconds, 3600)
+            total_duration = "0"
+            days, remainder = divmod(total_shift_duration_seconds, 86400)
+            hours, remainder = divmod(remainder, 3600)
             minutes, seconds = divmod(remainder, 60)
-            total_shift_duration = f"{hours}h {minutes}m {seconds}s" if total_shift_duration_seconds > 0 else "Not Applicable"
+            if days > 0:
+                total_duration = f"{days}d {hours}h {minutes}m {seconds}s"
+            elif hours > 0:
+                total_duration = f"{hours}h {minutes}m {seconds}s"
+            else:
+                total_duration = f"{minutes}m {seconds}s" if total_shift_duration_seconds > 0 else "0"
 
             embed = discord.Embed(
                 title=" ",
@@ -496,7 +503,7 @@ class ShiftManager(commands.Cog):
                     f"> **User:** {ctx.author.mention} (`{ctx.author.id}`)\n"
                     f"> **Shift Type:** {shift.capitalize()}\n"
                     f"> **Past Shifts:** {len(past_shifts)}\n"
-                    f"> **Total Past Duration:** {total_shift_duration}\n\n"
+                    f"> **Total Past Duration:** {total_duration}\n\n"
                 ),
                 inline=False
             )
