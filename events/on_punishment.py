@@ -66,9 +66,18 @@ class OnPunishment(commands.Cog):
             ).set_thumbnail(
                 url=thumbnail
             )
-
-        logger = self.bot.get_cog("ThrottledLogger")
-        await logger.log_embed(channel, log_embed)
+        
+        # Bypass ThrottledLogger for now - direct send
+        try:
+            await channel.send(embed=log_embed)
+        except discord.HTTPException as e:
+            self.bot.logger.error(f"Failed to send punishment log to channel {channel.id}: {e}")
+        except Exception as e:
+            self.bot.logger.error(f"Unexpected error sending punishment log: {e}")
+            
+        # Original throttled logger code (commented out for testing)
+        # logger = self.bot.get_cog("ThrottledLogger")
+        # await logger.log_embed(channel, log_embed)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(OnPunishment(bot))
