@@ -96,7 +96,7 @@ class ShiftManagerContainer(discord.ui.Container):
             elif hours > 0:
                 total_duration = f"{hours}h {minutes}m {seconds}s"
             else:
-                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "0"
 
             return f"## {self.bot.emoji.get('onshift')} On-Duty\n### Current Statistics\n> **Shift Type:** {self.shift_type.capitalize()}\n> **Shift Start:** <t:{int(self.shift_data['start_epoch'])}:F>\n> **Breaks:** {self.break_count} Break(s)\n\n### Overall Statistics\n> **Total Shifts:** {len(self.past_shifts)}\n> **Total Duration:** {total_duration}"
 
@@ -115,7 +115,7 @@ class ShiftManagerContainer(discord.ui.Container):
             elif hours > 0:
                 total_duration = f"{hours}h {minutes}m {seconds}s"
             else:
-                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "Not Applicable"
+                total_duration = f"{minutes}m {seconds}s" if total_duration_seconds > 0 else "0"
 
             return f"## {self.bot.emoji.get('offshift')} Off-Duty\n### Current Statistics\n> **Shift Type:** {self.shift_type.capitalize()}\n> **Total Shifts:** {len(self.past_shifts)}\n> **Total Duration:** {total_duration}"
 
@@ -854,8 +854,8 @@ class ShiftAdminView(discord.ui.View):
                 (
                     "value",
                     discord.ui.TextInput(
-                        label="Time to Add (minutes)",
-                        placeholder="Enter time in minutes",
+                        label="Time to Add (eg. 10m, 1h)",
+                        placeholder="Enter the duration.",
                         required=True,
                         max_length=500
                     )
@@ -882,17 +882,16 @@ class ShiftAdminView(discord.ui.View):
 
         active_data = self._get_active_shift_data()
         if not active_data:
-            # Find last shift
-            last_shift_list = await self.bot.shift_logs.find(
+            last_shift = await self.bot.shift_logs.find_one(
                 {
                     "guild_id": interaction.guild.id,
                     "user_id": self.user.id,
                     "type": self.shift_type.lower(),
                     "end_epoch": {"$ne": 0}
                 }
-            ).sort("end_epoch", -1).limit(1)
+            )
             
-            if not last_shift_list:
+            if not last_shift:
                 return await interaction.followup.send(
                     embed=discord.Embed(
                         title=f"{self.bot.emoji.get('error')} Error",
@@ -902,7 +901,6 @@ class ShiftAdminView(discord.ui.View):
                     ephemeral=True,
                 )
             
-            last_shift = last_shift_list[0]
             await self.bot.shift_logs.update_one(
                 {"_id": last_shift["_id"]},
                 {
@@ -943,8 +941,8 @@ class ShiftAdminView(discord.ui.View):
                 (
                     "value",
                     discord.ui.TextInput(
-                        label="Time to Remove (minutes)",
-                        placeholder="Enter time in minutes",
+                        label="Time to Remove (eg. 10m, 1h)",
+                        placeholder="Enter the duration.",
                         required=True,
                         max_length=500
                     )
@@ -971,17 +969,16 @@ class ShiftAdminView(discord.ui.View):
 
         active_data = self._get_active_shift_data()
         if not active_data:
-            # Find last shift
-            last_shift_list = await self.bot.shift_logs.find(
+            last_shift = await self.bot.shift_logs.find_one(
                 {
                     "guild_id": interaction.guild.id,
                     "user_id": self.user.id,
                     "type": self.shift_type.lower(),
                     "end_epoch": {"$ne": 0}
                 }
-            ).sort("end_epoch", -1).limit(1)
+            )
             
-            if not last_shift_list:
+            if not last_shift:
                 return await interaction.followup.send(
                     embed=discord.Embed(
                         title=f"{self.bot.emoji.get('error')} Error",
@@ -991,7 +988,6 @@ class ShiftAdminView(discord.ui.View):
                     ephemeral=True,
                 )
             
-            last_shift = last_shift_list[0]
             await self.bot.shift_logs.update_one(
                 {"_id": last_shift["_id"]},
                 {

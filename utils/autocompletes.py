@@ -148,43 +148,70 @@ async def shift_type_autocomplete(
             ),
         ]
 
+import discord
+from discord import app_commands
+import typing
+
 async def punishment_autocomplete(
     interaction: discord.Interaction, current: str
 ) -> typing.List[app_commands.Choice[str]]:
     bot = interaction.client
     Data = await bot.punishment_types.find_by_id(interaction.guild.id)
+    
     default_punishments = ["Warning", "Kick", "Ban", "Bolo"]
-    enabled_punishments = None
+    
+    # If no data exists, return default punishments
     if Data is None:
         return [
             app_commands.Choice(name=item, value=item)
             for item in default_punishments
+            if current.lower() in item.lower()
         ]
-        enabled_punishments = Data.get("default_punishments", [])
-    else:
-        ndt = []
-        for item in Data["types"]:
-            if item not in default_punishments:
-                ndt.append(item)
-        enabled_defaults = {
-            p["name"].lower()
-            for p in enabled_punishments
-            if p.get("enabled", False)
-        }
-        filtered_punishments = [
-            name.capitalize() for name in ["warning", "kick", "ban", "bolo"] if name in enabled_defaults
-        ]
-        return [
-            app_commands.Choice(
-                name=(
-                    item_identifier := item if isinstance(item, str) else item["name"]
-                ),
-                value=item_identifier,
-            )
-            for item in ndt + filtered_punishments
-        ]
-
-
+    
+    # Get enabled default punishments from the database
+    enabled_defaults_list = Data.get("default_punishments", [])
+    enabled_defaults = {
+        p["name"].lower()
+        for p in enabled_defaults_list
+        if p.get("enabled", False)
+    }
+    
+    # Filter and capitalize enabled defaults
+    filtered_defaults = [
+        name.capitalize() 
+        for name in ["warning", "kick", "ban", "bolo"] 
+        if name in enabled_defaults
+    ]
+    
+    # Get custom punishment types (if they exist)
+    custom_types = Data.get("types", [])
+    custom_punishments = []
+    
+    for item in custom_types:
+        # Handle both string and object formats
+        if isinstance(item, str):
+            custom_punishments.append(item)
+        elif isinstance(item, dict):
+            custom_punishments.append(item.get("name", ""))
+    
+    # Remove empty strings and filter out items that are in default punishments
+    custom_punishments = [
+        item for item in custom_punishments 
+        if item and item.lower() not in [d.lower() for d in default_punishments]
+    ]
+    
+    # Combine custom + enabled defaults
+    all_punishments = custom_punishments + filtered_defaults
+    
+    # Filter based on current input
+    filtered_results = [
+        app_commands.Choice(name=item, value=item)
+        for item in all_punishments
+        if current.lower() in item.lower()
+    ]
+    
+    # Return up to 25 choices (Discord limit)
+    return filtered_results[:25]
 
 last_request_time = {}
 

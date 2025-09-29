@@ -41,7 +41,7 @@ class OnPunishment(commands.Cog):
         #     self.bot.logger.error(f"Failed to log punishment to panel: {response.status_code} - {response.text}")
 
         log_embed = discord.Embed(
-                title=f"{self.bot.emoji.get('caution')} Logged Punishment",
+                title=f"🛡️ Logged Punishment",
                 color=GREEN_COLOR,
             ).add_field(
                 name="Punishment Information",
@@ -49,7 +49,6 @@ class OnPunishment(commands.Cog):
                     f"> **Player:** {warning['user_name']}\n"
                     f"> **Type:** {warning['type']}\n"
                     f"> **Reason:** {warning['reason']}\n"
-                    f"> **At:** <t:{int(warning['timestamp'])}>\n"
                     f"> **ID:** `{warning['snowflake']}`\n"
                 ),
                 inline=False
@@ -58,7 +57,6 @@ class OnPunishment(commands.Cog):
                 value=(
                     f"> **Mention:** <@{warning['moderator_id']}>\n"
                     f"> **Username:** {warning['moderator_name']}\n"
-                    f"> **ID:** `{warning['moderator_id']}`"
                 )
             ).set_author(
                 name=author.name,
