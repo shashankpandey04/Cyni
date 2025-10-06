@@ -949,6 +949,12 @@ class CustomShiftTypeMenu(discord.ui.View):
         await interaction.response.edit_message(view=view, embed=embed)
 
     async def delete_shift_type_callback(self, interaction: discord.Interaction):
+
+        sett = await self.bot.shift_types.find_one(
+            {
+                "_id":interaction.guild.id
+            }
+        )
         modal = CustomModal(
             "Shift Name Configuration",
             [
@@ -973,18 +979,20 @@ class CustomShiftTypeMenu(discord.ui.View):
         if not shift_name:
             await interaction.followup.send(
                 embed=discord.Embed(
-                    title="No Alert Message Provided",
-                    description="You must provide an alert message.",
+                    title="No Shift Type Provided",
+                    description="You must provide an shift types.",
                     color=BLANK_COLOR
                 ), ephemeral=True
             )
             return
 
-        await self.bot.shift_types.delete_one(
+        await self.bot.shift_types.update_one(
             {
-                "_id": interaction.guild.id,
-                f"{self.sett['shift_name']}": {
-                    "$exists": True
+                "_id": interaction.guild.id
+            },
+            {
+                "$unset": {
+                    shift_name: ""
                 }
             }
         )
@@ -994,4 +1002,4 @@ class CustomShiftTypeMenu(discord.ui.View):
         embed.description = f"Shift Name: {shift_name}"
         embed.color = discord.Color.red()
         embed.clear_fields()
-        await interaction.response.edit_message(embed=embed, view=None)
+        await interaction.message.edit(embed=embed, view=None)
