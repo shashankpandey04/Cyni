@@ -108,6 +108,21 @@ class OnMemberJoin(commands.Cog):
             pass
         except Exception as e:
             print(f"Error sending welcome message: {e}")
+    
+    async def _send_welcome_message_dm(self, member, content=None, embed=None):
+        """
+        Sending the welcome message to user in DM's
+        """
+        try:
+            if embed:
+                logger = self.bot.get_cog("ThrottledLogger")
+                await logger.log_embed(member, embed)
+            elif content:
+                await member.send(content)
+        except discord.Forbidden:
+            pass
+        except Exception as e:
+            print(f"Error sending welcome message DM: {e}")
 
     async def _add_welcome_role(self, member, role):
         """Add welcome role to member with error handling."""
@@ -252,6 +267,7 @@ class OnMemberJoin(commands.Cog):
                     color=int(embed_color, 16) if embed_color else GREEN_COLOR
                 )
                 await self._send_welcome_message(welcome_channel, embed=embed)
+                await self._send_welcome_message_dm(member, embed=embed)
             except ValueError:
                 # Invalid color format, fallback to default
                 embed = discord.Embed(
@@ -264,6 +280,7 @@ class OnMemberJoin(commands.Cog):
                 await self._send_welcome_message(welcome_channel, embed=embed)
         else:
             await self._send_welcome_message(welcome_channel, content=formatted_message)
+            await self._send_welcome_message_dm(member, content=formatted_message)
         
         # Add welcome role if specified
         if welcome_role:
