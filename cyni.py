@@ -69,7 +69,6 @@ class Bot(commands.AutoShardedBot):
 
         if user.id in [
             1201129677457215558, #coding.nerd
-            707064490826530888, #imlimiteds
         ]:
             return True
 
@@ -136,23 +135,23 @@ class Bot(commands.AutoShardedBot):
             if now - ts <= self.RATE_LIMIT_WINDOW
         ]
 
-        alert_channel = self.get_channel(self.RATE_LIMIT_ALERT_CHANNEL)
-        if alert_channel:
-            if len(self.rate_limit_tracker[key]) >= self.RATE_LIMIT_ABUSE_THRESHOLD:
-                await alert_channel.send(
-                    f"🚨 **Rate Limit Abuse Detected** 🚨\n"
-                    f"Guild ID: `{guild_id}`\n"
-                    f"Channel ID: `{channel_id}`\n"
-                    f"Route: `{route.method} {route.path}`\n"
-                    f"Hits in {self.RATE_LIMIT_WINDOW}s: `{len(self.rate_limit_tracker[key])}`"
-                )
-            else:
-                await alert_channel.send(
-                    f"⚠️ Rate limit hit.\n"
-                    f"Guild ID: `{guild_id}`\n"
-                    f"Channel ID: `{channel_id}`\n"
-                    f"Route: `{route.method} {route.path}`"
-                )
+        # alert_channel = self.get_channel(self.RATE_LIMIT_ALERT_CHANNEL)
+        # if alert_channel:
+        #     if len(self.rate_limit_tracker[key]) >= self.RATE_LIMIT_ABUSE_THRESHOLD:
+        #         await alert_channel.send(
+        #             f"🚨 **Rate Limit Abuse Detected** 🚨\n"
+        #             f"Guild ID: `{guild_id}`\n"
+        #             f"Channel ID: `{channel_id}`\n"
+        #             f"Route: `{route.method} {route.path}`\n"
+        #             f"Hits in {self.RATE_LIMIT_WINDOW}s: `{len(self.rate_limit_tracker[key])}`"
+        #         )
+        #     else:
+        #         await alert_channel.send(
+        #             f"⚠️ Rate limit hit.\n"
+        #             f"Guild ID: `{guild_id}`\n"
+        #             f"Channel ID: `{channel_id}`\n"
+        #             f"Route: `{route.method} {route.path}`"
+        #         )
 
     async def setup_hook(self) -> None:
         self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
