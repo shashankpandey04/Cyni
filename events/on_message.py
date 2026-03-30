@@ -1295,11 +1295,13 @@ class OnMessage(commands.Cog):
             if not settings:
                 return
 
+            premium_server = await self.bot.premium.find_by_id(message.guild.id)
+
             use_premium_ai = premium_server and self.bot.is_premium
             if use_premium_ai:
                 await self._handle_ai_moderation(message, settings)
             else:
-                await self._handle_ai_moderation(message, setting)
+                await self._handle_ai_moderation(message, settings)
 
             await self._handle_automod_spam_detection(message, settings)
 
