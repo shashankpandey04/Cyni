@@ -27,9 +27,6 @@ from Views.Tickets import TicketView
 from menu import LOARequest
 from roblox import client as roblox
 
-from Models.modai import ModerationModel
-
-# Custom exceptions for premium checks
 class PremiumCheck(commands.CheckFailure):
     """Base exception for premium check failures"""
     pass
@@ -135,24 +132,6 @@ class Bot(commands.AutoShardedBot):
             if now - ts <= self.RATE_LIMIT_WINDOW
         ]
 
-        # alert_channel = self.get_channel(self.RATE_LIMIT_ALERT_CHANNEL)
-        # if alert_channel:
-        #     if len(self.rate_limit_tracker[key]) >= self.RATE_LIMIT_ABUSE_THRESHOLD:
-        #         await alert_channel.send(
-        #             f"🚨 **Rate Limit Abuse Detected** 🚨\n"
-        #             f"Guild ID: `{guild_id}`\n"
-        #             f"Channel ID: `{channel_id}`\n"
-        #             f"Route: `{route.method} {route.path}`\n"
-        #             f"Hits in {self.RATE_LIMIT_WINDOW}s: `{len(self.rate_limit_tracker[key])}`"
-        #         )
-        #     else:
-        #         await alert_channel.send(
-        #             f"⚠️ Rate limit hit.\n"
-        #             f"Guild ID: `{guild_id}`\n"
-        #             f"Channel ID: `{channel_id}`\n"
-        #             f"Route: `{route.method} {route.path}`"
-        #         )
-
     async def setup_hook(self) -> None:
         self.is_premium = True if os.getenv("PREMIUM_TOKEN") else False
         self.mongo = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
@@ -174,11 +153,7 @@ class Bot(commands.AutoShardedBot):
         self.emoji = EmojiController(self)
         self.logger = logging.getLogger()
         self.roblox = roblox.Client()
-        self.modai = ModerationModel()
         self.prc_player_cache = {} # Cache for PRC player info
-        # {
-        #     guild_id: [username_1, username_2, ...],
-        # }
         await self.emoji.prefetch_emojis()
 
         orig_request = self.http.request
