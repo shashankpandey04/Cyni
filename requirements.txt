@@ -1,10 +1,5 @@
-aiohttp
 discord
 redis
 asyncio
 pymongo
 python-dotenv
-requests
-roblox
-fastapi
-uvicorn
