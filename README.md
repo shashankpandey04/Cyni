@@ -126,12 +126,3 @@ For GSoC inquiries, open an issue titled `GSoC: <topic>` and tag the maintainer;
 ## License
 
 This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
-
----
-
-If you'd like, I can:
-
-- open a draft GSoC proposal using these project ideas, or
-- push this README to the repository now and open a PR with a short changelog.
-
-
