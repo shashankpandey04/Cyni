@@ -76,7 +76,3 @@ Use the issue templates when opening new issues (bug, feature, documentation, mi
 ## License
 
 This project is licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE).
-
----
-
-If you want me to expand any section (examples, `.env.example`, docs), tell me which part to focus on.
