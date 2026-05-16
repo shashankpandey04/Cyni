@@ -151,7 +151,7 @@ This repository is licensed under the Apache License 2.0 — see [LICENSE](LICEN
 
 Maintainer: Shashank Pandey
 
-For collaboration, feature requests, or GSoC proposals, open an issue using the `GSoC proposal` template or reach out via GitHub.
+For collaboration, feature requests, or GSoC proposals, open an issue using templates or reach out via GitHub.
 
 ---
 
