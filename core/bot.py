@@ -7,6 +7,7 @@ import os
 from core.config import Config
 
 # Services
+from infra.constants import DEV_GUILD_ID
 from services.mongo import MongoService
 from services.redis import RedisService
 from services.cache import CacheService
@@ -39,7 +40,8 @@ class CyniBot(commands.AutoShardedBot):
     async def setup_hook(self):
         await self.init_services()
         await self.load_modules()
-        await self.tree.sync()
+        guild = discord.Object(id=DEV_GUILD_ID)
+        await self.tree.sync(guild=guild)
 
         self.logger.info("Bot setup complete")
 
@@ -47,7 +49,10 @@ class CyniBot(commands.AutoShardedBot):
 
     async def init_services(self):
         # Mongo
-        self.mongo = MongoService(os.getenv("MONGO_URI"))
+        try:
+            self.mongo: MongoService = MongoService(os.getenv("MONGO_URI"))
+        except Exception as e:
+            self.logger.error(f"Failed to initialize MongoDB: {e}")
 
         # Redis (optional)
         redis_url = os.getenv("REDIS_URL")
@@ -79,7 +84,7 @@ class CyniBot(commands.AutoShardedBot):
                 for file in files:
                     if file.endswith(".py") and not file.startswith("_"):
                         path = os.path.join(root, file)
-                        module = path.replace("/", ".").replace("\\", ".")[:-3]
+                        module = os.path.splitext(path)[0].replace(os.sep, ".")
 
                         try:
                             await self.load_extension(module)
@@ -89,16 +94,17 @@ class CyniBot(commands.AutoShardedBot):
 
     # ---------------- GLOBAL CHECKS ---------------- #
 
-    async def on_command(self, ctx):
-        # Global rate limiter
+    async def bot_check(self, ctx):
         if ctx.guild:
-            allowed, _ = await self.rate_limiter.consume(ctx.guild.id)
+            allowed, retry = await self.rate_limiter.consume(ctx.guild.id)
 
             if not allowed:
                 raise commands.CommandOnCooldown(
-                    commands.Cooldown(1, 5),
-                    retry_after=5
+                    commands.Cooldown(1, retry),
+                    retry_after=retry
                 )
+
+        return True
 
     # ---------------- EVENTS ---------------- #
 
