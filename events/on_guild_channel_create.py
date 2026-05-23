@@ -3,7 +3,8 @@ import discord
 
 from discord.ext import commands
 
-from utils.utils import discord_time, generate_embed
+from utils.embedGenerator import generate_embed
+from utils.helpers import discord_time
 
 
 class OnGuildChannelCreate(commands.Cog):
@@ -140,7 +141,7 @@ class OnGuildChannelCreate(commands.Cog):
             # =================================================
 
             created_at = discord_time(
-                datetime.datetime.utcnow()
+                datetime.datetime.now()
             )
 
             embed = generate_embed(
