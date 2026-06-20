@@ -1,5 +1,6 @@
 # Env + Config Loader
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,11 +22,7 @@ class Config:
 
     @classmethod
     def get_token(cls):
-        return (
-            cls.PRODUCTION_TOKEN
-            or cls.PREMIUM_TOKEN
-            or cls.DEV_TOKEN
-        )
+        return cls.PRODUCTION_TOKEN or cls.PREMIUM_TOKEN or cls.DEV_TOKEN
 
     # -------- PREFIX -------- #
 
@@ -35,7 +32,8 @@ class Config:
             return Config.DEFAULT_PREFIX
 
         try:
-            settings = await bot.cache.get_settings(message.guild.id)
-            return settings.get("prefix", Config.DEFAULT_PREFIX)
+            settings = await bot.settings.get(message.guild.id)
+
+            return settings.prefix
         except Exception:
             return Config.DEFAULT_PREFIX

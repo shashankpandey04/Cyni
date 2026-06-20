@@ -1,105 +1,70 @@
-# Token Bucket System
-import time
+# services/rate_limiter.py
+
 import json
+import time
 
 
-def refill(tokens, last_refill, now, max_tokens, rate):
+def refill(
+    tokens: float,
+    last_refill: float,
+    now: float,
+    capacity: int,
+    refill_rate: float,
+):
     elapsed = now - last_refill
-    tokens = min(max_tokens, tokens + elapsed * rate)
+
+    tokens = min(capacity, tokens + elapsed * refill_rate)
+
     return tokens, now
 
 
-# ================= MEMORY ================= #
+class RateLimiter:
+    FREE_CAPACITY = 50
+    PREMIUM_CAPACITY = 250
 
-class MemoryRateLimiter:
-    def __init__(self, bot):
-        self.bot = bot
-        self.buckets = {}
+    REFILL_RATE = 2.0
 
-        self.FREE = 20
-        self.PREMIUM = 100
-        self.REFILL = 2
+    BUCKET_TTL = 300
 
-    async def consume(self, guild_id):
-        now = time.time()
-
-        is_premium = await self.bot.cache.is_premium(guild_id)
-        max_tokens = self.PREMIUM if is_premium else self.FREE
-
-        bucket = self.buckets.get(guild_id, {
-            "tokens": max_tokens,
-            "last": now
-        })
-
-        tokens, last = refill(
-            bucket["tokens"],
-            bucket["last"],
-            now,
-            max_tokens,
-            self.REFILL
-        )
-
-        if tokens < 1:
-            return False, tokens
-
-        tokens -= 1
-
-        self.buckets[guild_id] = {
-            "tokens": tokens,
-            "last": last
-        }
-
-        return True, tokens
-
-
-# ================= REDIS ================= #
-
-class RedisRateLimiter:
     def __init__(self, bot, redis):
         self.bot = bot
         self.redis = redis
 
-        self.FREE = 20
-        self.PREMIUM = 100
-        self.REFILL = 2
+    async def consume(self, guild_id: int) -> tuple[bool, float]:
 
-    async def consume(self, guild_id):
         now = time.time()
+
         key = f"rate:{guild_id}"
+
+        premium = await self.bot.cache.is_premium(guild_id)
+
+        capacity = self.PREMIUM_CAPACITY if premium else self.FREE_CAPACITY
 
         raw = await self.redis.get(key)
 
-        is_premium = await self.bot.cache.is_premium(guild_id)
-        max_tokens = self.PREMIUM if is_premium else self.FREE
-
         if raw:
             bucket = json.loads(raw)
+
         else:
-            bucket = {
-                "tokens": max_tokens,
-                "last": now
-            }
+            bucket = {"tokens": capacity, "last": now}
 
         tokens, last = refill(
-            bucket["tokens"],
-            bucket["last"],
-            now,
-            max_tokens,
-            self.REFILL
+            bucket["tokens"], bucket["last"], now, capacity, self.REFILL_RATE
         )
 
         if tokens < 1:
-            return False, tokens
+            retry_after = (1 - tokens) / self.REFILL_RATE
+
+            return False, retry_after
 
         tokens -= 1
 
         await self.redis.set(
-            key,
-            json.dumps({
-                "tokens": tokens,
-                "last": last
-            }),
-            ex=60
+            key, json.dumps({"tokens": tokens, "last": last}), ex=self.BUCKET_TTL
         )
 
-        return True, tokens
+        return True, 0
+
+    async def reset(self, guild_id: int):
+
+        await self.redis.delete(f"rate:{guild_id}")

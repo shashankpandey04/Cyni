@@ -1,24 +1,29 @@
-import json
 import asyncio
-from typing import Any, Optional
+import json
+from typing import Any, TypeVar
+
+from pydantic import BaseModel
+
+from models.settings.settings import GuildSettings
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class CacheService:
-
     DEFAULT_TTL = 300
 
     def __init__(self, mongo, redis=None):
         self.mongo = mongo
         self.redis = redis
 
-        # Prevent duplicate DB fetches
-        self._locks = {}
+        self._locks: dict[str, asyncio.Lock] = {}
 
     # =========================================================
     # INTERNAL
     # =========================================================
 
     def _get_lock(self, key: str):
+
         if key not in self._locks:
             self._locks[key] = asyncio.Lock()
 
@@ -40,22 +45,13 @@ class CacheService:
         except Exception:
             return None
 
-    async def _set_redis_json(
-        self,
-        key: str,
-        value: Any,
-        ttl: int = DEFAULT_TTL
-    ):
+    async def _set_redis_json(self, key: str, value: Any, ttl: int = DEFAULT_TTL):
 
         if not self.redis:
             return
 
         try:
-            await self.redis.set(
-                key,
-                json.dumps(value),
-                ex=ttl
-            )
+            await self.redis.set(key, json.dumps(value), ex=ttl)
 
         except Exception:
             pass
@@ -67,82 +63,95 @@ class CacheService:
 
         try:
             await self.redis.delete(key)
+
         except Exception:
             pass
+
+    # =========================================================
+    # GENERIC MODEL CACHE
+    # =========================================================
+
+    async def get_model(
+        self, collection: str, _id: int, model: type[T], *, force_fetch: bool = False
+    ) -> T:
+
+        key = f"{collection}:{_id}"
+
+        # ---------------- CACHE ---------------- #
+
+        if not force_fetch:
+            cached = await self._get_redis_json(key)
+
+            if cached is not None:
+                return model.model_validate(cached)
+
+        # ---------------- LOCK ---------------- #
+
+        async with self._get_lock(key):
+            if not force_fetch:
+                cached = await self._get_redis_json(key)
+
+                if cached is not None:
+                    return model.model_validate(cached)
+
+            # ---------------- DATABASE ---------------- #
+
+            data = await self.mongo.get(collection, _id)
+
+            if not data:
+                data = {"_id": _id}
+
+            # ---------------- CACHE ---------------- #
+
+            await self._set_redis_json(key, data, ttl=self.DEFAULT_TTL)
+
+            return model.model_validate(data)
+
+    async def save_model(self, collection: str, model_instance: BaseModel):
+
+        doc = model_instance.model_dump(by_alias=True)
+
+        _id = doc["_id"]
+
+        await self.mongo.set(
+            collection, _id, {k: v for k, v in doc.items() if k != "_id"}
+        )
+
+        await self._set_redis_json(f"{collection}:{_id}", doc, ttl=self.DEFAULT_TTL)
+
+    async def invalidate_model(self, collection: str, _id: int):
+
+        await self.delete(f"{collection}:{_id}")
 
     # =========================================================
     # SETTINGS
     # =========================================================
 
     async def get_settings(
-        self,
-        guild_id: int,
-        *,
-        force_fetch: bool = False
-    ):
+        self, guild_id: int, *, force_fetch: bool = False
+    ) -> GuildSettings:
 
-        key = f"guild:{guild_id}:settings"
+        return await self.get_model(
+            "settings", guild_id, GuildSettings, force_fetch=force_fetch
+        )
 
-        # ---------------- CACHE ---------------- #
+    async def save_settings(self, settings: GuildSettings):
 
-        if not force_fetch:
-
-            cached = await self._get_redis_json(key)
-
-            if cached is not None:
-                return cached
-
-        # ---------------- LOCK ---------------- #
-
-        async with self._get_lock(key):
-
-            # double-check after lock
-
-            if not force_fetch:
-
-                cached = await self._get_redis_json(key)
-
-                if cached is not None:
-                    return cached
-
-            # ---------------- DATABASE ---------------- #
-
-            data = await self.mongo.get(
-                "settings",
-                guild_id
-            ) or {}
-
-            # ---------------- CACHE ---------------- #
-
-            await self._set_redis_json(
-                key,
-                data,
-                ttl=300
-            )
-
-            return data
+        await self.save_model("settings", settings)
 
     async def invalidate_settings(self, guild_id: int):
 
-        await self.delete(
-            f"guild:{guild_id}:settings"
-        )
+        await self.invalidate_model("settings", guild_id)
 
     # =========================================================
     # PREMIUM
     # =========================================================
 
-    async def is_premium(
-        self,
-        guild_id: int
-    ) -> bool:
+    async def is_premium(self, guild_id: int) -> bool:
 
-        key = f"guild:{guild_id}:premium"
-
-        # ---------------- CACHE ---------------- #
+        key = f"premium:{guild_id}"
 
         if self.redis:
-
             try:
                 cached = await self.redis.get(key)
 
@@ -152,25 +161,13 @@ class CacheService:
             except Exception:
                 pass
 
-        # ---------------- DATABASE ---------------- #
-
-        data = await self.mongo.get(
-            "premium",
-            guild_id
-        )
+        data = await self.mongo.get("premium", guild_id)
 
         premium = data is not None
 
-        # ---------------- CACHE ---------------- #
-
         if self.redis:
-
             try:
-                await self.redis.set(
-                    key,
-                    "1" if premium else "0",
-                    ex=300
-                )
+                await self.redis.set(key, "1" if premium else "0", ex=self.DEFAULT_TTL)
 
             except Exception:
                 pass
@@ -179,25 +176,17 @@ class CacheService:
 
     async def invalidate_premium(self, guild_id: int):
 
-        await self.delete(
-            f"guild:{guild_id}:premium"
-        )
+        await self.delete(f"premium:{guild_id}")
 
     # =========================================================
-    # AUDIT LOG CHANNEL
+    # HELPERS
     # =========================================================
 
-    async def get_audit_log_channel(
-        self,
-        guild_id: int
-    ) -> Optional[int]:
+    async def get_audit_log_channel(self, guild_id: int):
 
-        key = f"guild:{guild_id}:auditlog"
-
-        # ---------------- CACHE ---------------- #
+        key = f"auditlog:{guild_id}"
 
         if self.redis:
-
             try:
                 cached = await self.redis.get(key)
 
@@ -207,50 +196,27 @@ class CacheService:
             except Exception:
                 pass
 
-        # ---------------- SETTINGS ---------------- #
-
         settings = await self.get_settings(guild_id)
 
-        moderation = settings.get(
-            "moderation_module",
-            {}
-        )
-
-        if not moderation.get("enabled"):
+        if not settings.moderation.enabled:
             return None
 
-        channel_id = moderation.get("audit_log")
+        channel_id = settings.moderation.audit_log
 
         if not channel_id:
             return None
 
-        # ---------------- CACHE ---------------- #
-
         if self.redis:
-
             try:
-                await self.redis.set(
-                    key,
-                    str(channel_id),
-                    ex=600
-                )
+                await self.redis.set(key, str(channel_id), ex=600)
 
             except Exception:
                 pass
 
         return channel_id
 
-    async def recover_audit_log_channel(
-        self,
-        guild_id: int
-    ):
+    async def recover_audit_log_channel(self, guild_id: int):
 
-        key = f"guild:{guild_id}:auditlog"
+        await self.delete(f"auditlog:{guild_id}")
 
-        # remove stale cache
-        await self.delete(key)
-
-        # refetch fresh
-        return await self.get_audit_log_channel(
-            guild_id
-        )
+        return await self.get_audit_log_channel(guild_id)

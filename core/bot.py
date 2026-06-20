@@ -1,17 +1,18 @@
 # Bot Class
-import discord
-from discord.ext import commands
 import logging
 import os
+
+import discord
+from discord.ext import commands
 
 from core.config import Config
 
 # Services
 from infra.constants import DEV_GUILD_ID
-from services.mongo import MongoService
-from services.redis import RedisService
 from services.cache import CacheService
-from services.rate_limiter import MemoryRateLimiter, RedisRateLimiter
+from services.mongo import MongoService
+from services.rate_limiter import RateLimiter
+from services.redis import RedisService
 
 
 class CyniBot(commands.AutoShardedBot):
@@ -22,9 +23,7 @@ class CyniBot(commands.AutoShardedBot):
         intents.guilds = True
 
         super().__init__(
-            command_prefix=Config.get_prefix,
-            intents=intents,
-            help_command=None
+            command_prefix=Config.get_prefix, intents=intents, help_command=None
         )
 
         self.logger = logging.getLogger("cyni")
@@ -50,7 +49,9 @@ class CyniBot(commands.AutoShardedBot):
     async def init_services(self):
         # Mongo
         try:
-            self.mongo: MongoService = MongoService(os.getenv("MONGO_URI"))
+            self.mongo: MongoService = MongoService(
+                os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+            )
         except Exception as e:
             self.logger.error(f"Failed to initialize MongoDB: {e}")
 
@@ -67,10 +68,7 @@ class CyniBot(commands.AutoShardedBot):
         self.cache = CacheService(self.mongo, self.redis)
 
         # Rate Limiter
-        if self.redis:
-            self.rate_limiter = RedisRateLimiter(self, self.redis)
-        else:
-            self.rate_limiter = MemoryRateLimiter(self)
+        self.rate_limiter = RateLimiter(self, self.redis)
 
     # ---------------- MODULES ---------------- #
 
@@ -95,14 +93,18 @@ class CyniBot(commands.AutoShardedBot):
     # ---------------- GLOBAL CHECKS ---------------- #
 
     async def bot_check(self, ctx):
-        if ctx.guild:
-            allowed, retry = await self.rate_limiter.consume(ctx.guild.id)
 
-            if not allowed:
-                raise commands.CommandOnCooldown(
-                    commands.Cooldown(1, retry),
-                    retry_after=retry
-                )
+        if not ctx.guild:
+            return True
+
+        allowed, retry_after = await self.rate_limiter.consume(ctx.guild.id)
+
+        if not allowed:
+            raise commands.CommandOnCooldown(
+                commands.Cooldown(1, retry_after),
+                retry_after=retry_after,
+                type=commands.BucketType.guild,
+            )
 
         return True
 
