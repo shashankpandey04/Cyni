@@ -1,5 +1,5 @@
 aiohttp
-git+https://github.com/Rapptz/discord.py
+discord.py
 jishaku
 pymongo
 python-dotenv
