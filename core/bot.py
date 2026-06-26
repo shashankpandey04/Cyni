@@ -8,6 +8,7 @@ from core.config import Config
 from db.mongo import client as mongo_client
 from db.mongo import db
 from db.redis import redis
+from integrations.erlc.client import ERLC
 
 
 class CyniBot(commands.AutoShardedBot):
@@ -29,6 +30,8 @@ class CyniBot(commands.AutoShardedBot):
         self.mongo = mongo_client
         self.db = db
         self.redis = redis
+
+        self.erlc = ERLC()
 
     # ---------------- SETUP ---------------- #
 
@@ -75,6 +78,7 @@ class CyniBot(commands.AutoShardedBot):
     async def close(self):
         self.logger.info("Shutting down...")
 
+        await self.erlc.close()
         await self.mongo.close()
 
         if self.redis:
