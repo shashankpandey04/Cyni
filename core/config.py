@@ -3,6 +3,8 @@ import os
 
 from dotenv import load_dotenv
 
+from db.mongo import db
+
 load_dotenv()
 
 
@@ -16,13 +18,18 @@ class Config:
     PREMIUM_TOKEN = os.getenv("PREMIUM_TOKEN")
     DEV_TOKEN = os.getenv("DEV_TOKEN")
 
-    DEFAULT_PREFIX = "!"
+    DEFAULT_PREFIX = "?"
 
     # -------- TOKEN -------- #
 
     @classmethod
-    def get_token(cls):
-        return cls.PRODUCTION_TOKEN or cls.PREMIUM_TOKEN or cls.DEV_TOKEN
+    def get_token(cls) -> str:
+        token = cls.PRODUCTION_TOKEN or cls.PREMIUM_TOKEN or cls.DEV_TOKEN
+
+        if token is None:
+            raise RuntimeError("No Discord token found in enviornment variable.")
+
+        return token
 
     # -------- PREFIX -------- #
 
@@ -31,9 +38,12 @@ class Config:
         if not message.guild:
             return Config.DEFAULT_PREFIX
 
-        try:
-            settings = await bot.settings.get(message.guild.id)
+        settings = await db.settings.find_one(
+            {"_id": message.guild.id},
+            {"prefix": 1},
+        )
 
-            return settings.prefix
-        except Exception:
-            return Config.DEFAULT_PREFIX
+        if settings:
+            return settings.get("prefix", Config.DEFAULT_PREFIX)
+
+        return Config.DEFAULT_PREFIX
