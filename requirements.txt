@@ -3,3 +3,6 @@ redis
 asyncio
 pymongo
 python-dotenv
+httpx
+fastapi
+uvicorn
