@@ -54,28 +54,100 @@ class CyniBot(commands.AutoShardedBot):
 
     async def load_modules(self):
         for folder in ("modules", "events", "tasks"):
-            if not os.path.isdir(folder):
+            if not os.path.exists(folder):
                 continue
 
-            for root, _, files in os.walk(folder):
-                for file in files:
-                    if not file.endswith(".py") or file.startswith("_"):
-                        continue
+            for file in os.listdir(folder):
+                if not file.endswith(".py") or file.startswith("_"):
+                    continue
 
-                    module = os.path.splitext(os.path.join(root, file))[0].replace(
-                        os.sep, "."
-                    )
+                module = f"{folder}.{file[:-3]}"
 
-                    try:
-                        await self.load_extension(module)
-                        self.logger.info(f"Loaded {module}")
-                    except Exception:
-                        self.logger.exception(f"Failed to load {module}")
+                try:
+                    await self.load_extension(module)
+                    self.logger.info(f"Loaded {module}")
+                except Exception:
+                    self.logger.exception(f"Failed to load {module}")
 
     # ---------------- EVENTS ---------------- #
 
     async def on_ready(self):
         self.logger.info(f"Logged in as {self.user}")
+
+    # ---------------- ACCESS CHECKS ------------#
+    async def _has_access(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+        category: str,
+        permission: str,
+    ) -> bool:
+        """Checks whether a member has a configured access role."""
+
+        if member.guild_permissions.administrator:
+            return True
+
+        settings = await db.settings.find_one(
+            {"_id": guild.id},
+            {f"{category}.{permission}": 1},
+        )
+
+        if not settings:
+            return False
+
+        roles = settings.get(category, {}).get(permission, [])
+
+        member_roles = {role.id for role in member.roles}
+
+        return any(role_id in member_roles for role_id in roles)
+
+    async def staff_check(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+    ) -> bool:
+        return await self._has_access(
+            guild,
+            member,
+            "basic_settings",
+            "staff_roles",
+        )
+
+    async def management_check(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+    ) -> bool:
+        return await self._has_access(
+            guild,
+            member,
+            "basic_settings",
+            "management_roles",
+        )
+
+    async def roblox_staff_check(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+    ) -> bool:
+        return await self._has_access(
+            guild,
+            member,
+            "roblox",
+            "staff_roles",
+        )
+
+    async def roblox_management_check(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+    ) -> bool:
+        return await self._has_access(
+            guild,
+            member,
+            "roblox",
+            "management_roles",
+        )
 
     # ---------------- SHUTDOWN ---------------- #
 
