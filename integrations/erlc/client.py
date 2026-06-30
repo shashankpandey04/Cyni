@@ -13,16 +13,11 @@ from .models import Server
 class ERLC:
     BASE_URL = os.getenv("PRC_API_URL", "https://api.erlc.gg/v2")
 
-    def __init__(self):
-        self.client = httpx.AsyncClient(
-            base_url=self.BASE_URL,
-            timeout=15,
-        )
+    def __init__(self, http_client: httpx.AsyncClient):
+        self.client = http_client
 
     def _check_api_error(self, data: dict):
-        """
-        Raises ERLCAPIError if the API returned an error code.
-        """
+        """Raises ERLCAPIError if the API returned an error code."""
 
         if not isinstance(data, dict):
             return
@@ -69,7 +64,8 @@ class ERLC:
 
         if document is None:
             raise ERLCAPIError(
-                2000, "No ERLC API key has been configured for this Discord server."
+                2000,
+                "No ERLC API key has been configured for this Discord server.",
             )
 
         api_key = document["key"]
@@ -89,7 +85,7 @@ class ERLC:
 
         try:
             response = await self.client.get(
-                endpoint,
+                f"{self.BASE_URL}{endpoint}",
                 headers={
                     "server-key": api_key,
                 },
@@ -100,13 +96,22 @@ class ERLC:
             self._check_api_error(data)
 
             if response.status_code >= 400:
-                raise ERLCAPIError(response.status_code, f"HTTP {response.status_code}")
+                raise ERLCAPIError(
+                    response.status_code,
+                    f"HTTP {response.status_code}",
+                )
 
         except httpx.TimeoutException:
-            raise ERLCAPIError(1001, "Request to ERLC API timed out.")
+            raise ERLCAPIError(
+                1001,
+                "Request to the ERLC API timed out.",
+            )
 
         except httpx.RequestError:
-            raise ERLCAPIError(1001, "Failed to communicate with the ERLC API.")
+            raise ERLCAPIError(
+                1001,
+                "Failed to communicate with the ERLC API.",
+            )
 
         await redis.set(
             cache_key,
@@ -122,12 +127,11 @@ class ERLC:
         endpoint: str,
         payload: dict,
     ) -> dict:
-
         api_key = await self._get_api_key(guild_id)
 
         try:
             response = await self.client.post(
-                endpoint,
+                f"{self.BASE_URL}{endpoint}",
                 json=payload,
                 headers={
                     "server-key": api_key,
@@ -139,15 +143,24 @@ class ERLC:
             self._check_api_error(data)
 
             if response.status_code >= 400:
-                raise ERLCAPIError(response.status_code, f"HTTP {response.status_code}")
+                raise ERLCAPIError(
+                    response.status_code,
+                    f"HTTP {response.status_code}",
+                )
 
             return data
 
         except httpx.TimeoutException:
-            raise ERLCAPIError(1001, "Request to ERLC API timed out.")
+            raise ERLCAPIError(
+                1001,
+                "Request to the ERLC API timed out.",
+            )
 
         except httpx.RequestError:
-            raise ERLCAPIError(1001, "Failed to communicate with the ERLC API.")
+            raise ERLCAPIError(
+                1001,
+                "Failed to communicate with the ERLC API.",
+            )
 
     async def server(self, guild_id: int) -> Server:
         data = await self.request(guild_id, "/server")
@@ -184,6 +197,3 @@ class ERLC:
             guild_id,
             f":pm {username} {message}",
         )
-
-    async def close(self):
-        await self.client.aclose()

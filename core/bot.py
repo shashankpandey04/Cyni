@@ -2,6 +2,7 @@ import logging
 import os
 
 import discord
+import httpx
 from discord.ext import commands
 
 from core.config import Config
@@ -26,12 +27,14 @@ class CyniBot(commands.AutoShardedBot):
 
         self.logger = logging.getLogger("cyni")
 
+        self.http_client = httpx.AsyncClient(timeout=15)
+
         # Database
         self.mongo = mongo_client
         self.db = db
         self.redis = redis
 
-        self.erlc = ERLC()
+        self.erlc = ERLC(self.http_client)
 
     # ---------------- SETUP ---------------- #
 
@@ -79,11 +82,12 @@ class CyniBot(commands.AutoShardedBot):
     async def close(self):
         self.logger.info("Shutting down...")
 
-        await self.erlc.close()
         await self.mongo.close()
 
         if self.redis:
             await self.redis.aclose()
+
+        await self.http_client.aclose()
 
         await super().close()
 
