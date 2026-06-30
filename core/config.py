@@ -15,7 +15,6 @@ class Config:
     REDIS_URL = os.getenv("REDIS_URL")
 
     PRODUCTION_TOKEN = os.getenv("PRODUCTION_TOKEN")
-    PREMIUM_TOKEN = os.getenv("PREMIUM_TOKEN")
     DEV_TOKEN = os.getenv("DEV_TOKEN")
 
     DEFAULT_PREFIX = "?"
@@ -24,7 +23,7 @@ class Config:
 
     @classmethod
     def get_token(cls) -> str:
-        token = cls.PRODUCTION_TOKEN or cls.PREMIUM_TOKEN or cls.DEV_TOKEN
+        token = cls.PRODUCTION_TOKEN or cls.DEV_TOKEN
 
         if token is None:
             raise RuntimeError("No Discord token found in enviornment variable.")

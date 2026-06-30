@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from .logs import (
@@ -11,7 +13,7 @@ from .players import Player
 from .vehicles import Vehicle
 
 
-class Staff(BaseModel):
+class StaffInfo(BaseModel):
     Admins: dict[str, str] = Field(default_factory=dict)
     Mods: dict[str, str] = Field(default_factory=dict)
     Helpers: dict[str, str] = Field(default_factory=dict)
@@ -34,7 +36,7 @@ class Server(BaseModel):
 
     Players: list[Player] = Field(default_factory=list)
 
-    Staff: Staff
+    Staff: StaffInfo = Field(default_factory=StaffInfo)
 
     JoinLogs: list[JoinLog] = Field(default_factory=list)
     Queue: list[int] = Field(default_factory=list)

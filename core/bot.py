@@ -36,13 +36,14 @@ class CyniBot(commands.AutoShardedBot):
     # ---------------- SETUP ---------------- #
 
     async def setup_hook(self):
-        # Verify database connections
         await self.mongo.admin.command("ping")
 
         if self.redis:
             await self.redis.ping()
 
         await self.load_modules()
+
+        await self.tree.sync()
 
         self.logger.info("Bot setup complete")
 
