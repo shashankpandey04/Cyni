@@ -20,9 +20,13 @@ class ERLC(commands.Cog):
         Returns base ERLC Embed.
         Helps maintain consistent embed design accross all ERLC commands.
         """
+        guild = ctx.guild
         return (
             discord.Embed(title=title, description=descrption)
-            .set_author(name=ctx.guild.name, icon_url=ctx.guild.icon)
+            .set_author(
+                name=guild.name if guild else "Unknown Guild",
+                icon_url=guild.icon if guild else None,
+            )
             .set_footer(text="CYNI | Emergency Response Liberty County")
         )
 
@@ -42,10 +46,9 @@ class ERLC(commands.Cog):
 
     @erlc.command(name="status", description="Shows the current ERLC server status.")
     async def status(self, ctx: commands.Context):
-        await ctx.defer()
-
+        guild = ctx.guild
         try:
-            server = await self.bot.erlc.server(ctx.guild.id)
+            server = await self.bot.erlc.server(guild.id if guild else None)
 
         except ERLCAPIError as e:
             return await ctx.reply(embed=self._error_embed(e))
@@ -62,7 +65,7 @@ class ERLC(commands.Cog):
             ctx,
             "Server Status",
             description,
-        ).set_thumbnail(url=ctx.guild.icon)
+        ).set_thumbnail(url=guild.icon if guild else None)
         await ctx.reply(embed=embed)
 
 
