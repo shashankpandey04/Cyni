@@ -19,7 +19,6 @@ REFRESH_TOKEN_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
 
 class TokenRequest(BaseModel):
-    guild_id: int
     user_id: int
 
 
@@ -30,20 +29,22 @@ async def issue_tokens(
 ):
     bot = request.app.state.bot
 
-    guild = bot.get_guild(payload.guild_id)
-    if guild is None:
-        raise HTTPException(404, "Guild not found.")
+    user = bot.get_user(payload.user_id)
 
-    member = guild.get_member(payload.user_id)
-    if member is None:
-        raise HTTPException(404, "Member not found.")
+    if user is None:
+        user = await bot.fetch_user(payload.user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found.",
+        )
 
     now = datetime.now(timezone.utc)
 
     access_token = jwt.encode(
         {
-            "guild_id": guild.id,
-            "user_id": member.id,
+            "user_id": user.id,
             "type": "access",
             "exp": now + timedelta(seconds=ACCESS_TOKEN_EXPIRY),
         },
@@ -55,8 +56,7 @@ async def issue_tokens(
 
     refresh_token = jwt.encode(
         {
-            "guild_id": guild.id,
-            "user_id": member.id,
+            "user_id": user.id,
             "type": "refresh",
             "jti": session_id,
             "exp": now + timedelta(seconds=REFRESH_TOKEN_EXPIRY),
@@ -67,7 +67,7 @@ async def issue_tokens(
 
     await bot.redis.set(
         f"refresh:{session_id}",
-        f"{guild.id}:{member.id}",
+        str(user.id),
         ex=REFRESH_TOKEN_EXPIRY,
     )
 
@@ -96,29 +96,62 @@ async def refresh_access_token(
             algorithms=[JWT_ALGORITHM],
         )
     except jwt.PyJWTError:
-        raise HTTPException(401, "Invalid refresh token.")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid refresh token.",
+        )
 
     if data.get("type") != "refresh":
-        raise HTTPException(401, "Invalid token type.")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token type.",
+        )
 
     session = await bot.redis.get(f"refresh:{data['jti']}")
 
     if session is None:
-        raise HTTPException(401, "Session expired.")
+        raise HTTPException(
+            status_code=401,
+            detail="Session expired.",
+        )
+
+    # Invalidate old refresh session
+    await bot.redis.delete(f"refresh:{data['jti']}")
+
+    now = datetime.now(timezone.utc)
 
     access_token = jwt.encode(
         {
-            "guild_id": data["guild_id"],
             "user_id": data["user_id"],
             "type": "access",
-            "exp": datetime.now(timezone.utc) + timedelta(seconds=ACCESS_TOKEN_EXPIRY),
+            "exp": now + timedelta(seconds=ACCESS_TOKEN_EXPIRY),
         },
         JWT_SECRET,
         algorithm=JWT_ALGORITHM,
     )
 
+    new_session_id = secrets.token_urlsafe(32)
+
+    refresh_token = jwt.encode(
+        {
+            "user_id": data["user_id"],
+            "type": "refresh",
+            "jti": new_session_id,
+            "exp": now + timedelta(seconds=REFRESH_TOKEN_EXPIRY),
+        },
+        JWT_SECRET,
+        algorithm=JWT_ALGORITHM,
+    )
+
+    await bot.redis.set(
+        f"refresh:{new_session_id}",
+        str(data["user_id"]),
+        ex=REFRESH_TOKEN_EXPIRY,
+    )
+
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "expires_in": ACCESS_TOKEN_EXPIRY,
     }
 
@@ -171,6 +204,5 @@ async def verify(
 
     return {
         "valid": True,
-        "guild_id": payload["guild_id"],
         "user_id": payload["user_id"],
     }

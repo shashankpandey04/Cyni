@@ -2,6 +2,7 @@ import os
 
 import jwt
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/website",
@@ -12,10 +13,11 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = "HS256"
 
 
-async def get_member(
-    request: Request,
-    guild_id: int,
-):
+class BulkAccessRequest(BaseModel):
+    guild_ids: list[int]
+
+
+async def get_user_id(request: Request) -> int:
     auth = request.headers.get("Authorization")
 
     if not auth or not auth.startswith("Bearer "):
@@ -44,50 +46,28 @@ async def get_member(
             detail="Invalid token type.",
         )
 
-    bot = request.app.state.bot
+    return payload["user_id"]
 
+
+async def get_member(
+    bot,
+    guild_id: int,
+    user_id: int,
+):
     guild = bot.get_guild(guild_id)
-    if guild is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Guild not found.",
-        )
 
-    member = guild.get_member(payload["user_id"])
+    if guild is None:
+        return None, None
+
+    member = guild.get_member(user_id)
+
     if member is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Member not found.",
-        )
+        return guild, None
 
     return guild, member
 
 
-@router.get("/roles")
-async def roles(
-    guild_id: int = Query(...),
-    request: Request = None,
-):
-    guild, member = await get_member(
-        request,
-        guild_id,
-    )
-
-    return {"roles": [role.id for role in member.roles if role != guild.default_role]}
-
-
-@router.get("/access")
-async def access(
-    guild_id: int = Query(...),
-    request: Request = None,
-):
-    bot = request.app.state.bot
-
-    guild, member = await get_member(
-        request,
-        guild_id,
-    )
-
+async def build_access(bot, guild, member):
     return {
         "administrator": member.guild_permissions.administrator,
         "discord": {
@@ -113,6 +93,84 @@ async def access(
     }
 
 
+@router.get("/roles")
+async def roles(
+    guild_id: int = Query(...),
+    request: Request = None,
+):
+    bot = request.app.state.bot
+
+    guild, member = await get_member(
+        bot,
+        guild_id,
+        await get_user_id(request),
+    )
+
+    if guild is None:
+        raise HTTPException(404, "Guild not found.")
+
+    if member is None:
+        raise HTTPException(404, "Member not found.")
+
+    return {"roles": [role.id for role in member.roles if role != guild.default_role]}
+
+
+@router.post("/access/bulk")
+async def bulk_access(
+    payload: BulkAccessRequest,
+    request: Request,
+):
+    bot = request.app.state.bot
+
+    user_id = await get_user_id(request)
+
+    response = {}
+
+    for guild_id in payload.guild_ids:
+        guild, member = await get_member(
+            bot,
+            guild_id,
+            user_id,
+        )
+
+        if guild is None or member is None:
+            continue
+
+        response[str(guild_id)] = await build_access(
+            bot,
+            guild,
+            member,
+        )
+
+    return response
+
+
+@router.get("/access")
+async def access(
+    guild_id: int = Query(...),
+    request: Request = None,
+):
+    bot = request.app.state.bot
+
+    guild, member = await get_member(
+        bot,
+        guild_id,
+        await get_user_id(request),
+    )
+
+    if guild is None:
+        raise HTTPException(404, "Guild not found.")
+
+    if member is None:
+        raise HTTPException(404, "Member not found.")
+
+    return await build_access(
+        bot,
+        guild,
+        member,
+    )
+
+
 @router.get("/me")
 async def me(
     guild_id: int = Query(...),
@@ -121,9 +179,16 @@ async def me(
     bot = request.app.state.bot
 
     guild, member = await get_member(
-        request,
+        bot,
         guild_id,
+        await get_user_id(request),
     )
+
+    if guild is None:
+        raise HTTPException(404, "Guild not found.")
+
+    if member is None:
+        raise HTTPException(404, "Member not found.")
 
     return {
         "user": {
@@ -138,27 +203,9 @@ async def me(
             "icon": guild.icon.url if guild.icon else None,
         },
         "roles": [role.id for role in member.roles if role != guild.default_role],
-        "access": {
-            "administrator": member.guild_permissions.administrator,
-            "discord": {
-                "staff": await bot.staff_check(
-                    guild,
-                    member,
-                ),
-                "management": await bot.management_check(
-                    guild,
-                    member,
-                ),
-            },
-            "roblox": {
-                "staff": await bot.roblox_staff_check(
-                    guild,
-                    member,
-                ),
-                "management": await bot.roblox_management_check(
-                    guild,
-                    member,
-                ),
-            },
-        },
+        "access": await build_access(
+            bot,
+            guild,
+            member,
+        ),
     }
